@@ -1,0 +1,57 @@
+Options -MultiViews
+RewriteEngine On
+RewriteBase /crm-skybridge/
+
+# ---------------------------------------------------------------
+# Fix Next.js RSC Payload 404 errors on Apache/cPanel
+#
+# The browser requests flat files like:
+#   /dashboard/admins/__next.dashboard.admins.txt
+#   /dashboard/admins/__next.dashboard.admins.__PAGE__.txt
+#
+# But Next.js static export generates them as nested directories:
+#   /dashboard/admins/__next.dashboard/admins.txt
+#   /dashboard/admins/__next.dashboard/admins/__PAGE__.txt
+# ---------------------------------------------------------------
+
+# Rule 1: __next.X.Y.__PAGE__.txt  →  __next.X/Y/__PAGE__.txt
+# Example: __next.dashboard.admins.__PAGE__.txt → __next.dashboard/admins/__PAGE__.txt
+RewriteRule ^(.*/)__next\.([^.]+)\.([^.]+)\.__PAGE__\.txt$ $1__next.$2/$3/__PAGE__.txt [L]
+
+# Rule 2: __next.X.Y.txt  →  __next.X/Y.txt
+# Example: __next.dashboard.admins.txt → __next.dashboard/admins.txt
+RewriteRule ^(.*/)__next\.([^.]+)\.([^.]+)\.txt$ $1__next.$2/$3.txt [L]
+
+# Rule 3: __next.X.__PAGE__.txt  →  __next.X/__PAGE__.txt
+# Example: __next.dashboard.__PAGE__.txt → __next.dashboard/__PAGE__.txt
+RewriteRule ^(.*/)__next\.([^.]+)\.__PAGE__\.txt$ $1__next.$2/__PAGE__.txt [L]
+
+# ---------------------------------------------------------------
+# SPA Fallback: serve index.html for all non-file routes
+# This allows client-side navigation to work on page refresh
+# ---------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L,QSA]
+
+# ---------------------------------------------------------------
+# Set MIME types for Next.js payload files
+# ---------------------------------------------------------------
+<IfModule mod_mime.c>
+    AddType text/plain .txt
+    AddType text/html .html
+</IfModule>
+
+# ---------------------------------------------------------------
+# Enable caching for static assets
+# ---------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
