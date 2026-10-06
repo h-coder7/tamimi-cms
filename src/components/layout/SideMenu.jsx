@@ -56,6 +56,15 @@ export default function SideMenu() {
                         </li>
 
                         <li>
+                            <Link href="/dashboard/pages" className={`lnk ${isActive("/dashboard/pages") ? "active" : ""}`}>
+                                <span className="icon">
+                                    <i className="fal fa-file-alt"></i>
+                                </span>
+                                <span className="txt">Pages & Home</span>
+                            </Link>
+                        </li>
+
+                        <li>
                             <Link href="/dashboard/companies" className={`lnk ${isActive("/dashboard/companies") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-building"></i>
@@ -133,6 +142,33 @@ export default function SideMenu() {
                                     <i className="fal fa-envelope"></i>
                                 </span>
                                 <span className="txt">Messages</span>
+                            </Link>
+                        </li>
+
+                        <li>
+                            <Link href="/dashboard/downloads" className={`lnk ${isActive("/dashboard/downloads") ? "active" : ""}`}>
+                                <span className="icon">
+                                    <i className="fal fa-download"></i>
+                                </span>
+                                <span className="txt">Downloads</span>
+                            </Link>
+                        </li>
+
+                        <li>
+                            <Link href="/dashboard/seo" className={`lnk ${isActive("/dashboard/seo") ? "active" : ""}`}>
+                                <span className="icon">
+                                    <i className="fal fa-search"></i>
+                                </span>
+                                <span className="txt">SEO</span>
+                            </Link>
+                        </li>
+
+                        <li>
+                            <Link href="/dashboard/users" className={`lnk ${isActive("/dashboard/users") ? "active" : ""}`}>
+                                <span className="icon">
+                                    <i className="fal fa-users"></i>
+                                </span>
+                                <span className="txt">Users & Roles</span>
                             </Link>
                         </li>
 

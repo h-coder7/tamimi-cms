@@ -1,6 +1,6 @@
 Options -MultiViews
 RewriteEngine On
-RewriteBase /crm-skybridge/
+RewriteBase /
 
 # ---------------------------------------------------------------
 # Fix Next.js RSC Payload 404 errors on Apache/cPanel

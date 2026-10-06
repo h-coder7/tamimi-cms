@@ -15,6 +15,7 @@ export default function TitleWrapper() {
         { label: "Project", icon: "fal fa-briefcase", path: "/dashboard/projects" },
         { label: "Logo", icon: "fal fa-handshake", path: "/dashboard/clients-partners" },
         { label: "Certificate", icon: "fal fa-certificate", path: "/dashboard/certificates" },
+        { label: "Download", icon: "fal fa-download", path: "/dashboard/downloads" },
         { label: "Post", icon: "fal fa-newspaper", path: "/dashboard/posts" },
         { label: "Job", icon: "fal fa-user-hard-hat", path: "/dashboard/jobs" },
     ];

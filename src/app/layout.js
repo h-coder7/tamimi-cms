@@ -20,10 +20,10 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Skybridgecrm",
-  description: "Skybridge CRM",
+  title: "tamimi cms",
+  description: "tamimi cms",
   icons: {
-    icon: publicPath("/fav.png"),
+    icon: publicPath("/icon.png"),
   },
 };
 
