@@ -11,6 +11,10 @@ import ProjectsFilter from "./ProjectsFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useIndustries } from "@/hooks/useIndustries";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
+import { buildIndustryFilterOptions } from "@/lib/industryOptions";
 
 export default function ProjectsTable({
     data = [],
@@ -30,16 +34,18 @@ export default function ProjectsTable({
     const [industryFilter, setIndustryFilter] = useState("");
     const [yearFilter, setYearFilter] = useState("");
     const [featuredFilter, setFeaturedFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
+    const { data: industries = [] } = useIndustries();
 
-    const companyOptions = useMemo(() => {
-        const codes = [...new Set(data.map((item) => item.company_code).filter(Boolean))];
-        return codes.map((code) => ({ value: code, label: code }));
-    }, [data]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies),
+        [companies]
+    );
 
-    const industryOptions = useMemo(() => {
-        const industries = [...new Set(data.map((item) => item.industry).filter(Boolean))];
-        return industries.map((industry) => ({ value: industry, label: industry }));
-    }, [data]);
+    const industryOptions = useMemo(
+        () => buildIndustryFilterOptions(industries),
+        [industries]
+    );
 
     const yearOptions = useMemo(() => {
         const years = [...new Set(data.map((item) => String(item.year)).filter(Boolean))]

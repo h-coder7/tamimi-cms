@@ -6,6 +6,12 @@ import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
 import { DOWNLOAD_TYPES, DOWNLOAD_STATUSES } from "@/hooks/useDownloads";
+import {
+    GROUP_CODE,
+    GROUP_VALUE,
+    buildCompanyFormOptions,
+} from "@/lib/companyOptions";
+import { toast } from "react-hot-toast";
 
 const DESC_MAX = 160;
 
@@ -23,7 +29,8 @@ const emptyForm = () => ({
     title: "",
     title_ar: "",
     type: "",
-    company_code: "",
+    company: "group",
+    company_code: GROUP_CODE,
     pdfFiles: [],
     coverFiles: [],
     description: "",
@@ -32,7 +39,7 @@ const emptyForm = () => ({
 });
 
 export default function DownloadModal({ isOpen, onClose, onSave, download }) {
-    const { data: companies = [] } = useCompanies();
+    const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [lang, setLang] = useState("en");
     const [isMounted, setIsMounted] = useState(false);
@@ -43,13 +50,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
     );
 
     const companyOptions = useMemo(
-        () => [
-            { value: "TEG", label: "Tamimi Energy Group" },
-            ...companies.map((company) => ({
-                value: company.code,
-                label: `${company.code} — ${company.title}`,
-            })),
-        ],
+        () => buildCompanyFormOptions(companies, { includeGroup: true }),
         [companies]
     );
 
@@ -64,15 +65,25 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
 
     useEffect(() => {
         if (!isOpen) return;
+        refetchCompanies();
+    }, [isOpen, refetchCompanies]);
+
+    useEffect(() => {
+        if (!isOpen) return;
 
         setLang("en");
 
         if (download) {
+            const status =
+                download.publish_status ||
+                (download.status === "Pending file" ? "Draft" : download.status) ||
+                "Draft";
             setFormData({
                 title: download.title || "",
                 title_ar: download.title_ar || "",
                 type: download.type || "",
-                company_code: download.company_code || "",
+                company: download.company || "group",
+                company_code: download.company_code || GROUP_CODE,
                 pdfFiles: download.file
                     ? [{ preview: download.file, type: "application/pdf", name: "File.pdf" }]
                     : [],
@@ -81,7 +92,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                     : [],
                 description: download.description || "",
                 description_ar: download.description_ar || "",
-                status: download.status || "Draft",
+                status: DOWNLOAD_STATUSES.includes(status) ? status : "Draft",
             });
         } else {
             setFormData(emptyForm());
@@ -97,28 +108,44 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (!formData.type || !formData.company_code) return;
-        if (!download && (!formData.pdfFiles || formData.pdfFiles.length === 0)) return;
+        if (!formData.title.trim()) {
+            toast.error("Title (EN) is required");
+            return;
+        }
+        if (!formData.type || !formData.company) {
+            toast.error("Type and company are required");
+            return;
+        }
+        const hasNewPdf = formData.pdfFiles?.[0]?.file instanceof File;
+        if (!download && !hasNewPdf) {
+            toast.error("A PDF file is required");
+            return;
+        }
 
-        const selectedCompany = companyOptions.find((o) => o.value === formData.company_code);
-        const file = formData.pdfFiles?.[0]?.preview || "";
+        const selected =
+            formData.company !== GROUP_VALUE
+                ? companies.find((c) => c.id === formData.company)
+                : null;
 
         onSave({
             title: formData.title.trim(),
             title_ar: formData.title_ar.trim(),
             type: formData.type,
-            company_code: formData.company_code,
+            company: formData.company || GROUP_VALUE,
+            company_code:
+                formData.company === GROUP_VALUE
+                    ? GROUP_CODE
+                    : selected?.code || formData.company_code || "",
             company_label:
-                formData.company_code === "TEG"
+                formData.company === GROUP_VALUE
                     ? "Tamimi Energy Group"
-                    : selectedCompany?.label?.split(" — ")[0] || formData.company_code,
-            file,
-            format: file ? "PDF" : "—",
-            cover: formData.coverFiles?.[0]?.preview || "",
+                    : selected?.title || selected?.code || "",
+            pdfFiles: formData.pdfFiles,
+            coverFiles: formData.coverFiles,
             description: formData.description.trim(),
             description_ar: formData.description_ar.trim(),
             status: formData.status || "Draft",
-            is_sample: Boolean(download?.is_sample),
+            publish_status: formData.status || "Draft",
         });
     };
 
@@ -216,13 +243,22 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                         </label>
                                         <Select
                                             options={companyOptions}
-                                            value={companyOptions.find((o) => o.value === formData.company_code) || null}
-                                            onChange={(opt) =>
+                                            value={companyOptions.find((o) => o.value === formData.company) || null}
+                                            onChange={(opt) => {
+                                                const value = opt?.value || GROUP_VALUE;
+                                                const selected =
+                                                    value !== GROUP_VALUE
+                                                        ? companies.find((c) => c.id === value)
+                                                        : null;
                                                 setFormData((prev) => ({
                                                     ...prev,
-                                                    company_code: opt?.value || "",
-                                                }))
-                                            }
+                                                    company: value,
+                                                    company_code:
+                                                        value === GROUP_VALUE
+                                                            ? GROUP_CODE
+                                                            : selected?.code || "",
+                                                }));
+                                            }}
                                             placeholder="Select company"
                                             classNamePrefix="react-select"
                                             menuPortalTarget={typeof document !== "undefined" ? document.body : null}

@@ -1,14 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { confirmAction } from "@/utils/confirm";
 import { publicPath } from "@/utils/publicPath";
+import { useAuth } from "@/providers/AuthProvider";
+import { getLocale, setLocale } from "@/lib/locale";
 
 export default function TitleWrapper() {
-    const [user, setUser] = useState({ name: "Super Admin", email: "admin@skybridge.com" });
+    const { user: authUser, logout } = useAuth();
+    const [locale, setLocaleState] = useState("en");
+    const user = {
+        name: authUser?.name || "Admin",
+        email: authUser?.email || "",
+    };
+
+    useEffect(() => {
+        setLocaleState(getLocale());
+        const onChange = (e) => setLocaleState(e.detail || getLocale());
+        window.addEventListener("cms-locale-change", onChange);
+        return () => window.removeEventListener("cms-locale-change", onChange);
+    }, []);
+
+    const handleLocale = (next) => {
+        setLocale(next);
+        setLocaleState(next);
+    };
+
     const quickCreateItems = [
         { label: "Company", icon: "fal fa-building", path: "/dashboard/companies" },
         { label: "Industry", icon: "fal fa-industry", path: "/dashboard/industries" },
@@ -22,17 +42,6 @@ export default function TitleWrapper() {
 
     const router = useRouter();
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (error) {
-                console.error("Failed to parse user data:", error);
-            }
-        }
-    }, []);
-
     const handleQuickCreate = (path) => {
         router.push(`${path}?action=add`);
     };
@@ -42,9 +51,8 @@ export default function TitleWrapper() {
             title: "Logout?",
             message: "Are you sure you want to logout?",
             confirmLabel: "Logout",
-            onConfirm: () => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
+            onConfirm: async () => {
+                await logout();
                 router.replace("/login");
             },
         });
@@ -100,7 +108,38 @@ export default function TitleWrapper() {
 
                     {/* Utility Icons */}
                     <div className="d-flex align-items-center gap-1 utility-icons ms-lg-2">
-                        <button className="icon-btn d-none d-sm-flex"><i className="fal fa-globe"></i></button>
+                        <div className="dropdown d-none d-sm-block">
+                            <button
+                                className="icon-btn dropdown-toggle after-none"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                title="Language"
+                            >
+                                <i className="fal fa-globe"></i>
+                                <span className="ms-1 fsz-11 text-uppercase">{locale}</span>
+                            </button>
+                            <ul className="dropdown-menu dropdown-menu-end border-0 shadow-sm">
+                                <li>
+                                    <button
+                                        type="button"
+                                        className={`dropdown-item fsz-13 ${locale === "en" ? "active" : ""}`}
+                                        onClick={() => handleLocale("en")}
+                                    >
+                                        English
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        type="button"
+                                        className={`dropdown-item fsz-13 ${locale === "ar" ? "active" : ""}`}
+                                        onClick={() => handleLocale("ar")}
+                                    >
+                                        العربية
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                         <button className="icon-btn d-none d-sm-flex" onClick={toggleFullScreen}>
                             <i className="fal fa-expand"></i>
                         </button>

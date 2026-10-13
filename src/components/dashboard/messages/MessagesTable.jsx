@@ -11,56 +11,27 @@ import MessagesFilter from "./MessagesFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
-
-function escapeCsv(value) {
-    const text = String(value ?? "");
-    if (/[",\n]/.test(text)) {
-        return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-}
-
-export function exportMessagesCsv(rows = []) {
-    const headers = ["From", "Email", "Type", "Target company", "Subject", "Date", "Status"];
-    const lines = [
-        headers.join(","),
-        ...rows.map((item) =>
-            [
-                item.name,
-                item.email,
-                item.type,
-                item.company_label || item.company_code,
-                item.subject,
-                item.received_at,
-                item.status,
-            ].map(escapeCsv).join(",")
-        ),
-    ];
-
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `messages-inquiries-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-}
+import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 
 export default function MessagesTable({
     data = [],
     companiesByCode = {},
     onView,
+    onMarkUnread,
+    onDelete,
 }) {
     const [sorting, setSorting] = useState([{ id: "received_at", desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
     const [search, setSearch] = useState("");
     const [companyFilter, setCompanyFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
 
-    const companyOptions = useMemo(() => {
-        const labels = [...new Set(data.map((item) => item.company_label || item.company_code).filter(Boolean))];
-        return labels.map((label) => ({ value: label, label }));
-    }, [data]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies, { includeGroup: true }),
+        [companies]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -70,8 +41,8 @@ export default function MessagesTable({
                 String(item.name || "").toLowerCase().includes(q) ||
                 String(item.email || "").toLowerCase().includes(q) ||
                 String(item.subject || "").toLowerCase().includes(q);
-            const companyValue = item.company_label || item.company_code;
-            const matchesCompany = !companyFilter || companyValue === companyFilter;
+            const matchesCompany =
+                !companyFilter || item.company_code === companyFilter;
             const matchesStatus = !statusFilter || item.status === statusFilter;
             return matchesSearch && matchesCompany && matchesStatus;
         });
@@ -246,6 +217,24 @@ export default function MessagesTable({
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
                                                                             <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                        </button>
+                                                                    </li>
+                                                                    {item.status === "Read" && (
+                                                                        <li>
+                                                                            <button
+                                                                                className="dropdown-item fsz-12 py-2"
+                                                                                onClick={() => onMarkUnread?.(item)}
+                                                                            >
+                                                                                <i className="fal fa-envelope me-2 text-muted"></i> Mark unread
+                                                                            </button>
+                                                                        </li>
+                                                                    )}
+                                                                    <li>
+                                                                        <button
+                                                                            className="dropdown-item fsz-12 py-2 text-danger"
+                                                                            onClick={() => onDelete?.(item)}
+                                                                        >
+                                                                            <i className="fal fa-trash me-2"></i> Delete
                                                                         </button>
                                                                     </li>
                                                                 </ul>

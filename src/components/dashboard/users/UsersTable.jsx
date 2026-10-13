@@ -7,6 +7,7 @@ import {
     getSortedRowModel,
     getPaginationRowModel,
 } from "@tanstack/react-table";
+import { useAuth } from "@/providers/AuthProvider";
 import UsersFilter from "./UsersFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
@@ -16,10 +17,10 @@ export default function UsersTable({
     onEdit,
     onDelete,
 }) {
+    const { user: currentAdmin } = useAuth();
     const [sorting, setSorting] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
     const [search, setSearch] = useState("");
-    const [roleFilter, setRoleFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
 
     const filteredData = useMemo(() => {
@@ -29,16 +30,14 @@ export default function UsersTable({
                 !q ||
                 String(item.name || "").toLowerCase().includes(q) ||
                 String(item.email || "").toLowerCase().includes(q);
-            const matchesRole = !roleFilter || item.role === roleFilter;
             const matchesStatus = !statusFilter || item.status === statusFilter;
-            return matchesSearch && matchesRole && matchesStatus;
+            return matchesSearch && matchesStatus;
         });
-    }, [data, search, roleFilter, statusFilter]);
+    }, [data, search, statusFilter]);
 
     const columns = useMemo(() => [
         { id: "name", accessorKey: "name", header: "Name", enableSorting: true },
         { id: "email", accessorKey: "email", header: "Email", enableSorting: true },
-        { id: "role", accessorKey: "role", header: "Role", enableSorting: true },
         { id: "last_sign_in", accessorKey: "last_sign_in", header: "Last sign-in", enableSorting: true },
         { id: "status", accessorKey: "status", header: "Status", enableSorting: true },
         { id: "columnActions", header: "Actions", enableSorting: false },
@@ -59,7 +58,6 @@ export default function UsersTable({
 
     const resetAllFilters = () => {
         setSearch("");
-        setRoleFilter("");
         setStatusFilter("");
         setSorting([]);
     };
@@ -77,8 +75,6 @@ export default function UsersTable({
             <UsersFilter
                 search={search}
                 onSearchChange={setSearch}
-                roleFilter={roleFilter}
-                onRoleChange={setRoleFilter}
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
                 onReset={resetAllFilters}
@@ -124,7 +120,7 @@ export default function UsersTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={columnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No users found
+                                        No admins found
                                     </td>
                                 </tr>
                             ) : (
@@ -145,16 +141,6 @@ export default function UsersTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="fsz-12 text-muted">{item.email}</span>
-                                                        </td>
-                                                    );
-                                                }
-
-                                                if (colId === "role") {
-                                                    return (
-                                                        <td key={colId} id={colId}>
-                                                            <span className="badge bg-light text-dark border fsz-11">
-                                                                {item.role || "Admin"}
-                                                            </span>
                                                         </td>
                                                     );
                                                 }
@@ -192,7 +178,7 @@ export default function UsersTable({
                                                                             <i className="fal fa-pen me-2 text-muted"></i> Edit
                                                                         </button>
                                                                     </li>
-                                                                    {!item.locked && (
+                                                                    {item.id !== currentAdmin?.id && (
                                                                         <li>
                                                                             <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
                                                                                 <i className="fal fa-trash me-2 text-muted"></i> Delete

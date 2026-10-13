@@ -1,6 +1,6 @@
 const messages = [
     {
-        label: "[Sample] Inquiry → SESCO",
+        label: "[Sample] Inquiry → Tamimi Energy Group",
         detail: "MV switchgear supply for a substation project",
         time: "2h ago",
         tone: "inquiry",
@@ -12,7 +12,7 @@ const messages = [
         tone: "application",
     },
     {
-        label: "[Sample] Inquiry → GET Water",
+        label: "[Sample] Inquiry → Tamimi Energy Group",
         detail: "Mobile desalination unit rental",
         time: "Yesterday",
         tone: "inquiry",
@@ -38,13 +38,11 @@ export default function LatestMessages() {
                 <ul className="messages-list">
                     {messages.map((item) => (
                         <li key={`${item.label}-${item.detail}`} className="message-item">
-                            <div className="message-main">
-                                <div className={`message-label tone-${item.tone}`}>
-                                    {item.label}
-                                </div>
+                            <div>
+                                <div className={`message-label tone-${item.tone}`}>{item.label}</div>
                                 <div className="message-detail">{item.detail}</div>
                             </div>
-                            <span className="message-time">{item.time}</span>
+                            <div className="message-time">{item.time}</div>
                         </li>
                     ))}
                 </ul>

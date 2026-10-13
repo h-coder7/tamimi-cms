@@ -10,6 +10,8 @@ import {
 import ApplicationsFilter from "./ApplicationsFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
+import { useJobs } from "@/hooks/useJobs";
+import { buildJobFilterOptions } from "@/lib/jobOptions";
 
 function matchesDateFilter(appliedAt, dateFilter) {
     if (!dateFilter || !appliedAt) return !dateFilter;
@@ -34,11 +36,12 @@ export default function ApplicationsTable({
     const [search, setSearch] = useState("");
     const [jobFilter, setJobFilter] = useState("");
     const [dateFilter, setDateFilter] = useState("");
+    const { data: jobs = [] } = useJobs();
 
-    const jobOptions = useMemo(() => {
-        const jobs = [...new Set(data.map((item) => item.job_title).filter(Boolean))];
-        return jobs.map((job) => ({ value: job, label: job }));
-    }, [data]);
+    const jobOptions = useMemo(
+        () => buildJobFilterOptions(jobs),
+        [jobs]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -47,7 +50,10 @@ export default function ApplicationsTable({
                 !q ||
                 String(item.name || "").toLowerCase().includes(q) ||
                 String(item.email || "").toLowerCase().includes(q);
-            const matchesJob = !jobFilter || item.job_title === jobFilter;
+            const matchesJob =
+                !jobFilter ||
+                item.job_id === jobFilter ||
+                item.job_title === jobFilter;
             const matchesDate = !dateFilter || matchesDateFilter(item.applied_at, dateFilter);
             return matchesSearch && matchesJob && matchesDate;
         });

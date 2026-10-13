@@ -4,11 +4,14 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import { useCompanies } from "@/hooks/useCompanies";
-import { JOB_STATUSES } from "@/hooks/useJobs";
+import { JOB_CITIES, JOB_STATUSES } from "@/hooks/useJobs";
+import { buildCompanyFormOptions } from "@/lib/companyOptions";
+import { toast } from "react-hot-toast";
 
 const emptyForm = () => ({
     title: "",
     city: "Al Khobar",
+    company: "group",
     company_code: "TEG",
     experience: "",
     vacancies: "1",
@@ -28,23 +31,23 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function JobModal({ isOpen, onClose, onSave, job }) {
-    const { data: companies = [] } = useCompanies();
+    const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const statusOptions = useMemo(
         () => JOB_STATUSES.map((status) => ({ value: status, label: status })),
         []
     );
 
+    const cityOptions = useMemo(
+        () => JOB_CITIES.map((city) => ({ value: city, label: city })),
+        []
+    );
+
     const companyOptions = useMemo(
-        () => [
-            { value: "TEG", label: "Tamimi Energy Group" },
-            ...companies.map((company) => ({
-                value: company.code,
-                label: `${company.code} — ${company.title}`,
-            })),
-        ],
+        () => buildCompanyFormOptions(companies, { includeGroup: true }),
         [companies]
     );
 
@@ -54,11 +57,17 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
 
     useEffect(() => {
         if (!isOpen) return;
+        refetchCompanies();
+    }, [isOpen, refetchCompanies]);
+
+    useEffect(() => {
+        if (!isOpen) return;
 
         if (job) {
             setFormData({
                 title: job.title || "",
                 city: job.city || "Al Khobar",
+                company: job.company || "group",
                 company_code: job.company_code || "TEG",
                 experience: job.experience || "",
                 vacancies: String(job.vacancies ?? 1),
@@ -77,22 +86,56 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        onSave({
-            title: formData.title.trim(),
-            city: formData.city.trim(),
-            company_code: formData.company_code,
-            experience: formData.experience.trim(),
-            vacancies: Number(formData.vacancies) || 0,
-            description: formData.description.trim(),
-            requirements: formData.requirements.trim(),
-            status: formData.status,
-            deadline: formData.deadline || null,
-            applications: job?.applications ?? 0,
-            is_sample: Boolean(job?.is_sample),
-        });
+        if (!formData.title.trim()) {
+            toast.error("Job title is required");
+            return;
+        }
+        if (!formData.description.trim()) {
+            toast.error("Job description is required");
+            return;
+        }
+        if (!formData.requirements.trim()) {
+            toast.error("Requirements are required");
+            return;
+        }
+        if (!formData.deadline) {
+            toast.error("Application deadline is required");
+            return;
+        }
+        const vacancies = Number(formData.vacancies);
+        if (!Number.isFinite(vacancies) || vacancies < 1) {
+            toast.error("Vacancies must be at least 1");
+            return;
+        }
+
+        const company =
+            formData.company !== "group"
+                ? companies.find((c) => c.id === formData.company)
+                : null;
+
+        setSaving(true);
+        try {
+            await onSave({
+                title: formData.title.trim(),
+                city: formData.city,
+                company: formData.company || "group",
+                company_code:
+                    formData.company === "group"
+                        ? "TEG"
+                        : company?.code || formData.company_code || "",
+                experience: formData.experience.trim(),
+                vacancies,
+                description: formData.description.trim(),
+                requirements: formData.requirements.trim(),
+                status: formData.status,
+                deadline: formData.deadline || null,
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen || !isMounted) return null;
@@ -137,14 +180,19 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
                                                 <label className="form-label">
                                                     City <span className="text-danger">*</span>
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    name="city"
-                                                    required
-                                                    value={formData.city}
-                                                    onChange={handleChange}
+                                                <Select
+                                                    options={cityOptions}
+                                                    value={cityOptions.find((o) => o.value === formData.city) || null}
+                                                    onChange={(opt) =>
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            city: opt?.value || "Al Khobar",
+                                                        }))
+                                                    }
+                                                    classNamePrefix="react-select"
                                                     placeholder="Al Khobar"
+                                                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                                                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
@@ -153,13 +201,22 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
                                                 </label>
                                                 <Select
                                                     options={companyOptions}
-                                                    value={companyOptions.find((o) => o.value === formData.company_code) || null}
-                                                    onChange={(opt) =>
+                                                    value={companyOptions.find((o) => o.value === formData.company) || null}
+                                                    onChange={(opt) => {
+                                                        const value = opt?.value || "group";
+                                                        const selected =
+                                                            value !== "group"
+                                                                ? companies.find((c) => c.id === value)
+                                                                : null;
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            company_code: opt?.value || "TEG",
-                                                        }))
-                                                    }
+                                                            company: value,
+                                                            company_code:
+                                                                value === "group"
+                                                                    ? "TEG"
+                                                                    : selected?.code || "",
+                                                        }));
+                                                    }}
                                                     classNamePrefix="react-select"
                                                     placeholder="Tamimi Energy Group"
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
@@ -183,7 +240,7 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    min="0"
+                                                    min="1"
                                                     className="form-control"
                                                     name="vacancies"
                                                     required
@@ -221,7 +278,7 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
                                                     required
                                                     value={formData.requirements}
                                                     onChange={handleChange}
-                                                    placeholder="List the key requirements"
+                                                    placeholder="One requirement per line"
                                                 />
                                             </div>
                                         </div>
@@ -270,9 +327,13 @@ export default function JobModal({ isOpen, onClose, onSave, job }) {
                                 <button
                                     type="submit"
                                     className="butn-st2"
-                                    disabled={!formData.company_code}
+                                    disabled={!formData.company || saving}
                                 >
-                                    {job ? "Update Job" : "Add Job"}
+                                    {saving
+                                        ? "Saving..."
+                                        : job
+                                          ? "Update Job"
+                                          : "Add Job"}
                                 </button>
                             </div>
                         </form>

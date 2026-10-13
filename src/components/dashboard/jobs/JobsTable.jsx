@@ -12,6 +12,9 @@ import JobsFilter from "./JobsFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
+import { useCompanies } from "@/hooks/useCompanies";
+import { JOB_CITIES } from "@/lib/mappers/jobs";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 
 export default function JobsTable({
     data = [],
@@ -29,6 +32,7 @@ export default function JobsTable({
     const [cityFilter, setCityFilter] = useState("");
     const [companyFilter, setCompanyFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
 
     useEffect(() => {
         const newSelection = {};
@@ -39,18 +43,15 @@ export default function JobsTable({
         setRowSelection(newSelection);
     }, [selectedIds, data]);
 
-    const cityOptions = useMemo(() => {
-        const cities = [...new Set(data.map((item) => item.city).filter(Boolean))];
-        return cities.map((city) => ({ value: city, label: city }));
-    }, [data]);
+    const cityOptions = useMemo(
+        () => JOB_CITIES.map((city) => ({ value: city, label: city })),
+        []
+    );
 
-    const companyOptions = useMemo(() => {
-        const codes = [...new Set(data.map((item) => item.company_code).filter(Boolean))];
-        return codes.map((code) => ({
-            value: code,
-            label: code === "TEG" ? "Tamimi Energy Group" : code,
-        }));
-    }, [data]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies, { includeGroup: true }),
+        [companies]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();

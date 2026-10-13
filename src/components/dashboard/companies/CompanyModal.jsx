@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
+import { useIndustries } from "@/hooks/useIndustries";
 
 const LOGO_ACCEPT = {
     "image/svg+xml": [".svg"],
@@ -26,18 +27,6 @@ const GALLERY_ACCEPT = {
 const PDF_ACCEPT = {
     "application/pdf": [".pdf"],
 };
-
-const INDUSTRY_OPTIONS = [
-    "Oil & Gas",
-    "Power Generation",
-    "Utilities",
-    "Water & Desalination",
-    "Petrochemicals",
-    "Industrial Manufacturing",
-    "Renewable Energy",
-    "Infrastructure",
-    "Automation & Digital Solutions",
-];
 
 const VALUE_CHAIN_OPTIONS = [
     "Engineering & Design",
@@ -89,6 +78,12 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function CompanyModal({ isOpen, onClose, onSave, company }) {
+    const {
+        data: industryOptions = [],
+        isLoading: industriesLoading,
+        isError: industriesError,
+        refetch: refetchIndustries,
+    } = useIndustries();
     const [formData, setFormData] = useState(emptyForm);
     const [serviceInput, setServiceInput] = useState("");
     const [productInput, setProductInput] = useState("");
@@ -99,6 +94,13 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
         setIsMounted(true);
     }, []);
 
+    // Always load the latest industries list when opening the company form
+    useEffect(() => {
+        if (isOpen) {
+            void refetchIndustries();
+        }
+    }, [isOpen, refetchIndustries]);
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -107,11 +109,24 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                 title: company.title || "",
                 code: company.code || "",
                 tagline: company.tagline || "",
-                year_established: company.year_established || "",
+                year_established:
+                    company.year_established != null
+                        ? String(company.year_established)
+                        : "",
                 overview: company.overview || company.field || company.description || "",
-                services: Array.isArray(company.services) ? company.services : [],
-                products: Array.isArray(company.products) ? company.products : [],
-                industries: Array.isArray(company.industries) ? company.industries : [],
+                services: Array.isArray(company.services)
+                    ? company.services
+                          .map((s) => (typeof s === "string" ? s : s?.en || s?.ar || ""))
+                          .filter(Boolean)
+                    : [],
+                products: Array.isArray(company.products)
+                    ? company.products
+                          .map((p) => (typeof p === "string" ? p : p?.en || p?.ar || ""))
+                          .filter(Boolean)
+                    : [],
+                industries: Array.isArray(company.industryIds)
+                    ? company.industryIds
+                    : [],
                 value_chain: Array.isArray(company.value_chain) ? company.value_chain : [],
                 certifications: Array.isArray(company.certifications) ? company.certifications : [],
                 gallery: Array.isArray(company.gallery)
@@ -237,13 +252,16 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
             title: formData.title.trim(),
             code: formData.code.trim(),
             tagline: formData.tagline.trim(),
-            year_established: formData.year_established.trim(),
+            year_established: String(formData.year_established ?? "").trim(),
             overview: formData.overview.trim(),
             field: formData.overview.trim(),
             description: formData.overview.trim(),
             services: formData.services,
             products: formData.products,
-            industries,
+            industryIds: industries,
+            industries: industryOptions
+                .filter((i) => industries.includes(i.id))
+                .map((i) => i.title),
             industries_count: industries.length,
             industries_label: `${industries.length} industries · draft`,
             value_chain: formData.value_chain,
@@ -253,15 +271,21 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
             status: formData.status,
             type: formData.type,
             display_order: formData.display_order === "" ? null : Number(formData.display_order),
-            image: formData.logoFiles?.[0]?.preview || "",
-            cover: formData.coverFiles?.[0]?.preview || "",
+            image: formData.logoFiles?.[0]?.preview || company?.image || "",
+            cover: formData.coverFiles?.[0]?.preview || company?.cover || "",
+            logoFiles: formData.logoFiles,
+            coverFiles: formData.coverFiles,
+            brochureFiles: formData.brochureFiles,
+            logoPath: company?.logoPath || null,
+            coverPath: company?.coverPath || null,
+            brochurePath: company?.brochurePath || null,
             phone: formData.phone.trim(),
             email: formData.email.trim(),
             website,
             domain: pendingWebsite || !website
                 ? ""
                 : (website.startsWith("http") ? website : `https://${website}`),
-            brochure: formData.brochureFiles?.[0]?.preview || "",
+            brochure: formData.brochureFiles?.[0]?.preview || company?.brochure || "",
             seo_title: formData.seo_title.trim(),
             seo_description: formData.seo_description.trim(),
             address: company?.address || "",
@@ -482,17 +506,42 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label d-block mb-2">Industries served</label>
                                                 <div className="d-flex flex-column gap-2">
-                                                    {INDUSTRY_OPTIONS.map((industry) => (
-                                                        <div className="form-check" key={industry}>
+                                                    {industriesLoading && (
+                                                        <p className="fsz-12 text-muted mb-0">Loading industries…</p>
+                                                    )}
+                                                    {industriesError && (
+                                                        <p className="fsz-12 text-danger mb-0">
+                                                            Could not load industries.{" "}
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-link btn-sm p-0 align-baseline"
+                                                                onClick={() => refetchIndustries()}
+                                                            >
+                                                                Retry
+                                                            </button>
+                                                        </p>
+                                                    )}
+                                                    {!industriesLoading &&
+                                                        !industriesError &&
+                                                        industryOptions.length === 0 && (
+                                                        <p className="fsz-12 text-muted mb-0">
+                                                            No industries yet. Create them under Industries.
+                                                        </p>
+                                                    )}
+                                                    {industryOptions.map((industry) => (
+                                                        <div className="form-check" key={industry.id}>
                                                             <input
                                                                 className="form-check-input"
                                                                 type="checkbox"
-                                                                id={`industry-${industry}`}
-                                                                checked={formData.industries.includes(industry)}
-                                                                onChange={() => toggleListValue("industries", industry)}
+                                                                id={`industry-${industry.id}`}
+                                                                checked={formData.industries.includes(industry.id)}
+                                                                onChange={() => toggleListValue("industries", industry.id)}
                                                             />
-                                                            <label className="form-check-label fsz-13" htmlFor={`industry-${industry}`}>
-                                                                {industry}
+                                                            <label className="form-check-label fsz-13" htmlFor={`industry-${industry.id}`}>
+                                                                {industry.title}
+                                                                {industry.status === "Draft" && (
+                                                                    <span className="text-muted fsz-11 ms-1">(Draft)</span>
+                                                                )}
                                                             </label>
                                                         </div>
                                                     ))}
@@ -622,7 +671,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                     maxFiles={1}
                                                     accept={LOGO_ACCEPT}
                                                     title="Upload logo"
-                                                    hint="SVG or PNG"
+                                                    hint="SVG or PNG — saved only when you click Save"
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
@@ -632,7 +681,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                     maxFiles={1}
                                                     accept={COVER_ACCEPT}
                                                     title="Upload cover image"
-                                                    hint="JPG, PNG, WEBP"
+                                                    hint="JPG, PNG, WEBP — saved only when you click Save"
                                                 />
                                             </div>
                                         </div>
@@ -685,7 +734,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                             maxFiles={1}
                                             accept={PDF_ACCEPT}
                                             title="Upload PDF"
-                                            hint="PDF only"
+                                            hint="PDF only — saved only when you click Save"
                                         />
                                     </Section>
 

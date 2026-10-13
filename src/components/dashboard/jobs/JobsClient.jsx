@@ -8,6 +8,7 @@ import JobModal from "./JobModal";
 import JobsTrashModal from "./JobsTrashModal";
 import { confirmAction } from "@/utils/confirm";
 import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompaniesByCode } from "@/lib/companyOptions";
 import {
     useJobs,
     useTrashJobs,
@@ -21,7 +22,8 @@ import {
 
 export default function JobsClient() {
     const { data: jobs = [], isLoading } = useJobs();
-    const { data: trashItems = [] } = useTrashJobs();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashItems = [] } = useTrashJobs({ enabled: showTrashModal });
     const { data: companies = [] } = useCompanies();
 
     const addMutation = useAddJob();
@@ -34,21 +36,15 @@ export default function JobsClient() {
     const [selectedJob, setSelectedJob] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
 
-    const companiesByCode = useMemo(() => {
-        const map = {
-            TEG: { code: "TEG", title: "Tamimi Energy Group", image: "/images/logo.png" },
-        };
-        companies.forEach((company) => {
-            if (company.code) map[company.code] = company;
-        });
-        return map;
-    }, [companies]);
+    const companiesByCode = useMemo(
+        () => buildCompaniesByCode(companies, { includeGroup: true }),
+        [companies]
+    );
 
     useEffect(() => {
         if (searchParams.get("action") === "add") {
@@ -140,7 +136,7 @@ export default function JobsClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashItems.length})</span>
+                    <span className="txt ms-2">View Trash{trashItems.length ? ` (${trashItems.length})` : ""}</span>
                 </button>
             </PageHeader>
 

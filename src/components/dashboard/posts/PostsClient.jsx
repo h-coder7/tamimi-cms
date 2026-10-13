@@ -21,7 +21,8 @@ import {
 
 export default function PostsClient() {
     const { data: posts = [], isLoading } = usePosts();
-    const { data: trashItems = [] } = useTrashPosts();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashItems = [] } = useTrashPosts({ enabled: showTrashModal });
 
     const addMutation = useAddPost();
     const updateMutation = useUpdatePost();
@@ -35,8 +36,7 @@ export default function PostsClient() {
     const [selectedIds, setSelectedIds] = useState([]);
     const [viewPost, setViewPost] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -53,13 +53,17 @@ export default function PostsClient() {
     }, [searchParams, pathname, router]);
 
     const handleSave = async (data) => {
-        if (selectedPost) {
-            await updateMutation.mutateAsync({ ...selectedPost, ...data });
-        } else {
-            await addMutation.mutateAsync(data);
+        try {
+            if (selectedPost) {
+                await updateMutation.mutateAsync({ ...selectedPost, ...data });
+            } else {
+                await addMutation.mutateAsync(data);
+            }
+            setIsModalOpen(false);
+            setSelectedPost(null);
+        } catch {
+            // Error toast is handled in the mutation; keep the modal open for correction
         }
-        setIsModalOpen(false);
-        setSelectedPost(null);
     };
 
     const handleEdit = (id) => {
@@ -136,7 +140,7 @@ export default function PostsClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashItems.length})</span>
+                    <span className="txt ms-2">View Trash{trashItems.length ? ` (${trashItems.length})` : ""}</span>
                 </button>
             </PageHeader>
 

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { CERTIFICATE_TYPES } from "@/hooks/useCertificates";
 
 const IMAGE_ACCEPT = {
@@ -21,10 +22,13 @@ const emptyForm = () => ({
     title: "",
     type: "ISO",
     issuing_body: "",
+    holder: "group",
     holder_code: "TEG",
     expiry: "",
     imageFiles: [],
     pdfFiles: [],
+    imagePath: null,
+    pdfPath: null,
     publish_status: "Draft",
 });
 
@@ -38,7 +42,7 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function CertificateModal({ isOpen, onClose, onSave, certificate }) {
-    const { data: companies = [] } = useCompanies();
+    const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
@@ -48,13 +52,7 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
     );
 
     const holderOptions = useMemo(
-        () => [
-            { value: "TEG", label: "Tamimi Energy Group" },
-            ...companies.map((company) => ({
-                value: company.code,
-                label: `${company.code} — ${company.title}`,
-            })),
-        ],
+        () => buildCompanyFormOptions(companies, { includeGroup: true }),
         [companies]
     );
 
@@ -72,12 +70,18 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
 
     useEffect(() => {
         if (!isOpen) return;
+        refetchCompanies();
+    }, [isOpen, refetchCompanies]);
+
+    useEffect(() => {
+        if (!isOpen) return;
 
         if (certificate) {
             setFormData({
                 title: certificate.title || "",
                 type: certificate.type || "ISO",
                 issuing_body: certificate.issuing_body || "",
+                holder: certificate.holder || "group",
                 holder_code: certificate.holder_code || "TEG",
                 expiry: certificate.expiry || "",
                 imageFiles: certificate.image
@@ -86,6 +90,8 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                 pdfFiles: certificate.pdf
                     ? [{ preview: certificate.pdf, type: "application/pdf", name: "Certificate.pdf" }]
                     : [],
+                imagePath: certificate.imagePath || null,
+                pdfPath: certificate.pdfPath || null,
                 publish_status: certificate.publish_status || "Draft",
             });
         } else {
@@ -101,12 +107,23 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        const company =
+            formData.holder !== "group"
+                ? companies.find((c) => c.id === formData.holder)
+                : null;
+
         onSave({
             title: formData.title.trim(),
             type: formData.type,
             issuing_body: formData.issuing_body.trim(),
-            holder_code: formData.holder_code,
+            holder: formData.holder || "group",
+            holder_code:
+                formData.holder === "group" ? "TEG" : company?.code || formData.holder_code || "",
             expiry: formData.expiry || null,
+            imageFiles: formData.imageFiles,
+            pdfFiles: formData.pdfFiles,
+            imagePath: formData.imagePath,
+            pdfPath: formData.pdfPath,
             image: formData.imageFiles?.[0]?.preview || "",
             pdf: formData.pdfFiles?.[0]?.preview || "",
             publish_status: formData.publish_status || "Draft",
@@ -187,13 +204,19 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                                 </label>
                                                 <Select
                                                     options={holderOptions}
-                                                    value={holderOptions.find((o) => o.value === formData.holder_code) || null}
-                                                    onChange={(opt) =>
+                                                    value={holderOptions.find((o) => o.value === formData.holder) || null}
+                                                    onChange={(opt) => {
+                                                        const value = opt?.value || "group";
+                                                        const company =
+                                                            value !== "group"
+                                                                ? companies.find((c) => c.id === value)
+                                                                : null;
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            holder_code: opt?.value || "TEG",
-                                                        }))
-                                                    }
+                                                            holder: value,
+                                                            holder_code: value === "group" ? "TEG" : company?.code || "",
+                                                        }));
+                                                    }}
                                                     classNamePrefix="react-select"
                                                     placeholder="Tamimi Energy Group"
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
@@ -277,7 +300,7 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                 <button
                                     type="submit"
                                     className="butn-st2"
-                                    disabled={!formData.type || !formData.holder_code}
+                                    disabled={!formData.type || !formData.holder}
                                 >
                                     {certificate ? "Update Certificate" : "Add Certificate"}
                                 </button>

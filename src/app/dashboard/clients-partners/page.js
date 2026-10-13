@@ -1,9 +1,20 @@
-import { Suspense } from "react";
-import ClientsPartnersClient from "@/components/dashboard/clients-partners/ClientsPartnersClient";
+"use client";
 
-export default function ClientsPartnersPage() {
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+
+const ClientsPartnersClient = dynamic(
+  () => import("@/components/dashboard/clients-partners/ClientsPartnersClient"),
+  {
+    loading: () => (
+      <div className="text-center py-5 text-muted">Loading clients…</div>
+    ),
+  }
+);
+
+export default function Page() {
   return (
-    <Suspense fallback={<div className="text-center py-5">Loading clients & partners...</div>}>
+    <Suspense fallback={<div className="text-center py-5 text-muted">Loading clients…</div>}>
       <ClientsPartnersClient />
     </Suspense>
   );

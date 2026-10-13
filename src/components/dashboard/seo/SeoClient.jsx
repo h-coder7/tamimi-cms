@@ -39,7 +39,9 @@ export default function SeoClient() {
                 <button
                     type="button"
                     className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
-                    onClick={() => downloadSitemapXml(pages)}
+                    onClick={async () => {
+                        await downloadSitemapXml(pages);
+                    }}
                     disabled={isLoading || pages.length === 0}
                 >
                     <i className="fal fa-sitemap"></i>

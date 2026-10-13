@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import SearchableSelect from "@/components/shared/SearchableSelect";
 import DateRangeModal from "@/components/shared/DateRangeModal";
+import { useIndustries } from "@/hooks/useIndustries";
+import { useUsers } from "@/hooks/useUsers";
+import { buildIndustryFilterOptions } from "@/lib/industryOptions";
 
 export default function DashboardFilters() {
     const [employeeFilter, setEmployeeFilter] = useState(null);
@@ -17,22 +20,26 @@ export default function DashboardFilters() {
     const [showDateModal, setShowDateModal] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
 
+    const { data: industries = [] } = useIndustries();
+    const { data: users = [] } = useUsers();
+
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    // Mock Options
-    const employeeOptions = [
-        { value: "emp1", label: "John Doe" },
-        { value: "emp2", label: "Jane Smith" },
-        { value: "emp3", label: "Mike Johnson" },
-    ];
+    const employeeOptions = useMemo(
+        () =>
+            (users || []).map((user) => ({
+                value: user.id,
+                label: user.name || user.email,
+            })),
+        [users]
+    );
 
-    const industryOptions = [
-        { value: "ind1", label: "Tech Industry" },
-        { value: "ind2", label: "Real Estate" },
-        { value: "ind3", label: "Finance" },
-    ];
+    const industryOptions = useMemo(
+        () => buildIndustryFilterOptions(industries),
+        [industries]
+    );
 
     const periodOptions = [
         { value: "week", label: "Week" },
@@ -44,66 +51,54 @@ export default function DashboardFilters() {
     const formatDateRangeDisplay = () => {
         const { startDate, endDate } = dateRange[0];
         if (!startDate || !endDate) return "Select Date Range";
-        return isMounted ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : "Select Date Range";
+        return isMounted
+            ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`
+            : "Select Date Range";
     };
 
     const confirmDateRange = (newRange) => {
         setDateRange(newRange);
         setTempRange(newRange);
         setShowDateModal(false);
-        console.log("Date range confirmed:", newRange);
     };
 
     return (
         <>
             <div className="d-flex align-items-center gap-2 flex-wrap">
-                {/* Employee Search */}
                 <div>
                     <SearchableSelect
                         options={employeeOptions}
                         value={employeeFilter}
-                        onChange={(val) => {
-                            setEmployeeFilter(val);
-                            console.log("Employee filter:", val);
-                        }}
+                        onChange={setEmployeeFilter}
                         placeholder="Search Employee..."
                         instanceId="dashboard-employee-filter"
                     />
                 </div>
 
-                {/* Industry Search */}
                 <div>
                     <SearchableSelect
                         options={industryOptions}
                         value={industryFilter}
-                        onChange={(val) => {
-                            setIndustryFilter(val);
-                            console.log("Industry filter:", val);
-                        }}
+                        onChange={setIndustryFilter}
                         placeholder="Search Industry..."
                         instanceId="dashboard-industry-filter"
                     />
                 </div>
 
-                {/* Time Period Select */}
                 <div>
                     <SearchableSelect
                         options={periodOptions}
                         value={periodFilter}
-                        onChange={(val) => {
-                            setPeriodFilter(val);
-                            console.log("Period changed:", val);
-                        }}
+                        onChange={setPeriodFilter}
                         placeholder="Time Period"
                         instanceId="dashboard-period-filter"
                     />
                 </div>
 
-                {/* Date Range Picker Button */}
                 <div>
                     <button
                         className="butn-st2 line-butn py-2 px-3 d-flex align-items-center"
-                        style={{ height: '38px', whiteSpace: "nowrap" }}
+                        style={{ height: "38px", whiteSpace: "nowrap" }}
                         onClick={() => setShowDateModal(true)}
                     >
                         <i className="fal fa-calendar-alt me-2"></i>
@@ -112,8 +107,6 @@ export default function DashboardFilters() {
                 </div>
             </div>
 
-            {/* Date Range Modal (Portaled) */}
-            {/* Date Range Modal (Shared) */}
             <DateRangeModal
                 show={showDateModal}
                 initialRange={tempRange}

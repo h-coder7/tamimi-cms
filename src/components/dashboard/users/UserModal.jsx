@@ -3,34 +3,24 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
-import { USER_ROLES, USER_STATUSES } from "@/hooks/useUsers";
+import { USER_STATUSES } from "@/hooks/useUsers";
 
 const emptyForm = () => ({
     name: "",
     email: "",
-    role: "Admin",
-    status: "Invited",
+    status: "Active",
+    password: "",
+    passwordConfirmation: "",
 });
 
 export default function UserModal({ isOpen, onClose, onSave, user }) {
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
-    const roleOptions = useMemo(
-        () =>
-            USER_ROLES.map((role) => ({
-                value: role.value,
-                label: role.label,
-            })),
-        []
-    );
-
     const statusOptions = useMemo(
         () => USER_STATUSES.map((status) => ({ value: status, label: status })),
         []
     );
-
-    const selectedRole = USER_ROLES.find((role) => role.value === formData.role);
 
     useEffect(() => {
         setIsMounted(true);
@@ -43,8 +33,9 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
             setFormData({
                 name: user.name || "",
                 email: user.email || "",
-                role: user.role || "Admin",
-                status: user.status || "Invited",
+                status: user.status === "Inactive" ? "Inactive" : "Active",
+                password: "",
+                passwordConfirmation: "",
             });
         } else {
             setFormData(emptyForm());
@@ -56,15 +47,23 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
+    const passwordsMismatch =
+        Boolean(formData.password || formData.passwordConfirmation) &&
+        formData.password !== formData.passwordConfirmation;
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!user && !formData.password) return;
+        if (passwordsMismatch) return;
+
         onSave({
             name: formData.name.trim(),
             email: formData.email.trim(),
-            role: formData.role || "Admin",
-            status: user ? formData.status : "Invited",
+            status: user ? formData.status : "Active",
+            password: formData.password || undefined,
+            passwordConfirmation: formData.passwordConfirmation || undefined,
             is_sample: Boolean(user?.is_sample),
-            locked: Boolean(user?.locked),
+            locked: false,
             last_sign_in: user?.last_sign_in || "",
         });
     };
@@ -82,7 +81,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">{user ? "Edit user" : "Add user"}</h5>
+                            <h5 className="modal-title">{user ? "Edit admin" : "Add admin"}</h5>
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
 
@@ -115,33 +114,52 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         value={formData.email}
                                         onChange={handleChange}
                                         placeholder="name@tamimienergy.com"
+                                        disabled={Boolean(user)}
                                     />
-                                    {!user && (
-                                        <div className="form-text fsz-11">
-                                            An activation link is sent to this address
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Role <span className="text-danger">*</span>
+                                        Password{" "}
+                                        {!user && <span className="text-danger">*</span>}
+                                        {user && (
+                                            <span className="text-muted fsz-11 fw-normal">
+                                                (leave blank to keep current)
+                                            </span>
+                                        )}
                                     </label>
-                                    <Select
-                                        options={roleOptions}
-                                        value={roleOptions.find((o) => o.value === formData.role) || roleOptions[0]}
-                                        onChange={(opt) =>
-                                            setFormData((prev) => ({
-                                                ...prev,
-                                                role: opt?.value || "Admin",
-                                            }))
-                                        }
-                                        classNamePrefix="react-select"
-                                        menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                                        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        name="password"
+                                        required={!user}
+                                        minLength={user ? undefined : 8}
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        placeholder="Min 8 chars, upper, digit, symbol"
+                                        autoComplete="new-password"
                                     />
-                                    {selectedRole?.description && (
-                                        <div className="form-text fsz-11">{selectedRole.description}</div>
+                                </div>
+
+                                <div className="mb-3">
+                                    <label className="form-label">
+                                        Confirm password{" "}
+                                        {!user && <span className="text-danger">*</span>}
+                                    </label>
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        name="passwordConfirmation"
+                                        required={!user || Boolean(formData.password)}
+                                        minLength={user && !formData.password ? undefined : 8}
+                                        value={formData.passwordConfirmation}
+                                        onChange={handleChange}
+                                        autoComplete="new-password"
+                                    />
+                                    {passwordsMismatch && (
+                                        <div className="form-text text-danger fsz-11">
+                                            Passwords do not match
+                                        </div>
                                     )}
                                 </div>
 
@@ -150,15 +168,20 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         <label className="form-label">Status</label>
                                         <Select
                                             options={statusOptions}
-                                            value={statusOptions.find((o) => o.value === formData.status) || statusOptions[0]}
+                                            value={
+                                                statusOptions.find((o) => o.value === formData.status) ||
+                                                statusOptions[0]
+                                            }
                                             onChange={(opt) =>
                                                 setFormData((prev) => ({
                                                     ...prev,
-                                                    status: opt?.value || "Invited",
+                                                    status: opt?.value || "Active",
                                                 }))
                                             }
                                             classNamePrefix="react-select"
-                                            menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                                            menuPortalTarget={
+                                                typeof document !== "undefined" ? document.body : null
+                                            }
                                             styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                         />
                                     </div>
@@ -169,8 +192,12 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                 <button type="button" className="btn btn-light" onClick={onClose}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {user ? "Save" : "Send invite"}
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={passwordsMismatch}
+                                >
+                                    {user ? "Save" : "Create admin"}
                                 </button>
                             </div>
                         </form>

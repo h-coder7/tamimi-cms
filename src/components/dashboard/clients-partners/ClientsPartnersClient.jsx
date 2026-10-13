@@ -19,7 +19,8 @@ import {
 
 export default function ClientsPartnersClient() {
     const { data: partners = [], isLoading } = useClientsPartners();
-    const { data: trashItems = [] } = useTrashClientsPartners();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashItems = [] } = useTrashClientsPartners({ enabled: showTrashModal });
 
     const addMutation = useAddClientPartner();
     const updateMutation = useUpdateClientPartner();
@@ -29,8 +30,7 @@ export default function ClientsPartnersClient() {
 
     const [selectedPartner, setSelectedPartner] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -101,7 +101,7 @@ export default function ClientsPartnersClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashItems.length})</span>
+                    <span className="txt ms-2">View Trash{trashItems.length ? ` (${trashItems.length})` : ""}</span>
                 </button>
             </PageHeader>
 

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
 import { useIndustries } from "@/hooks/useIndustries";
+import { buildIndustryFormOptions } from "@/lib/industryOptions";
 import { PARTNER_TYPES } from "@/hooks/useClientsPartners";
 
 const LOGO_ACCEPT = {
@@ -15,6 +16,7 @@ const LOGO_ACCEPT = {
 const emptyForm = () => ({
     title: "",
     type: "Client",
+    industryId: "",
     industry: "",
     website: "",
     status: "Draft",
@@ -38,10 +40,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
     const [isMounted, setIsMounted] = useState(false);
 
     const industryOptions = useMemo(
-        () => industries.map((industry) => ({
-            value: industry.title,
-            label: industry.title,
-        })),
+        () => buildIndustryFormOptions(industries),
         [industries]
     );
 
@@ -69,6 +68,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
             setFormData({
                 title: partner.title || "",
                 type: partner.type || "Client",
+                industryId: partner.industryId || "",
                 industry: partner.industry || "",
                 website: partner.website || "",
                 status: partner.status || "Draft",
@@ -76,6 +76,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                 logoFiles: partner.logo
                     ? [{ preview: partner.logo, type: "image/svg+xml", name: "Logo" }]
                     : [],
+                logoPath: partner.logoPath || null,
                 is_sample: Boolean(partner.is_sample),
             });
         } else {
@@ -97,14 +98,19 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
 
         const website = formData.website.trim();
 
+        const selectedIndustry = industries.find((i) => i.id === formData.industryId);
+
         onSave({
             title: formData.title.trim(),
             type: formData.type,
-            industry: formData.industry,
+            industryId: formData.industryId || null,
+            industry: selectedIndustry?.title || "",
             website,
             status: formData.status,
             display_order: formData.display_order === "" ? 1 : Number(formData.display_order),
-            logo: formData.logoFiles?.[0]?.preview || "",
+            logo: formData.logoFiles?.[0]?.preview || partner?.logo || "",
+            logoFiles: formData.logoFiles,
+            logoPath: formData.logoPath || partner?.logoPath || null,
             is_sample: Boolean(formData.is_sample),
         });
     };
@@ -169,11 +175,16 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                                 <label className="form-label">Industry</label>
                                                 <Select
                                                     options={industryOptions}
-                                                    value={industryOptions.find((o) => o.value === formData.industry) || null}
+                                                    value={
+                                                        industryOptions.find(
+                                                            (o) => o.value === formData.industryId
+                                                        ) || null
+                                                    }
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            industry: opt?.value || "",
+                                                            industryId: opt?.value || "",
+                                                            industry: opt?.label || "",
                                                         }))
                                                     }
                                                     classNamePrefix="react-select"

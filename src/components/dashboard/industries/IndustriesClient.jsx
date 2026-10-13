@@ -21,7 +21,8 @@ import {
 
 export default function IndustriesClient() {
     const { data: industries = [], isLoading } = useIndustries();
-    const { data: trashIndustries = [] } = useTrashIndustries();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashIndustries = [] } = useTrashIndustries({ enabled: showTrashModal });
 
     const addIndustryMutation = useAddIndustry();
     const updateIndustryMutation = useUpdateIndustry();
@@ -35,8 +36,7 @@ export default function IndustriesClient() {
     const [selectedIds, setSelectedIds] = useState([]);
     const [viewIndustry, setViewIndustry] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -144,7 +144,7 @@ export default function IndustriesClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashIndustries.length})</span>
+                    <span className="txt ms-2">View Trash{trashIndustries.length ? ` (${trashIndustries.length})` : ""}</span>
                 </button>
             </PageHeader>
 

@@ -11,6 +11,8 @@ import CertificatesFilter from "./CertificatesFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
+import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 
 export default function CertificatesTable({
     data = [],
@@ -27,11 +29,12 @@ export default function CertificatesTable({
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("");
     const [companyFilter, setCompanyFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
 
-    const companyOptions = useMemo(() => {
-        const codes = [...new Set(data.map((item) => item.holder_code).filter(Boolean))];
-        return codes.map((code) => ({ value: code, label: code }));
-    }, [data]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies, { includeGroup: true }),
+        [companies]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();

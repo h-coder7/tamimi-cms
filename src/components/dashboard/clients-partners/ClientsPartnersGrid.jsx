@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import SearchableSelect from "../../shared/SearchableSelect";
 import { publicPath } from "@/utils/publicPath";
+import { useIndustries } from "@/hooks/useIndustries";
+import { buildIndustryFilterOptions } from "@/lib/industryOptions";
 
 export default function ClientsPartnersGrid({
     data = [],
@@ -11,11 +13,12 @@ export default function ClientsPartnersGrid({
 }) {
     const [search, setSearch] = useState("");
     const [industryFilter, setIndustryFilter] = useState("");
+    const { data: industries = [] } = useIndustries();
 
-    const industryOptions = useMemo(() => {
-        const industries = [...new Set(data.map((item) => item.industry).filter(Boolean))];
-        return industries.map((industry) => ({ value: industry, label: industry }));
-    }, [data]);
+    const industryOptions = useMemo(
+        () => buildIndustryFilterOptions(industries),
+        [industries]
+    );
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();

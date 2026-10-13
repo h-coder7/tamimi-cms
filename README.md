@@ -2,19 +2,35 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Prefer Docker (same pattern as `backend/`):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd frontend
+cp -n .env.example .env.local   # if needed
+docker compose run --rm npm install
+docker compose up
+# if host port 3000 is taken:
+# FRONTEND_PORT=3001 docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Any npm command via the tools service:
+
+```bash
+docker compose run --rm npm install <package>
+docker compose run --rm npm run lint
+docker compose run --rm npm run build
+```
+
+Or locally (requires Node 20+ and `npm install` first):
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:9091](http://localhost:9091) with your browser (default Docker host port).
+
+Cross-domain deploy: set `NEXT_PUBLIC_API_URL` to the full HTTPS API URL. Backend must allow this origin in `FRONTEND_ORIGINS` and use `SameSite=None` cookies (see `backend/README.md`).
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 

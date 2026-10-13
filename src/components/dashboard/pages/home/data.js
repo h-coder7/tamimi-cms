@@ -50,7 +50,7 @@ export const defaultContent = {
     },
     our_companies: {
         section_title: "18 specialized companies and joint ventures",
-        selected_companies: ["SESCO", "ENERCO", "TCO", "S3C", "GET Water", "SSS"],
+        selected_companies: [],
     },
     featured_projects: {
         section_title: "Delivering major industrial projects",

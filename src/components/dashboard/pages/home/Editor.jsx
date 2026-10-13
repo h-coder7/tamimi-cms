@@ -44,8 +44,18 @@ export default function HomeEditor() {
     const [content, setContent] = useState(defaultContent);
 
     useEffect(() => {
-        if (page?.content) setContent({ ...defaultContent, ...page.content });
-    }, [page]);
+        if (!page?.content) return;
+        const next = { ...defaultContent, ...page.content };
+        const selected = next.our_companies?.selected_companies;
+        if (Array.isArray(selected) && companies.length > 0) {
+            const validCodes = new Set(companies.map((c) => c.code).filter(Boolean));
+            next.our_companies = {
+                ...next.our_companies,
+                selected_companies: selected.filter((code) => validCodes.has(code)),
+            };
+        }
+        setContent(next);
+    }, [page, companies]);
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);

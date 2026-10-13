@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
+import { toast } from "react-hot-toast";
 import FileUpload from "../../shared/FileUpload";
 import SimpleRichTextEditor from "../../shared/SimpleRichTextEditor";
 import { useCompanies } from "@/hooks/useCompanies";
 import { POST_CATEGORIES, POST_STATUSES } from "@/hooks/usePosts";
+import { buildCompanyFormOptions } from "@/lib/companyOptions";
+import { getLocale } from "@/lib/locale";
+import { te } from "@/locales/errors";
 
 const SUMMARY_MAX = 200;
 const META_TITLE_MAX = 60;
@@ -28,11 +32,14 @@ const emptyForm = () => ({
     city: "",
     booth: "",
     event_website: "",
+    event_kind: "event",
     category: "Events & Exhibitions",
     status: "Draft",
     publish_date: "",
+    relatedCompanyId: "",
     company_code: "",
     coverFiles: [],
+    coverPath: null,
     seo_title: "",
     seo_description: "",
 });
@@ -47,9 +54,15 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function PostModal({ isOpen, onClose, onSave, post }) {
-    const { data: companies = [] } = useCompanies();
+    const {
+        data: companies = [],
+        refetch: refetchCompanies,
+        isFetching: companiesLoading,
+        isError: companiesError,
+    } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
+    const editorRef = useRef(null);
 
     const categoryOptions = useMemo(
         () => POST_CATEGORIES.map((category) => ({ value: category, label: category })),
@@ -62,13 +75,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
     );
 
     const companyOptions = useMemo(
-        () => [
-            { value: "", label: "None" },
-            ...companies.map((company) => ({
-                value: company.code,
-                label: `${company.code} — ${company.title}`,
-            })),
-        ],
+        () => buildCompanyFormOptions(companies, { includeNone: true }),
         [companies]
     );
 
@@ -77,6 +84,13 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        refetchCompanies().catch(() => {
+            toast.error(te("errors.companies.load_failed", getLocale()));
+        });
+    }, [isOpen, refetchCompanies]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -92,13 +106,16 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                 city: post.city || "",
                 booth: post.booth || "",
                 event_website: post.event_website || "",
+                event_kind: post.event_kind || "event",
                 category: post.category || "News",
                 status: post.status || "Draft",
                 publish_date: post.publish_date || "",
+                relatedCompanyId: post.relatedCompanyId || "",
                 company_code: post.company_code || "",
                 coverFiles: post.cover
                     ? [{ preview: post.cover, type: "image/jpeg", name: "Cover" }]
                     : [],
+                coverPath: post.coverPath || null,
                 seo_title: post.seo_title || "",
                 seo_description: post.seo_description || "",
             });
@@ -118,29 +135,60 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const plainBody = formData.body.replace(/<[^>]*>/g, "").trim();
-        if (!plainBody) {
+        // Always read latest HTML from the editor DOM (avoids stale React state on quick Save)
+        const bodyHtml = editorRef.current?.getHTML?.() ?? formData.body ?? "";
+        const plainBody = bodyHtml.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+
+        const locale = getLocale();
+
+        if (!formData.title.trim()) {
+            toast.error(te("errors.title.required", locale));
             return;
         }
 
-        if (isEvent && (!formData.event_start || !formData.venue.trim())) {
+        if (!plainBody) {
+            toast.error(te("errors.body.required", locale));
             return;
         }
+
+        if (isEvent) {
+            if (!formData.event_start) {
+                toast.error(te("errors.event.start_required", locale));
+                return;
+            }
+            if (!formData.venue.trim()) {
+                toast.error(te("errors.venue.required", locale));
+                return;
+            }
+            if (
+                formData.event_end &&
+                formData.event_end < formData.event_start
+            ) {
+                toast.error(te("errors.event.end_before_start", locale));
+                return;
+            }
+        }
+
+        const company = companies.find((c) => c.id === formData.relatedCompanyId);
 
         onSave({
             title: formData.title.trim(),
             summary: formData.summary.trim(),
-            body: formData.body,
+            body: bodyHtml,
             event_start: isEvent ? (formData.event_start || null) : null,
             event_end: isEvent ? (formData.event_end || null) : null,
             venue: isEvent ? formData.venue.trim() : "",
             city: isEvent ? formData.city.trim() : "",
             booth: isEvent ? formData.booth.trim() : "",
             event_website: isEvent ? formData.event_website.trim() : "",
+            event_kind: formData.event_kind || "event",
             category: formData.category,
             status: formData.status,
             publish_date: formData.publish_date || null,
-            company_code: formData.company_code || "",
+            relatedCompanyId: formData.relatedCompanyId || null,
+            company_code: company?.code || formData.company_code || "",
+            coverFiles: formData.coverFiles,
+            coverPath: formData.coverPath,
             cover: formData.coverFiles?.[0]?.preview || "",
             seo_title: formData.seo_title.trim(),
             seo_description: formData.seo_description.trim(),
@@ -210,6 +258,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                     Body <span className="text-danger">*</span>
                                                 </label>
                                                 <SimpleRichTextEditor
+                                                    ref={editorRef}
                                                     value={formData.body}
                                                     onChange={(html) =>
                                                         setFormData((prev) => ({ ...prev, body: html }))
@@ -243,6 +292,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                         type="date"
                                                         className="form-control"
                                                         name="event_end"
+                                                        min={formData.event_start || undefined}
                                                         value={formData.event_end}
                                                         onChange={handleChange}
                                                     />
@@ -349,20 +399,40 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 <Select
                                                     options={companyOptions}
                                                     value={
-                                                        companyOptions.find((o) => o.value === formData.company_code)
+                                                        companyOptions.find((o) => o.value === formData.relatedCompanyId)
                                                         || companyOptions[0]
                                                     }
-                                                    onChange={(opt) =>
+                                                    onChange={(opt) => {
+                                                        const value = opt?.value || "";
+                                                        const company = companies.find((c) => c.id === value);
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            company_code: opt?.value || "",
-                                                        }))
-                                                    }
+                                                            relatedCompanyId: value,
+                                                            company_code: company?.code || "",
+                                                        }));
+                                                    }}
+                                                    isLoading={companiesLoading}
                                                     classNamePrefix="react-select"
-                                                    placeholder="None"
+                                                    placeholder={
+                                                        companiesError
+                                                            ? "Failed to load companies"
+                                                            : companiesLoading
+                                                              ? "Loading companies…"
+                                                              : "None"
+                                                    }
+                                                    noOptionsMessage={() =>
+                                                        companiesLoading
+                                                            ? "Loading…"
+                                                            : "No companies found"
+                                                    }
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
+                                                {!companiesLoading && companies.length === 0 && (
+                                                    <small className="text-danger fsz-11 d-block mt-1">
+                                                        No companies loaded. Check Companies module / API.
+                                                    </small>
+                                                )}
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <label className="form-label">Cover image</label>

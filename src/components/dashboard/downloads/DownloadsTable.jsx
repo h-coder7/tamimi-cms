@@ -11,6 +11,8 @@ import DownloadsFilter from "./DownloadsFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
+import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 
 export default function DownloadsTable({
     data = [],
@@ -27,14 +29,12 @@ export default function DownloadsTable({
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("");
     const [companyFilter, setCompanyFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
 
-    const companyOptions = useMemo(() => {
-        const codes = [...new Set(data.map((item) => item.company_code).filter(Boolean))];
-        return codes.map((code) => ({
-            value: code,
-            label: companiesByCode[code]?.title || (code === "TEG" ? "Tamimi Energy Group" : code),
-        }));
-    }, [data, companiesByCode]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies, { includeGroup: true }),
+        [companies]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();

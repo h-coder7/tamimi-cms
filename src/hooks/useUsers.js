@@ -1,153 +1,161 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+import api, { getApiErrorMessage } from "@/app/api/api";
+import { refreshListAndTrash } from "@/lib/queryRefresh";
 
-const USERS_SEED_VERSION = "tamimi-users-v1";
+export const USER_STATUSES = ["Active", "Inactive"];
 
-export const USER_ROLES = [
-    {
-        value: "Admin",
-        label: "Admin",
-        description: "Admin: full access to all CMS modules",
-    },
-];
+const STATUS_TO_API = {
+  Active: "active",
+  Inactive: "disabled",
+};
 
-export const USER_STATUSES = ["Active", "Invited", "Inactive"];
+const STATUS_TO_UI = {
+  active: "Active",
+  disabled: "Inactive",
+};
 
-const withUserMeta = (item) => ({
-    ...item,
-    name: item.name || "",
-    email: item.email || "",
-    role: item.role || "Admin",
-    last_sign_in: item.last_sign_in || "",
-    status: item.status || "Invited",
-    is_sample: Boolean(item.is_sample),
-    created_at: item.created_at || "2026-03-01",
-});
-
-const MOCK_USERS = [
-    withUserMeta({
-        id: 1,
-        name: "[Sample] Marketing Admin",
-        email: "[Sample] admin@tamimienergy.com",
-        role: "Admin",
-        last_sign_in: "Today",
-        status: "Active",
-        is_sample: true,
-        locked: true,
-    }),
-    withUserMeta({
-        id: 2,
-        name: "[Sample] Content Editor",
-        email: "[Sample] editor@tamimienergy.com",
-        role: "Admin",
-        last_sign_in: "Yesterday",
-        status: "Active",
-        is_sample: true,
-    }),
-    withUserMeta({
-        id: 3,
-        name: "[Sample] HR Coordinator",
-        email: "[Sample] hr@tamimienergy.com",
-        role: "Admin",
-        last_sign_in: "",
-        status: "Invited",
-        is_sample: true,
-    }),
-];
-
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-
-function getSeededUsers() {
-    const seedVersion = localStorage.getItem("users_seed_version");
-
-    if (seedVersion !== USERS_SEED_VERSION) {
-        localStorage.setItem("users", JSON.stringify(MOCK_USERS));
-        localStorage.setItem("users_seed_version", USERS_SEED_VERSION);
-        return MOCK_USERS;
-    }
-
-    const stored = localStorage.getItem("users");
-    return stored ? JSON.parse(stored) : MOCK_USERS;
-}
-
-function persistUsers(list) {
-    const normalized = list.map(withUserMeta);
-    localStorage.setItem("users", JSON.stringify(normalized));
-    return normalized;
+function adminFromApi(admin) {
+  return {
+    id: admin.id,
+    name: admin.fullName,
+    email: admin.email,
+    last_sign_in: admin.lastSignInAt
+      ? String(admin.lastSignInAt).slice(0, 16).replace("T", " ")
+      : "",
+    status: STATUS_TO_UI[admin.status] || "Active",
+    is_sample: false,
+    locked: false,
+    created_at: admin.createdAt ? String(admin.createdAt).slice(0, 10) : "",
+  };
 }
 
 export function useUsers() {
-    return useQuery({
-        queryKey: ["users"],
-        queryFn: async () => {
-            await delay(350);
-            return getSeededUsers().map(withUserMeta);
-        },
-    });
+  return useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const res = await api.get("/admins", {
+        params: { page: 1, perPage: 100 },
+      });
+      return (res.data?.data || []).map(adminFromApi);
+    },
+  });
+}
+
+export function useTrashUsers({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: ["trash-users"],
+    enabled,
+    queryFn: async () => {
+      const res = await api.get("/admins", {
+        params: { page: 1, perPage: 100, trashed: true },
+      });
+      return (res.data?.data || []).map(adminFromApi);
+    },
+  });
 }
 
 export function useAddUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (newItem) => {
-            await delay(400);
-            const list = getSeededUsers();
-            const item = withUserMeta({
-                ...newItem,
-                id: Math.max(0, ...list.map((u) => u.id)) + 1,
-                last_sign_in: "",
-                status: "Invited",
-                created_at: new Date().toISOString().split("T")[0],
-            });
-            persistUsers([item, ...list]);
-            return item;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-            toast.success("Invite sent successfully!");
-        },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (newItem) => {
+      if (!newItem.password) {
+        throw new Error("Password is required");
+      }
+      const password = newItem.password;
+      const res = await api.post("/admins", {
+        fullName: newItem.name,
+        email: newItem.email,
+        password,
+        passwordConfirmation: newItem.passwordConfirmation || password,
+      });
+      return adminFromApi(res.data?.data);
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "users", "trash-users");
+      toast.success("Admin created successfully!");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not create admin"));
+    },
+  });
 }
 
 export function useUpdateUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (updated) => {
-            await delay(350);
-            const list = getSeededUsers();
-            persistUsers(
-                list.map((item) => (item.id === updated.id ? withUserMeta(updated) : item))
-            );
-            return withUserMeta(updated);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-            toast.success("User updated successfully!");
-        },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (updated) => {
+      const payload = {
+        fullName: updated.name,
+        status: STATUS_TO_API[updated.status] || "active",
+      };
+      if (updated.password) {
+        payload.password = updated.password;
+        payload.passwordConfirmation =
+          updated.passwordConfirmation || updated.password;
+      }
+      const res = await api.patch(`/admins/${updated.id}`, payload);
+      return adminFromApi(res.data?.data);
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "users", "trash-users");
+      toast.success("Admin updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not update admin"));
+    },
+  });
 }
 
 export function useDeleteUser() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (id) => {
-            await delay(350);
-            const list = getSeededUsers();
-            const item = list.find((u) => u.id === id);
-            if (item?.locked) {
-                throw new Error("This user cannot be deleted.");
-            }
-            persistUsers(list.filter((u) => u.id !== id));
-            return id;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users"] });
-            toast.success("User removed!");
-        },
-        onError: (error) => {
-            toast.error(error.message || "Could not delete user.");
-        },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/admins/${id}`);
+      return id;
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "users", "trash-users");
+      toast.success("Admin moved to trash!");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not delete admin"));
+    },
+  });
+}
+
+export function useRestoreUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const res = await api.post(`/admins/${id}/restore`);
+      return adminFromApi(res.data?.data);
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "users", "trash-users");
+      toast.success("Admin restored successfully!");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not restore admin"));
+    },
+  });
+}
+
+export function usePermanentDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/admins/${id}/purge`);
+      return id;
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "users", "trash-users");
+      toast.success("Admin permanently deleted!");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+    },
+  });
 }

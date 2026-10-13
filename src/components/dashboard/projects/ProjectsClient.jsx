@@ -9,6 +9,7 @@ import ProjectsTrashModal from "./ProjectsTrashModal";
 import ProjectDetailsOffcanvas from "./ProjectDetailsOffcanvas";
 import { confirmAction } from "@/utils/confirm";
 import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompaniesByCode } from "@/lib/companyOptions";
 import {
     useProjects,
     useTrashProjects,
@@ -22,7 +23,8 @@ import {
 
 export default function ProjectsClient() {
     const { data: projects = [], isLoading } = useProjects();
-    const { data: trashProjects = [] } = useTrashProjects();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashProjects = [] } = useTrashProjects({ enabled: showTrashModal });
     const { data: companies = [] } = useCompanies();
 
     const addProjectMutation = useAddProject();
@@ -37,19 +39,15 @@ export default function ProjectsClient() {
     const [selectedIds, setSelectedIds] = useState([]);
     const [viewProject, setViewProject] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
 
-    const companiesByCode = useMemo(() => {
-        const map = {};
-        companies.forEach((company) => {
-            if (company.code) map[company.code] = company;
-        });
-        return map;
-    }, [companies]);
+    const companiesByCode = useMemo(
+        () => buildCompaniesByCode(companies),
+        [companies]
+    );
 
     useEffect(() => {
         if (searchParams.get("action") === "add") {
@@ -146,7 +144,7 @@ export default function ProjectsClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashProjects.length})</span>
+                    <span className="txt ms-2">View Trash{trashProjects.length ? ` (${trashProjects.length})` : ""}</span>
                 </button>
             </PageHeader>
 

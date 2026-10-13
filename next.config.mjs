@@ -8,6 +8,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: ["react-select", "date-fns", "@tanstack/react-table"],
+  },
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },

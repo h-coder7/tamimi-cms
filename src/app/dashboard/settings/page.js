@@ -1,8 +1,21 @@
-import SettingsClient from "@/components/dashboard/settings/SettingsClient";
+"use client";
 
-/**
- * 🎯 Server Component for Settings Page
- */
-export default function SettingsPage() {
-    return <SettingsClient />;
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+
+const SettingsClient = dynamic(
+  () => import("@/components/dashboard/settings/SettingsClient"),
+  {
+    loading: () => (
+      <div className="text-center py-5 text-muted">Loading settings…</div>
+    ),
+  }
+);
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="text-center py-5 text-muted">Loading settings…</div>}>
+      <SettingsClient />
+    </Suspense>
+  );
 }

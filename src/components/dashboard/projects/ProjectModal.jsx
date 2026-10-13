@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFormOptions } from "@/lib/companyOptions";
+import { buildIndustryFormOptions } from "@/lib/industryOptions";
 import { useIndustries, VALUE_CHAIN_STAGES } from "@/hooks/useIndustries";
 
 const SUMMARY_MAX = 200;
@@ -32,13 +34,16 @@ const emptyForm = () => ({
     result: "",
     services: [],
     gallery: [],
+    companyId: "",
     company_code: "",
+    industryId: "",
     industry: "",
     year: String(new Date().getFullYear()),
     value_chain: [],
     status: "Draft",
     featured: false,
     coverFiles: [],
+    coverPath: null,
     is_sample: false,
     content_label: "",
 });
@@ -53,8 +58,8 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function ProjectModal({ isOpen, onClose, onSave, project }) {
-    const { data: companies = [] } = useCompanies();
-    const { data: industries = [] } = useIndustries();
+    const { data: companies = [], refetch: refetchCompanies } = useCompanies();
+    const { data: industries = [], refetch: refetchIndustries } = useIndustries();
     const [formData, setFormData] = useState(emptyForm);
     const [serviceInput, setServiceInput] = useState("");
     const [isMounted, setIsMounted] = useState(false);
@@ -68,18 +73,12 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
     );
 
     const companyOptions = useMemo(
-        () => companies.map((company) => ({
-            value: company.code,
-            label: `${company.code} — ${company.title}`,
-        })),
+        () => buildCompanyFormOptions(companies),
         [companies]
     );
 
     const industryOptions = useMemo(
-        () => industries.map((industry) => ({
-            value: industry.title,
-            label: industry.title,
-        })),
+        () => buildIndustryFormOptions(industries),
         [industries]
     );
 
@@ -89,8 +88,17 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
 
     useEffect(() => {
         if (!isOpen) return;
+        refetchCompanies();
+        refetchIndustries();
+    }, [isOpen, refetchCompanies, refetchIndustries]);
+
+    useEffect(() => {
+        if (!isOpen) return;
 
         if (project) {
+            const galleryItems = Array.isArray(project.galleryItems)
+                ? project.galleryItems
+                : [];
             setFormData({
                 title: project.title || "",
                 client: project.client || "",
@@ -100,14 +108,26 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                 solution: project.solution || "",
                 result: project.result || "",
                 services: Array.isArray(project.services) ? project.services : [],
-                gallery: Array.isArray(project.gallery)
-                    ? project.gallery.map((item, idx) => (
-                        typeof item === "string"
-                            ? { preview: item, name: `Gallery ${idx + 1}`, type: "image/jpeg" }
-                            : item
-                    ))
-                    : [],
+                gallery: galleryItems.length
+                    ? galleryItems.map((item, idx) => ({
+                        preview: item.url || item.videoUrl || "",
+                        path: item.path || null,
+                        videoUrl: item.videoUrl || null,
+                        name: `Gallery ${idx + 1}`,
+                        type: item.videoUrl || String(item.url || "").includes(".mp4")
+                            ? "video/mp4"
+                            : "image/jpeg",
+                    }))
+                    : Array.isArray(project.gallery)
+                        ? project.gallery.map((item, idx) => (
+                            typeof item === "string"
+                                ? { preview: item, name: `Gallery ${idx + 1}`, type: "image/jpeg" }
+                                : item
+                        ))
+                        : [],
+                companyId: project.companyId || "",
                 company_code: project.company_code || "",
+                industryId: project.industryId || "",
                 industry: project.industry || "",
                 year: project.year ? String(project.year) : String(new Date().getFullYear()),
                 value_chain: Array.isArray(project.value_chain) ? project.value_chain : [],
@@ -116,6 +136,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                 coverFiles: project.cover
                     ? [{ preview: project.cover, type: "image/jpeg", name: "Cover" }]
                     : [],
+                coverPath: project.coverPath || null,
                 is_sample: Boolean(project.is_sample),
                 content_label: project.content_label || "",
             });
@@ -169,6 +190,9 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        const company = companies.find((c) => c.id === formData.companyId);
+        const industry = industries.find((i) => i.id === formData.industryId);
+
         onSave({
             title: formData.title.trim(),
             client: formData.client.trim(),
@@ -178,13 +202,17 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
             solution: formData.solution.trim(),
             result: formData.result.trim(),
             services: formData.services,
-            gallery: formData.gallery.map((file) => file.preview),
-            company_code: formData.company_code,
-            industry: formData.industry,
+            gallery: formData.gallery,
+            companyId: formData.companyId,
+            company_code: company?.code || formData.company_code || "",
+            industryId: formData.industryId,
+            industry: industry?.title || formData.industry || "",
             year: formData.year === "" ? null : Number(formData.year),
             value_chain: formData.value_chain,
             status: formData.status,
             featured: Boolean(formData.featured),
+            coverFiles: formData.coverFiles,
+            coverPath: formData.coverPath,
             cover: formData.coverFiles?.[0]?.preview || "",
             is_sample: Boolean(formData.is_sample),
             content_label: formData.content_label.trim(),
@@ -382,11 +410,13 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                 </label>
                                                 <Select
                                                     options={companyOptions}
-                                                    value={companyOptions.find((o) => o.value === formData.company_code) || null}
+                                                    value={companyOptions.find((o) => o.value === formData.companyId) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            company_code: opt?.value || "",
+                                                            companyId: opt?.value || "",
+                                                            company_code:
+                                                                companies.find((c) => c.id === opt?.value)?.code || "",
                                                         }))
                                                     }
                                                     classNamePrefix="react-select"
@@ -401,11 +431,13 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                 </label>
                                                 <Select
                                                     options={industryOptions}
-                                                    value={industryOptions.find((o) => o.value === formData.industry) || null}
+                                                    value={industryOptions.find((o) => o.value === formData.industryId) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
                                                             ...prev,
-                                                            industry: opt?.value || "",
+                                                            industryId: opt?.value || "",
+                                                            industry:
+                                                                industries.find((i) => i.id === opt?.value)?.title || "",
                                                         }))
                                                     }
                                                     classNamePrefix="react-select"
@@ -508,7 +540,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                 <button
                                     type="submit"
                                     className="butn-st2"
-                                    disabled={!formData.company_code || !formData.industry}
+                                    disabled={!formData.companyId || !formData.industryId}
                                 >
                                     {project ? "Update Project" : "Add Project"}
                                 </button>

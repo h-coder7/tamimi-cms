@@ -8,7 +8,10 @@ export default function ReactQueryProvider({ children }) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                staleTime: 60 * 1000, // 1 minute
+                // Avoid refetch-on-every-navigation (hooks used to force staleTime: 0)
+                staleTime: 5 * 60 * 1000,
+                gcTime: 30 * 60 * 1000,
+                refetchOnWindowFocus: false,
                 retry: 1,
             },
         },
@@ -17,7 +20,9 @@ export default function ReactQueryProvider({ children }) {
     return (
         <QueryClientProvider client={queryClient}>
             {children}
-            <ReactQueryDevtools initialIsOpen={false} />
+            {process.env.NODE_ENV === "development" ? (
+                <ReactQueryDevtools initialIsOpen={false} />
+            ) : null}
         </QueryClientProvider>
     );
 }

@@ -3,25 +3,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 import { confirmAction } from "@/utils/confirm";
 import { publicPath } from "@/utils/publicPath";
+import { useAuth } from "@/providers/AuthProvider";
 
 export default function SideMenu() {
     const pathname = usePathname();
     const router = useRouter();
-    const [user, setUser] = useState({ name: "Yasmin Ali", email: "YasminAli@gmail.com" });
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (error) {
-                console.error("Failed to parse user data:", error);
-            }
-        }
-    }, []);
+    const { user: authUser, logout } = useAuth();
+    const user = {
+        name: authUser?.name || "Admin",
+        email: authUser?.email || "",
+    };
 
     const isActive = (path) => {
         if (!pathname) return false;
@@ -34,7 +27,7 @@ export default function SideMenu() {
         <aside className="sidemenu">
             <div className="top-cont">
                 <div className="logo-wrapper">
-                    <Link href="/dashboard" className="logo position-relative d-block" style={{ width: "40px", height: "40px" }}>
+                    <Link href="/dashboard" prefetch={false} className="logo position-relative d-block" style={{ width: "40px", height: "40px" }}>
                         <Image
                             src={publicPath("/images/logo.png")}
                             alt="Logo"
@@ -47,7 +40,7 @@ export default function SideMenu() {
                 <div className="sidemenu-links pt-4">
                     <ul className="links">
                         <li>
-                            <Link href="/dashboard" className={`lnk ${isActive("/dashboard") ? "active" : ""}`}>
+                            <Link href="/dashboard" prefetch={false} className={`lnk ${isActive("/dashboard") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-chart-simple"></i>
                                 </span>
@@ -56,7 +49,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/pages" className={`lnk ${isActive("/dashboard/pages") ? "active" : ""}`}>
+                            <Link href="/dashboard/pages" prefetch={false} className={`lnk ${isActive("/dashboard/pages") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-file-alt"></i>
                                 </span>
@@ -65,7 +58,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/companies" className={`lnk ${isActive("/dashboard/companies") ? "active" : ""}`}>
+                            <Link href="/dashboard/companies" prefetch={false} className={`lnk ${isActive("/dashboard/companies") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-building"></i>
                                 </span>
@@ -74,7 +67,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/industries" className={`lnk ${isActive("/dashboard/industries") ? "active" : ""}`}>
+                            <Link href="/dashboard/industries" prefetch={false} className={`lnk ${isActive("/dashboard/industries") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-industry"></i>
                                 </span>
@@ -83,7 +76,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/projects" className={`lnk ${isActive("/dashboard/projects") ? "active" : ""}`}>
+                            <Link href="/dashboard/projects" prefetch={false} className={`lnk ${isActive("/dashboard/projects") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-briefcase"></i>
                                 </span>
@@ -92,7 +85,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/clients-partners" className={`lnk ${isActive("/dashboard/clients-partners") ? "active" : ""}`}>
+                            <Link href="/dashboard/clients-partners" prefetch={false} className={`lnk ${isActive("/dashboard/clients-partners") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-handshake"></i>
                                 </span>
@@ -101,7 +94,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/certificates" className={`lnk ${isActive("/dashboard/certificates") ? "active" : ""}`}>
+                            <Link href="/dashboard/certificates" prefetch={false} className={`lnk ${isActive("/dashboard/certificates") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-certificate"></i>
                                 </span>
@@ -110,7 +103,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/posts" className={`lnk ${isActive("/dashboard/posts") ? "active" : ""}`}>
+                            <Link href="/dashboard/posts" prefetch={false} className={`lnk ${isActive("/dashboard/posts") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-newspaper"></i>
                                 </span>
@@ -119,7 +112,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/jobs" className={`lnk ${isActive("/dashboard/jobs") ? "active" : ""}`}>
+                            <Link href="/dashboard/jobs" prefetch={false} className={`lnk ${isActive("/dashboard/jobs") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-user-hard-hat"></i>
                                 </span>
@@ -128,7 +121,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/applications" className={`lnk ${isActive("/dashboard/applications") ? "active" : ""}`}>
+                            <Link href="/dashboard/applications" prefetch={false} className={`lnk ${isActive("/dashboard/applications") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-file-user"></i>
                                 </span>
@@ -137,7 +130,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/messages" className={`lnk ${isActive("/dashboard/messages") ? "active" : ""}`}>
+                            <Link href="/dashboard/messages" prefetch={false} className={`lnk ${isActive("/dashboard/messages") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-envelope"></i>
                                 </span>
@@ -146,7 +139,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/downloads" className={`lnk ${isActive("/dashboard/downloads") ? "active" : ""}`}>
+                            <Link href="/dashboard/downloads" prefetch={false} className={`lnk ${isActive("/dashboard/downloads") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-download"></i>
                                 </span>
@@ -155,7 +148,7 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/seo" className={`lnk ${isActive("/dashboard/seo") ? "active" : ""}`}>
+                            <Link href="/dashboard/seo" prefetch={false} className={`lnk ${isActive("/dashboard/seo") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-search"></i>
                                 </span>
@@ -164,16 +157,16 @@ export default function SideMenu() {
                         </li>
 
                         <li>
-                            <Link href="/dashboard/users" className={`lnk ${isActive("/dashboard/users") ? "active" : ""}`}>
+                            <Link href="/dashboard/users" prefetch={false} className={`lnk ${isActive("/dashboard/users") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-users"></i>
                                 </span>
-                                <span className="txt">Users & Roles</span>
+                                <span className="txt">Admins</span>
                             </Link>
                         </li>
 
                         <li>
-                            <Link href="/dashboard/settings" className={`lnk ${isActive("/dashboard/settings") ? "active" : ""}`}>
+                            <Link href="/dashboard/settings" prefetch={false} className={`lnk ${isActive("/dashboard/settings") ? "active" : ""}`}>
                                 <span className="icon">
                                     <i className="fal fa-gear"></i>
                                 </span>
@@ -207,9 +200,8 @@ export default function SideMenu() {
                                 title: "Logout?",
                                 message: "Are you sure you want to logout?",
                                 confirmLabel: "Logout",
-                                onConfirm: () => {
-                                    localStorage.removeItem("token");
-                                    localStorage.removeItem("user");
+                                onConfirm: async () => {
+                                    await logout();
                                     router.replace("/login");
                                 },
                             });

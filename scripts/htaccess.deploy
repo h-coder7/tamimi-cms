@@ -1,0 +1,16 @@
+# Next static export (trailingSlash: true) — serve index.html for directories
+DirectoryIndex index.html
+
+# Block hidden files
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+# Optional: fallback if a path has no folder (uncommon with trailingSlash export)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

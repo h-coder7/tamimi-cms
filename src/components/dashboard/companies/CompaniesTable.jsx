@@ -11,6 +11,8 @@ import CompaniesFilter from "./CompaniesFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
+import { useIndustries } from "@/hooks/useIndustries";
+import { buildIndustryFilterOptions } from "@/lib/industryOptions";
 
 export default function CompaniesTable({
     data = [],
@@ -27,13 +29,12 @@ export default function CompaniesTable({
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("");
     const [industryFilter, setIndustryFilter] = useState("");
+    const { data: industries = [] } = useIndustries();
 
-    const industryOptions = useMemo(() => {
-        const industries = [...new Set(
-            data.flatMap((item) => item.industries || []).filter(Boolean)
-        )].sort();
-        return industries.map((industry) => ({ value: industry, label: industry }));
-    }, [data]);
+    const industryOptions = useMemo(
+        () => buildIndustryFilterOptions(industries),
+        [industries]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();

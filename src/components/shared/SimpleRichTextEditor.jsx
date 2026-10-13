@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 
 const TOOLS = [
     { cmd: "bold", label: "B", title: "Bold" },
@@ -10,21 +10,40 @@ const TOOLS = [
     { cmd: "insertUnorderedList", label: "• List", title: "Bullet list" },
     { cmd: "insertOrderedList", label: "1. List", title: "Numbered list" },
     { cmd: "createLink", label: "Link", title: "Link" },
-    { cmd: "insertImage", label: "Image", title: "Image" },
     { cmd: "formatBlock", value: "blockquote", label: "Quote", title: "Quote" },
 ];
 
-export default function SimpleRichTextEditor({
-    value = "",
-    onChange,
-    placeholder = "Write the article…",
-    required = false,
-}) {
+const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
+    {
+        value = "",
+        onChange,
+        placeholder = "Write the article…",
+        required = false,
+    },
+    ref
+) {
     const editorRef = useRef(null);
-    const lastExternalValue = useRef(value);
+    const lastExternalValue = useRef(null);
+    const skipNextSync = useRef(false);
 
+    const getHTML = () => {
+        if (!editorRef.current) return value || "";
+        return editorRef.current.innerHTML || "";
+    };
+
+    useImperativeHandle(ref, () => ({
+        getHTML,
+        focus: () => editorRef.current?.focus(),
+    }));
+
+    // Keep DOM in sync when parent value changes externally (open/edit/reset)
     useEffect(() => {
         if (!editorRef.current) return;
+        if (skipNextSync.current) {
+            skipNextSync.current = false;
+            lastExternalValue.current = value;
+            return;
+        }
         if (value !== lastExternalValue.current) {
             editorRef.current.innerHTML = value || "";
             lastExternalValue.current = value;
@@ -35,6 +54,7 @@ export default function SimpleRichTextEditor({
         if (!editorRef.current) return;
         const html = editorRef.current.innerHTML;
         lastExternalValue.current = html;
+        skipNextSync.current = true;
         onChange?.(html);
     };
 
@@ -45,10 +65,6 @@ export default function SimpleRichTextEditor({
             const url = window.prompt("Enter URL");
             if (!url) return;
             document.execCommand("createLink", false, url);
-        } else if (tool.cmd === "insertImage") {
-            const url = window.prompt("Enter image URL");
-            if (!url) return;
-            document.execCommand("insertImage", false, url);
         } else if (tool.cmd === "formatBlock") {
             document.execCommand("formatBlock", false, tool.value);
         } else {
@@ -57,6 +73,8 @@ export default function SimpleRichTextEditor({
 
         emitChange();
     };
+
+    const plainText = (value || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 
     return (
         <div className="simple-rich-text border rounded-3 overflow-hidden">
@@ -89,11 +107,13 @@ export default function SimpleRichTextEditor({
                     aria-hidden="true"
                     className="position-absolute opacity-0"
                     style={{ height: 1, width: 1, left: 0, bottom: 0 }}
-                    value={value?.replace(/<[^>]*>/g, "").trim() ? "ok" : ""}
+                    value={plainText ? "ok" : ""}
                     onChange={() => {}}
                     required
                 />
             )}
         </div>
     );
-}
+});
+
+export default SimpleRichTextEditor;

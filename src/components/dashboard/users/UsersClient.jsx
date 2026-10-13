@@ -5,23 +5,34 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import UsersTable from "./UsersTable";
 import UserModal from "./UserModal";
+import AdminsTrashModal from "./AdminsTrashModal";
 import { confirmAction } from "@/utils/confirm";
 import {
     useUsers,
+    useTrashUsers,
     useAddUser,
     useUpdateUser,
     useDeleteUser,
+    useRestoreUser,
+    usePermanentDeleteUser,
 } from "@/hooks/useUsers";
+import { useAuth } from "@/providers/AuthProvider";
+import { toast } from "react-hot-toast";
 
 export default function UsersClient() {
+    const { user: currentAdmin } = useAuth();
     const { data: users = [], isLoading } = useUsers();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashAdmins = [] } = useTrashUsers({ enabled: showTrashModal });
     const addMutation = useAddUser();
     const updateMutation = useUpdateUser();
     const deleteMutation = useDeleteUser();
+    const restoreMutation = useRestoreUser();
+    const permanentDeleteMutation = usePermanentDeleteUser();
 
     const [selectedUser, setSelectedUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -53,10 +64,14 @@ export default function UsersClient() {
     };
 
     const handleDelete = (id) => {
+        if (id === currentAdmin?.id) {
+            toast.error("You cannot delete your own account");
+            return;
+        }
         confirmAction({
-            title: "Remove user?",
-            message: "This user will lose access to the CMS.",
-            confirmLabel: "Yes, Remove",
+            title: "Move to Trash?",
+            message: "This admin will be moved to the recycle bin.",
+            confirmLabel: "Yes, Move it",
             onConfirm: async () => {
                 await deleteMutation.mutateAsync(id);
             },
@@ -66,10 +81,10 @@ export default function UsersClient() {
     return (
         <>
             <PageHeader
-                title="Users & Roles"
+                title="Admins"
                 icon="fal fa-users"
-                titleCol="col-lg-6"
-                actionCol="col-lg-6"
+                titleCol="col-lg-5"
+                actionCol="col-lg-7"
             >
                 <button
                     type="button"
@@ -80,12 +95,21 @@ export default function UsersClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add user</span>
+                    <span className="txt ms-2">Add admin</span>
+                </button>
+
+                <button
+                    type="button"
+                    className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
+                    onClick={() => setShowTrashModal(true)}
+                >
+                    <i className="fal fa-trash-undo"></i>
+                    <span className="txt ms-2">View Trash{trashAdmins.length ? ` (${trashAdmins.length})` : ""}</span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading users...</div>
+                <div className="text-center py-5 text-muted">Loading admins...</div>
             ) : (
                 <UsersTable
                     data={users}
@@ -102,6 +126,14 @@ export default function UsersClient() {
                 }}
                 onSave={handleSave}
                 user={selectedUser}
+            />
+
+            <AdminsTrashModal
+                isOpen={showTrashModal}
+                onClose={() => setShowTrashModal(false)}
+                trashAdmins={trashAdmins}
+                onRestore={(id) => restoreMutation.mutateAsync(id)}
+                onPermanentDelete={(id) => permanentDeleteMutation.mutateAsync(id)}
             />
         </>
     );

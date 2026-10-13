@@ -11,6 +11,8 @@ import {
 import PostsFilter from "./PostsFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
+import { useCompanies } from "@/hooks/useCompanies";
+import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 
 export default function PostsTable({
     data = [],
@@ -28,6 +30,7 @@ export default function PostsTable({
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [companyFilter, setCompanyFilter] = useState("");
+    const { data: companies = [] } = useCompanies();
 
     useEffect(() => {
         const newSelection = {};
@@ -38,10 +41,10 @@ export default function PostsTable({
         setRowSelection(newSelection);
     }, [selectedIds, data]);
 
-    const companyOptions = useMemo(() => {
-        const codes = [...new Set(data.map((item) => item.company_code).filter(Boolean))];
-        return codes.map((code) => ({ value: code, label: code }));
-    }, [data]);
+    const companyOptions = useMemo(
+        () => buildCompanyFilterOptions(companies),
+        [companies]
+    );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();

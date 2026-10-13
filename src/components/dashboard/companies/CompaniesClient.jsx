@@ -22,7 +22,8 @@ import {
 
 export default function CompaniesClient() {
     const { data: companies = [], isLoading } = useCompanies();
-    const { data: trashCompanies = [] } = useTrashCompanies();
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const { data: trashCompanies = [] } = useTrashCompanies({ enabled: showTrashModal });
 
     const addCompanyMutation = useAddCompany();
     const updateCompanyMutation = useUpdateCompany();
@@ -39,8 +40,7 @@ export default function CompaniesClient() {
     const [viewCompany, setViewCompany] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
 
-    const [showTrashModal, setShowTrashModal] = useState(false);
-
+    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -164,7 +164,7 @@ export default function CompaniesClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash ({trashCompanies.length})</span>
+                    <span className="txt ms-2">View Trash{trashCompanies.length ? ` (${trashCompanies.length})` : ""}</span>
                 </button>
             </PageHeader>
 

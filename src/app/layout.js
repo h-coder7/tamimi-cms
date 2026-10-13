@@ -1,22 +1,19 @@
 import { Poppins } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
-// import "./styles/lib/bootstrap.rtl.min.css";
 import BootstrapClient from "@/components/BootstrapClient";
-import "./styles/lib/all.min.css";
-
-// react-date-range
-import "react-date-range/dist/styles.css";
-import "react-date-range/dist/theme/default.css";
-
+import DeferredHeavyStyles from "@/components/DeferredHeavyStyles";
 import "./globals.scss";
 import { Toaster } from "react-hot-toast";
 import { publicPath } from "@/utils/publicPath";
+import ReactQueryProvider from "@/providers/ReactQueryProvider";
+import { AuthProvider } from "@/providers/AuthProvider";
+import LocaleBootstrap from "@/components/LocaleBootstrap";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["100","200","300","400","500","600","700","800","900"],
-  style: ["normal","italic"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
+  display: "swap",
 });
 
 export const metadata = {
@@ -27,20 +24,16 @@ export const metadata = {
   },
 };
 
-
-
-
-
-import ReactQueryProvider from "@/providers/ReactQueryProvider";
-
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={poppins.variable} suppressHydrationWarning={true}>
         <BootstrapClient />
+        <DeferredHeavyStyles />
+        <LocaleBootstrap />
         <Toaster position="top-center" reverseOrder={false} />
         <ReactQueryProvider>
-                {children}
+          <AuthProvider>{children}</AuthProvider>
         </ReactQueryProvider>
       </body>
     </html>
