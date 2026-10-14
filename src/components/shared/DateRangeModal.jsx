@@ -83,8 +83,8 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
     };
 
     return createPortal(
-        <div className="rdr-modal-backdrop" onClick={onClose}>
-            <div className="rdr-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="rdr-modal-backdrop">
+            <div className="rdr-modal-content">
                 {/* Header */}
                 <div className="rdr-header">
                     <h5>Select Date Range</h5>

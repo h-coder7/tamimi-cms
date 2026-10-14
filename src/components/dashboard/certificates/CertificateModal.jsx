@@ -135,11 +135,10 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
 
     return createPortal(
         <>
-            <div className="modal-backdrop fade show" onClick={onClose}></div>
+            <div className="modal-backdrop fade show"></div>
             <div
                 className="modal fade show d-block"
                 tabIndex="-1"
-                onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <div className="modal-dialog modal-dialog-centered modal-xl">
                     <div className="modal-content company-modal-content">

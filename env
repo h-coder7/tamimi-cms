@@ -1,0 +1,2 @@
+# Used at build time (baked into static JS). No secrets.
+NEXT_PUBLIC_API_URL=http://tamimiapi.gamal.inspire-sa.com/api/v1/admin,https://tamimiapi.gamal.inspire-sa.com/api/v1/admin

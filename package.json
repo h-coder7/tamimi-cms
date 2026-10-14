@@ -6,8 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "export": "next build",
-    "pack:deploy": "sh scripts/pack-deploy.sh",
-    "build:deploy": "sh scripts/pack-deploy.sh",
+    "pack:deploy": "node scripts/pack-deploy.mjs",
+    "build:deploy": "node scripts/pack-deploy.mjs",
     "start": "next start",
     "lint": "eslint"
   },
