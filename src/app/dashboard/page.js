@@ -23,14 +23,14 @@ export default function DashboardPage() {
         <DashboardFilters />
       </PageHeader>
       <StatsCards />
-      <div className="row">
+      {/* <div className="row">
         <div className="col-lg-4">
           <SalesTowardsTargets />
         </div>
         <div className="col-lg-8">
           <LeadConversionChart />
         </div>
-      </div>
+      </div> */}
       <div className="row mb-5">
         <div className="col-lg-8">
           <ContentReadiness />
