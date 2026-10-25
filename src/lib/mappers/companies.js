@@ -53,6 +53,34 @@ function toLocalized(value) {
   return { en: text, ar: text };
 }
 
+/** File gallery stays in the uploader; a path-less videoUrl is the YouTube / Vimeo field. */
+function splitCompanyGallery(gallery) {
+  const source = Array.isArray(gallery) ? gallery : [];
+  let video_url = "";
+  const galleryItems = [];
+
+  for (const item of source) {
+    if (!item) continue;
+    if (typeof item === "string") {
+      galleryItems.push({ url: item, path: null, videoUrl: null });
+      continue;
+    }
+    if (item.videoUrl && !item.path) {
+      if (!video_url) video_url = item.videoUrl;
+      continue;
+    }
+    galleryItems.push(item);
+  }
+
+  return {
+    gallery: galleryItems
+      .map((item) => item.url || item.videoUrl || "")
+      .filter(Boolean),
+    galleryItems,
+    video_url,
+  };
+}
+
 export function companyFromApi(company) {
   if (!company) return null;
   const title = localized(company.name);
@@ -62,6 +90,7 @@ export function companyFromApi(company) {
   return {
     id: company.id,
     title,
+    i18nTitle: company.name,
     code: company.shortCode,
     slug: company.slug,
     tagline: localized(company.tagline),
@@ -84,11 +113,10 @@ export function companyFromApi(company) {
     value_chain: (company.valueChainStages || []).map(
       (s) => VALUE_CHAIN_TO_UI[s] || s
     ),
-    certifications: company.certificates || [],
-    gallery: (company.gallery || [])
-      .map((g) => g.videoUrl || g.url || "")
-      .filter(Boolean),
-    video_url: "",
+    certifications: Array.isArray(company.certifications)
+      ? company.certifications.filter((id) => typeof id === "string")
+      : [],
+    ...splitCompanyGallery(company.gallery),
     status: STATUS_TO_UI[company.status] || "Draft",
     type: TYPE_TO_UI[company.type] || "Subsidiary",
     display_order: company.displayOrder ?? "",
@@ -117,12 +145,11 @@ export function companyToApiPayload(form) {
   const payload = {
     name: toLocalized(form.title),
     shortCode: (form.code || "").trim(),
-    field: (form.field || form.overview || "").trim() || "General",
-    overview: toLocalized(form.overview || form.field || form.title),
+    field: (form.field || form.overview || "").trim().slice(0, 120) || "General",
+    overview: toLocalized(form.overview || form.title),
     type: TYPE_TO_API[form.type] || "subsidiary",
     status: STATUS_TO_API[form.status] || "draft",
   };
-
   if (form.tagline !== undefined) payload.tagline = toLocalized(form.tagline);
   if (form.year_established)
     payload.yearEstablished = Number(form.year_established) || undefined;
@@ -167,6 +194,29 @@ export function companyToApiPayload(form) {
     };
   }
 
+  if (Array.isArray(form.certifications)) {
+    payload.certifications = form.certifications.filter(Boolean);
+  }
+
+  // Keep existing gallery paths; new files go as multipart `gallery`.
+  // The YouTube / Vimeo field is one gallery item with videoUrl and no path.
+  const kept = [];
+  const gallerySource = Array.isArray(form.gallery)
+    ? form.gallery
+    : Array.isArray(form.galleryItems)
+      ? form.galleryItems
+      : [];
+
+  for (const item of gallerySource) {
+    if (!item || item.file instanceof File) continue;
+    if (typeof item === "string") continue;
+    if (item.path) kept.push({ path: item.path });
+  }
+
+  const videoUrl = String(form.video_url || "").trim();
+  if (videoUrl) kept.push({ videoUrl });
+  payload.gallery = kept;
+
   return payload;
 }
 
@@ -183,6 +233,11 @@ export function companyToFormData(form) {
 
   const brochureFile = form.brochureFiles?.[0]?.file;
   if (brochureFile instanceof File) fd.append("brochure", brochureFile);
+
+  const galleryFiles = Array.isArray(form.gallery) ? form.gallery : [];
+  for (const item of galleryFiles) {
+    if (item?.file instanceof File) fd.append("gallery", item.file);
+  }
 
   return fd;
 }

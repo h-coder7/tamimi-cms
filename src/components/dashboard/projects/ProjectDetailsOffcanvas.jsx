@@ -2,10 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useIndustries } from "@/hooks/useIndustries";
 import { publicPath } from "@/utils/publicPath";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
+    const { t, statusText, text } = useI18n();
     const { data: companies = [] } = useCompanies();
+    const { data: industries = [] } = useIndustries();
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -21,6 +25,11 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
 
     const services = Array.isArray(project?.services) ? project.services : [];
     const stages = Array.isArray(project?.value_chain) ? project.value_chain : [];
+    const industryMatch = industries.find((item) => item.title === project?.industry);
+    const stageLabel = (stage) => {
+        const label = t(`valueChain.${stage}`);
+        return label === `valueChain.${stage}` ? stage : label;
+    };
 
     return (
         <>
@@ -33,13 +42,13 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
             >
                 <div className="offcanvas-header border-bottom py-3">
                     <h5 className="offcanvas-title fsz-16" id="projectDetailsOffcanvasLabel">
-                        <i className="fal fa-briefcase me-2"></i> Project Details
+                        <i className="fal fa-briefcase me-2"></i> {t("projects.details")}
                     </h5>
                     <button
                         type="button"
                         className="btn-close text-reset"
                         onClick={onClose}
-                        aria-label="Close"
+                        aria-label={t("common.close")}
                     ></button>
                 </div>
                 <div className="offcanvas-body p-4 custom-scroll">
@@ -57,19 +66,19 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
                             )}
 
                             <div className="mb-4">
-                                <h6 className="fsz-18 mb-2">{project.title}</h6>
+                                <h6 className="fsz-18 mb-2">{text(project.i18nTitle, project.title)}</h6>
                                 {(project.content_label || project.is_sample) && (
                                     <div className="text-muted fsz-12 mb-2">
-                                        {project.content_label || "Sample"}
+                                        {project.content_label || t("common.sample")}
                                     </div>
                                 )}
                                 <div className="d-flex flex-wrap gap-2">
                                     <span className="badge bg-light text-dark border fsz-11">
-                                        {project.status || "Draft"}
+                                        {statusText(project.status || "Draft")}
                                     </span>
                                     {project.featured && (
                                         <span className="badge bg-warning-subtle text-dark border fsz-11">
-                                            Featured
+                                            {statusText("Featured")}
                                         </span>
                                     )}
                                 </div>
@@ -77,23 +86,23 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
 
                             <div className="details-list d-flex flex-wrap gap-4">
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Client</label>
-                                    <div className="fsz-13">{project.client || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.client")}</label>
+                                    <div className="fsz-13">{project.client || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Location</label>
-                                    <div className="fsz-13">{project.location || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.location")}</label>
+                                    <div className="fsz-13">{project.location || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Company</label>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.company")}</label>
                                     <div className="d-flex align-items-center gap-2 fsz-13">
                                         <div className="icon-30 p-1 rounded-circle border overflow-hidden bg-light d-flex align-items-center justify-content-center">
                                             {company?.image ? (
                                                 <img
                                                     src={publicPath(company.image)}
-                                                    alt=""
+                                                    alt={t("companies.logoAlt", { code: project.company_code })}
                                                     className="img-contain h-100 w-100"
                                                 />
                                             ) : (
@@ -101,46 +110,46 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
                                             )}
                                         </div>
                                         <div>
-                                            <div>{project.company_code || "N/A"}</div>
+                                            <div dir="ltr">{project.company_code || t("common.na")}</div>
                                             {company?.title && (
-                                                <small className="text-muted fsz-11">{company.title}</small>
+                                                <small className="text-muted fsz-11">{text(company.i18nTitle, company.title)}</small>
                                             )}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="detail-item w-50">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Industry</label>
-                                    <div className="fsz-13">{project.industry || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.industry")}</label>
+                                    <div className="fsz-13">{project.industry ? text(industryMatch?.i18nTitle, project.industry) : t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-50">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Year</label>
-                                    <div className="fsz-13">{project.year || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.year")}</label>
+                                    <div className="fsz-13" dir="ltr">{project.year || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Summary</label>
-                                    <div className="fsz-13">{project.summary || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("common.summary")}</label>
+                                    <div className="fsz-13">{project.summary || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">The challenge</label>
-                                    <div className="fsz-13">{project.challenge || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("projects.challenge")}</label>
+                                    <div className="fsz-13">{project.challenge || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Our solution</label>
-                                    <div className="fsz-13">{project.solution || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("projects.solution")}</label>
+                                    <div className="fsz-13">{project.solution || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">The result</label>
-                                    <div className="fsz-13">{project.result || "N/A"}</div>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("projects.result")}</label>
+                                    <div className="fsz-13">{project.result || t("common.na")}</div>
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Scope & services</label>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("projects.scope")}</label>
                                     {services.length > 0 ? (
                                         <ol className="fsz-13 mb-0 ps-3">
                                             {services.map((service, index) => (
@@ -148,22 +157,22 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
                                             ))}
                                         </ol>
                                     ) : (
-                                        <div className="fsz-12 text-muted">No services added yet</div>
+                                        <div className="fsz-12 text-muted">{t("projects.noServices")}</div>
                                     )}
                                 </div>
 
                                 <div className="detail-item w-100">
-                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">Value-chain stages</label>
+                                    <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("projects.valueChain")}</label>
                                     {stages.length > 0 ? (
                                         <div className="d-flex flex-wrap gap-2">
                                             {stages.map((stage) => (
                                                 <span key={stage} className="badge bg-light text-dark border fsz-11">
-                                                    {stage}
+                                                    {stageLabel(stage)}
                                                 </span>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="fsz-12 text-muted">None selected</div>
+                                        <div className="fsz-12 text-muted">{t("projects.noneSelected")}</div>
                                     )}
                                 </div>
                             </div>
@@ -171,7 +180,7 @@ export default function ProjectDetailsOffcanvas({ show, project, onClose }) {
                     ) : (
                         <div className="text-center py-5 text-muted">
                             <i className="fal fa-spinner fa-spin fa-2x mb-3"></i>
-                            <p>Loading project details...</p>
+                            <p>{t("projects.loadingDetails")}</p>
                         </div>
                     )}
                 </div>

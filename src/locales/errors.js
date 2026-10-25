@@ -23,12 +23,18 @@ const en = {
   "errors.download.file_required": "A PDF file is required",
   "errors.download.restore_failed": "Failed to restore download",
   "errors.company.not_found": "Company not found",
+  "errors.company.name_max": "Company name cannot exceed 100 characters",
+  "errors.company.short_code_max":
+    "Short name / code cannot exceed 12 characters",
+  "errors.company.certification_invalid":
+    "One or more certifications are not in the Certificates module",
   "errors.page.section_unknown": "Unknown page section",
   "errors.page.section_invalid": "Invalid section payload",
   "errors.page.sections_required": "Sections object is required",
   "errors.payload.invalid_seo": "Invalid SEO payload",
   "errors.seo.url_slug_format": "URL slug must start with /",
   "errors.payload.invalid_settings": "Invalid settings payload",
+  "errors.html.not_allowed": "HTML tags are not allowed in this field",
 };
 
 const ar = {
@@ -54,12 +60,18 @@ const ar = {
   "errors.download.file_required": "ملف PDF مطلوب",
   "errors.download.restore_failed": "تعذّر استعادة ملف التحميل",
   "errors.company.not_found": "الشركة غير موجودة",
+  "errors.company.name_max": "لا يمكن أن يتجاوز اسم الشركة 100 حرفًا",
+  "errors.company.short_code_max":
+    "لا يمكن أن يتجاوز الاسم المختصر / الرمز 12 حرفًا",
+  "errors.company.certification_invalid":
+    "واحد أو أكثر من الاعتمادات غير موجود في وحدة الشهادات",
   "errors.page.section_unknown": "قسم الصفحة غير معروف",
   "errors.page.section_invalid": "بيانات القسم غير صالحة",
   "errors.page.sections_required": "كائن الأقسام مطلوب",
   "errors.payload.invalid_seo": "بيانات تحسين محركات البحث غير صالحة",
   "errors.seo.url_slug_format": "مسار الرابط يجب أن يبدأ بـ /",
   "errors.payload.invalid_settings": "بيانات الإعدادات غير صالحة",
+  "errors.html.not_allowed": "وسوم HTML غير مسموح بها في هذا الحقل",
 };
 
 const catalogs = { en, ar };

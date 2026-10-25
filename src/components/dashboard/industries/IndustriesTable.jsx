@@ -10,6 +10,8 @@ import {
 import IndustriesFilter from "./IndustriesFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
+import { VALUE_CHAIN_STAGES } from "@/hooks/useIndustries";
+import { useI18n } from "@/hooks/useI18n";
 
 const formatOrder = (order) => String(order || 0).padStart(2, "0");
 
@@ -21,6 +23,7 @@ export default function IndustriesTable({
     onDelete,
     onView,
 }) {
+    const { t, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([{ id: "order", desc: false }]);
     const [rowSelection, setRowSelection] = useState({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -31,8 +34,11 @@ export default function IndustriesTable({
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch =
-                !q || String(item.title || "").toLowerCase().includes(q);
+            const titleBlob = [item.title, item.i18nTitle?.en, item.i18nTitle?.ar]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+            const matchesSearch = !q || titleBlob.includes(q);
             const matchesStatus = !statusFilter || item.status === statusFilter;
             return matchesSearch && matchesStatus;
         });
@@ -51,39 +57,39 @@ export default function IndustriesTable({
         {
             id: "order",
             accessorKey: "order",
-            header: "Order",
+            header: t("common.order"),
             enableSorting: true,
         },
         {
             id: "title",
             accessorKey: "title",
-            header: "Industry",
+            header: t("common.industry"),
             enableSorting: true,
         },
         {
             id: "companies",
             accessorKey: "companies_count",
-            header: "Companies",
+            header: t("nav.companies"),
             enableSorting: true,
         },
         {
             id: "stages",
             accessorKey: "stages_count",
-            header: "Value-chain stages",
+            header: t("companies.valueChain"),
             enableSorting: true,
         },
         {
             id: "status",
             accessorKey: "status",
-            header: "Status",
+            header: t("common.status"),
             enableSorting: true,
         },
         {
             id: "columnActions",
-            header: "Actions",
+            header: t("common.actions"),
             enableSorting: false,
         },
-    ], []);
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -150,17 +156,17 @@ export default function IndustriesTable({
                                             />
                                             <label className="form-check-label" htmlFor="select-all-industries"></label>
                                         </div>
-                                        <span>Order</span>
+                                        <span>{t("common.order")}</span>
                                         <div className="dropdown ms-auto" onClick={(e) => e.stopPropagation()}>
                                             <button className="btn bg-transparent border-0 p-0" data-bs-toggle="dropdown">
                                                 <i className="fat fa-sort fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("order").toggleSorting(false)}>
-                                                    <i className="fal fa-sort-numeric-up me-2 text-muted"></i> Low → High
+                                                    <i className="fal fa-sort-numeric-up me-2 text-muted"></i> {t("industries.sortLow")}
                                                 </li>
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("order").toggleSorting(true)}>
-                                                    <i className="fal fa-sort-numeric-down me-2 text-muted"></i> High → Low
+                                                    <i className="fal fa-sort-numeric-down me-2 text-muted"></i> {t("industries.sortHigh")}
                                                 </li>
                                             </ul>
                                         </div>
@@ -180,10 +186,10 @@ export default function IndustriesTable({
                                                     </button>
                                                     <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                         </li>
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -198,7 +204,7 @@ export default function IndustriesTable({
                                                 <i className="fas fa-ellipsis-v fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-3" onClick={(e) => e.stopPropagation()}>
-                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">Toggle Columns</h6>
+                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">{t("common.toggleColumns")}</h6>
                                                 {table.getAllLeafColumns().map((column) => {
                                                     if (column.id === "columnActions" || column.id === "order") return null;
                                                     return (
@@ -229,7 +235,7 @@ export default function IndustriesTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No industries found
+                                        {t("industries.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -265,10 +271,10 @@ export default function IndustriesTable({
                                                             <div
                                                                 className="hover-underline fw-500"
                                                                 onClick={() => onView?.(item)}
-                                                                title="View Details"
+                                                                title={t("common.viewDetails")}
                                                                 style={{ cursor: "pointer" }}
                                                             >
-                                                                {item.title}
+                                                                {text(item.i18nTitle, item.title)}
                                                             </div>
                                                         </td>
                                                     );
@@ -277,7 +283,7 @@ export default function IndustriesTable({
                                                 if (colId === "companies") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">{item.companies_label}</span>
+                                                            <span className="fsz-12 text-muted">{t("industries.companiesCount", { count: item.companies_count || 0 })}</span>
                                                         </td>
                                                     );
                                                 }
@@ -285,7 +291,7 @@ export default function IndustriesTable({
                                                 if (colId === "stages") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">{item.stages_label}</span>
+                                                            <span className="fsz-12 text-muted">{t("industries.stagesOf", { count: item.stages_count || 0, total: VALUE_CHAIN_STAGES.length })}</span>
                                                         </td>
                                                     );
                                                 }
@@ -294,7 +300,7 @@ export default function IndustriesTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="badge bg-light text-dark border fsz-11">
-                                                                {item.status || "Draft"}
+                                                                {statusText(item.status || "Draft")}
                                                             </span>
                                                         </td>
                                                     );
@@ -310,17 +316,17 @@ export default function IndustriesTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item.id)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
-                                                                            <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                            <i className="fal fa-eye me-2 text-muted"></i> {t("common.view")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                            <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                            <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -346,12 +352,14 @@ export default function IndustriesTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+                        to: Math.min(
+                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                            filteredCount
+                        ),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -361,7 +369,7 @@ export default function IndustriesTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", { page: table.getState().pagination.pageIndex + 1, pages: Math.max(table.getPageCount(), 1) })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

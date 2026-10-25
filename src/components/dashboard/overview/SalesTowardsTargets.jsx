@@ -1,12 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useI18n } from "@/hooks/useI18n";
 
 // Use dynamic import for ApexCharts to avoid SSR issues in Next.js
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 export default function SalesTowardsTargets() {
+    const { t } = useI18n();
     const [series] = useState([75]); // 75% towards target
 
     const [options] = useState({
@@ -90,16 +92,21 @@ export default function SalesTowardsTargets() {
         labels: ['Sales Target'],
     });
 
+    const chartOptions = useMemo(
+        () => ({ ...options, labels: [t("overview.chart.salesTarget")] }),
+        [options, t]
+    );
+
     return (
         <div className="card border-0 radius-15 p-4 mt-4">
             <div className="card-title py-2 pb-1 border-bottom">
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5 className="mb-0 fsz-18">Sales Towards Targets</h5>
+                    <h5 className="mb-0 fsz-18">{t("overview.chart.sales")}</h5>
                 </div>
             </div>
             <div className="card-body">
                 <div id="chart">
-                    <Chart options={options} series={series} type="radialBar" height={400} />
+                    <Chart options={chartOptions} series={series} type="radialBar" height={400} />
                 </div>
             </div>
         </div>

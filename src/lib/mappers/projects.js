@@ -64,6 +64,7 @@ export function projectFromApi(project) {
   return {
     id: project.id,
     title: localized(project.name),
+    i18nTitle: project.name,
     slug: project.slug || "",
     client: localized(project.client),
     location: localized(project.location, ""),

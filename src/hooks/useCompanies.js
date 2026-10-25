@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
 import { companyFromApi, companyToFormData } from "@/lib/mappers/companies";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export function useCompanies() {
   return useQuery({
@@ -43,10 +44,10 @@ export function useAddCompany() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Company added successfully!");
+      toast.success(t("toast.company.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add company"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotAdd")));
     },
   });
 }
@@ -64,10 +65,10 @@ export function useUpdateCompany() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Company updated successfully!");
+      toast.success(t("toast.company.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update company"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotUpdate")));
     },
   });
 }
@@ -81,10 +82,10 @@ export function useDeleteCompany() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Company moved to trash!");
+      toast.success(t("toast.company.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete company"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotDelete")));
     },
   });
 }
@@ -98,10 +99,10 @@ export function useRestoreCompany() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Company restored successfully!");
+      toast.success(t("toast.company.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore company"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotRestore")));
     },
   });
 }
@@ -115,10 +116,10 @@ export function usePermanentDeleteCompany() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Company permanently deleted!");
+      toast.success(t("toast.company.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -132,10 +133,10 @@ export function useBulkDeleteCompanies() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "companies", "trash-companies");
-      toast.success("Selected companies moved to trash!");
+      toast.success(t("toast.company.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete companies"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotBulk")));
     },
   });
 }

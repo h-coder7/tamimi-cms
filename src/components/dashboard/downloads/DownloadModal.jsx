@@ -12,6 +12,7 @@ import {
     buildCompanyFormOptions,
 } from "@/lib/companyOptions";
 import { toast } from "react-hot-toast";
+import { useI18n } from "@/hooks/useI18n";
 
 const DESC_MAX = 160;
 
@@ -23,6 +24,13 @@ const IMAGE_ACCEPT = {
 
 const PDF_ACCEPT = {
     "application/pdf": [".pdf"],
+};
+
+const TYPE_KEY = {
+    "Company profile": "company_profile",
+    Brochure: "brochure",
+    Policy: "policy",
+    Other: "other",
 };
 
 const emptyForm = () => ({
@@ -39,24 +47,39 @@ const emptyForm = () => ({
 });
 
 export default function DownloadModal({ isOpen, onClose, onSave, download }) {
+    const { t, isRtl, statusText, text } = useI18n();
     const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [lang, setLang] = useState("en");
     const [isMounted, setIsMounted] = useState(false);
 
     const typeOptions = useMemo(
-        () => DOWNLOAD_TYPES.map((type) => ({ value: type, label: type })),
-        []
+        () =>
+            DOWNLOAD_TYPES.map((type) => ({
+                value: type,
+                label: statusText(TYPE_KEY[type] || type),
+            })),
+        [statusText]
     );
 
-    const companyOptions = useMemo(
-        () => buildCompanyFormOptions(companies, { includeGroup: true }),
-        [companies]
-    );
+    const companyOptions = useMemo(() => {
+        return buildCompanyFormOptions(companies, { includeGroup: true }).map((opt) => {
+            if (opt.value === GROUP_VALUE) return { ...opt, label: statusText("group") };
+            const company = companies.find((item) => item.id === opt.value);
+            if (!company) return opt;
+            const name = text(company.i18nTitle, company.title || "");
+            const label = company.code ? `${company.code} — ${name}`.trim() : name;
+            return { ...opt, label: label || opt.label };
+        });
+    }, [companies, statusText, text]);
 
     const statusOptions = useMemo(
-        () => DOWNLOAD_STATUSES.map((status) => ({ value: status, label: status })),
-        []
+        () =>
+            DOWNLOAD_STATUSES.map((status) => ({
+                value: status,
+                label: statusText(status),
+            })),
+        [statusText]
     );
 
     useEffect(() => {
@@ -88,7 +111,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                     ? [{ preview: download.file, type: "application/pdf", name: "File.pdf" }]
                     : [],
                 coverFiles: download.cover
-                    ? [{ preview: download.cover, type: "image/jpeg", name: "Cover" }]
+                    ? [{ preview: download.cover, type: "image/jpeg", name: t("common.cover") }]
                     : [],
                 description: download.description || "",
                 description_ar: download.description_ar || "",
@@ -97,7 +120,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
         } else {
             setFormData(emptyForm());
         }
-    }, [isOpen, download]);
+    }, [isOpen, download, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -109,16 +132,16 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
         e.preventDefault();
 
         if (!formData.title.trim()) {
-            toast.error("Title (EN) is required");
+            toast.error(t("validation.titleEn"));
             return;
         }
         if (!formData.type || !formData.company) {
-            toast.error("Type and company are required");
+            toast.error(t("validation.typeCompany"));
             return;
         }
         const hasNewPdf = formData.pdfFiles?.[0]?.file instanceof File;
         if (!download && !hasNewPdf) {
-            toast.error("A PDF file is required");
+            toast.error(t("validation.pdf"));
             return;
         }
 
@@ -155,7 +178,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
     const titleName = lang === "en" ? "title" : "title_ar";
     const descValue = lang === "en" ? formData.description : formData.description_ar;
     const descName = lang === "en" ? "description" : "description_ar";
-    const isRtl = lang === "ar";
+    const fieldRtl = lang === "ar";
 
     return createPortal(
         <>
@@ -168,9 +191,9 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {download ? "Edit file" : "Add file"}
+                                {download ? t("downloads.edit") : t("downloads.add")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
@@ -182,7 +205,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                             className={`nav-link fsz-12 px-3 py-2 ${lang === "en" ? "active" : ""}`}
                                             onClick={() => setLang("en")}
                                         >
-                                            English
+                                            {t("common.english")}
                                         </button>
                                     </li>
                                     <li className="nav-item">
@@ -191,7 +214,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                             className={`nav-link fsz-12 px-3 py-2 ${lang === "ar" ? "active" : ""}`}
                                             onClick={() => setLang("ar")}
                                         >
-                                            العربية
+                                            {t("common.arabic")}
                                         </button>
                                     </li>
                                 </ul>
@@ -199,26 +222,27 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                 <div className="row">
                                     <div className="col-12 mb-3">
                                         <label className="form-label">
-                                            Title <span className="text-danger">*</span>
+                                            {lang === "en" ? t("downloads.titleEn") : t("downloads.titleAr")}{" "}
+                                            <span className="text-danger">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             className="form-control"
                                             name={titleName}
                                             required={lang === "en"}
-                                            dir={isRtl ? "rtl" : "ltr"}
+                                            dir={fieldRtl ? "rtl" : "ltr"}
                                             value={titleValue}
                                             onChange={handleChange}
-                                            placeholder="e.g. SESCO brochure"
+                                            placeholder={t("downloads.titlePh")}
                                         />
                                         <div className="form-text fsz-11">
-                                            Shown as the file name on the Downloads page
+                                            {t("downloads.shownAs")}
                                         </div>
                                     </div>
 
                                     <div className="col-lg-6 mb-3">
                                         <label className="form-label">
-                                            Type <span className="text-danger">*</span>
+                                            {t("common.type")} <span className="text-danger">*</span>
                                         </label>
                                         <Select
                                             options={typeOptions}
@@ -229,7 +253,8 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                                     type: opt?.value || "",
                                                 }))
                                             }
-                                            placeholder="Select type"
+                                            placeholder={t("downloads.selectType")}
+                                            isRtl={isRtl}
                                             classNamePrefix="react-select"
                                             menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                             styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
@@ -238,7 +263,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
 
                                     <div className="col-lg-6 mb-3">
                                         <label className="form-label">
-                                            Company <span className="text-danger">*</span>
+                                            {t("common.company")} <span className="text-danger">*</span>
                                         </label>
                                         <Select
                                             options={companyOptions}
@@ -258,19 +283,20 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                                             : selected?.code || "",
                                                 }));
                                             }}
-                                            placeholder="Select company"
+                                            placeholder={t("downloads.selectCompany")}
+                                            isRtl={isRtl}
                                             classNamePrefix="react-select"
                                             menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                             styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                         />
                                         <div className="form-text fsz-11">
-                                            Also listed on that company’s page
+                                            {t("downloads.alsoListed")}
                                         </div>
                                     </div>
 
                                     <div className="col-12 mb-3">
                                         <label className="form-label">
-                                            File (PDF) {!download && <span className="text-danger">*</span>}
+                                            {t("downloads.filePdf")} {!download && <span className="text-danger">*</span>}
                                         </label>
                                         <FileUpload
                                             files={formData.pdfFiles}
@@ -279,13 +305,13 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                             }
                                             maxFiles={1}
                                             accept={PDF_ACCEPT}
-                                            title="Upload PDF"
-                                            hint="PDF only · max 10 MB"
+                                            title={t("downloads.uploadPdf")}
+                                            hint={t("downloads.pdfHint")}
                                         />
                                     </div>
 
                                     <div className="col-12 mb-3">
-                                        <label className="form-label">Cover / thumbnail</label>
+                                        <label className="form-label">{t("downloads.thumbnail")}</label>
                                         <FileUpload
                                             files={formData.coverFiles}
                                             onFilesChange={(files) =>
@@ -293,21 +319,21 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                             }
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
-                                            title="Upload cover"
-                                            hint="Optional · JPG, PNG or WEBP · shown on the download card"
+                                            title={t("downloads.uploadCover")}
+                                            hint={t("downloads.coverHint")}
                                         />
                                     </div>
 
                                     <div className="col-12 mb-3">
-                                        <label className="form-label">Description</label>
+                                        <label className="form-label">{t("common.description")}</label>
                                         <textarea
                                             className="form-control"
                                             name={descName}
                                             rows={3}
-                                            dir={isRtl ? "rtl" : "ltr"}
+                                            dir={fieldRtl ? "rtl" : "ltr"}
                                             value={descValue}
                                             onChange={handleChange}
-                                            placeholder="Optional · max 160 characters"
+                                            placeholder={t("downloads.descPh")}
                                         />
                                         <div className="form-text fsz-11 text-end">
                                             {descValue.length}/{DESC_MAX}
@@ -315,7 +341,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                     </div>
 
                                     <div className="col-lg-6 mb-3">
-                                        <label className="form-label">Status</label>
+                                        <label className="form-label">{t("common.status")}</label>
                                         <Select
                                             options={statusOptions}
                                             value={statusOptions.find((o) => o.value === formData.status) || statusOptions[0]}
@@ -325,6 +351,7 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
                                                     status: opt?.value || "Draft",
                                                 }))
                                             }
+                                            isRtl={isRtl}
                                             classNamePrefix="react-select"
                                             menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                             styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
@@ -335,10 +362,10 @@ export default function DownloadModal({ isOpen, onClose, onSave, download }) {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button type="submit" className="btn btn-primary">
-                                    Save
+                                    {t("common.save")}
                                 </button>
                             </div>
                         </form>

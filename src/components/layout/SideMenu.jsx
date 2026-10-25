@@ -6,13 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { confirmAction } from "@/utils/confirm";
 import { publicPath } from "@/utils/publicPath";
 import { useAuth } from "@/providers/AuthProvider";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function SideMenu() {
     const pathname = usePathname();
     const router = useRouter();
     const { user: authUser, logout } = useAuth();
+    const { t } = useI18n();
     const user = {
-        name: authUser?.name || "Admin",
+        name: authUser?.name || t("admins.title"),
         email: authUser?.email || "",
     };
 
@@ -30,7 +32,7 @@ export default function SideMenu() {
                     <Link href="/dashboard" prefetch={false} className="logo position-relative d-block" style={{ width: "40px", height: "40px" }}>
                         <Image
                             src={publicPath("/images/logo.png")}
-                            alt="Logo"
+                            alt={t("nav.logoAlt")}
                             fill
                             className="img-contain"
                         />
@@ -44,7 +46,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-chart-simple"></i>
                                 </span>
-                                <span className="txt">Dashboard</span>
+                                <span className="txt">{t("nav.dashboard")}</span>
                             </Link>
                         </li>
 
@@ -53,7 +55,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-file-alt"></i>
                                 </span>
-                                <span className="txt">Pages & Home</span>
+                                <span className="txt">{t("nav.pages")}</span>
                             </Link>
                         </li>
 
@@ -62,7 +64,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-building"></i>
                                 </span>
-                                <span className="txt">Companies</span>
+                                <span className="txt">{t("nav.companies")}</span>
                             </Link>
                         </li>
 
@@ -71,7 +73,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-industry"></i>
                                 </span>
-                                <span className="txt">Industries</span>
+                                <span className="txt">{t("nav.industries")}</span>
                             </Link>
                         </li>
 
@@ -80,7 +82,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-briefcase"></i>
                                 </span>
-                                <span className="txt">Projects</span>
+                                <span className="txt">{t("nav.projects")}</span>
                             </Link>
                         </li>
 
@@ -89,7 +91,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-handshake"></i>
                                 </span>
-                                <span className="txt">Clients & Partners</span>
+                                <span className="txt">{t("nav.clients")}</span>
                             </Link>
                         </li>
 
@@ -98,7 +100,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-certificate"></i>
                                 </span>
-                                <span className="txt">Certificates</span>
+                                <span className="txt">{t("nav.certificates")}</span>
                             </Link>
                         </li>
 
@@ -107,7 +109,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-newspaper"></i>
                                 </span>
-                                <span className="txt">Posts</span>
+                                <span className="txt">{t("nav.posts")}</span>
                             </Link>
                         </li>
 
@@ -116,7 +118,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-user-hard-hat"></i>
                                 </span>
-                                <span className="txt">Jobs</span>
+                                <span className="txt">{t("nav.jobs")}</span>
                             </Link>
                         </li>
 
@@ -125,7 +127,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-file-user"></i>
                                 </span>
-                                <span className="txt">Applications</span>
+                                <span className="txt">{t("nav.applications")}</span>
                             </Link>
                         </li>
 
@@ -134,7 +136,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-envelope"></i>
                                 </span>
-                                <span className="txt">Messages</span>
+                                <span className="txt">{t("nav.messages")}</span>
                             </Link>
                         </li>
 
@@ -143,7 +145,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-download"></i>
                                 </span>
-                                <span className="txt">Downloads</span>
+                                <span className="txt">{t("nav.downloads")}</span>
                             </Link>
                         </li>
 
@@ -152,7 +154,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-search"></i>
                                 </span>
-                                <span className="txt">SEO</span>
+                                <span className="txt">{t("nav.seo")}</span>
                             </Link>
                         </li>
 
@@ -161,7 +163,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-users"></i>
                                 </span>
-                                <span className="txt">Admins</span>
+                                <span className="txt">{t("nav.admins")}</span>
                             </Link>
                         </li>
 
@@ -170,7 +172,7 @@ export default function SideMenu() {
                                 <span className="icon">
                                     <i className="fal fa-gear"></i>
                                 </span>
-                                <span className="txt">Settings</span>
+                                <span className="txt">{t("nav.settings")}</span>
                             </Link>
                         </li>
                     </ul>
@@ -182,7 +184,7 @@ export default function SideMenu() {
                     <div className="avatar position-relative" style={{ width: "40px", height: "40px" }}>
                         <Image
                             src={publicPath("/images/av2.png")}
-                            alt="User Avatar"
+                            alt={t("nav.avatarAlt")}
                             fill
                             className="object-fit-cover rounded-circle"
                         />
@@ -197,16 +199,16 @@ export default function SideMenu() {
                         className="btn border-0 p-0 ms-auto text-danger"
                         onClick={() => {
                             confirmAction({
-                                title: "Logout?",
-                                message: "Are you sure you want to logout?",
-                                confirmLabel: "Logout",
+                                title: t("confirm.logoutTitle"),
+                                message: t("confirm.logoutMessage"),
+                                confirmLabel: t("confirm.logout"),
                                 onConfirm: async () => {
                                     await logout();
                                     router.replace("/login");
                                 },
                             });
                         }}
-                        title="Logout"
+                        title={t("confirm.logout")}
                     >
                         <i className="fal fa-sign-out fa-lg"></i>
                     </button>

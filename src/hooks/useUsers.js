@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export const USER_STATUSES = ["Active", "Inactive"];
 
@@ -75,10 +76,10 @@ export function useAddUser() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "users", "trash-users");
-      toast.success("Admin created successfully!");
+      toast.success(t("toast.admin.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not create admin"));
+      toast.error(getApiErrorMessage(error, t("toast.admin.couldNotAdd")));
     },
   });
 }
@@ -101,10 +102,10 @@ export function useUpdateUser() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "users", "trash-users");
-      toast.success("Admin updated successfully!");
+      toast.success(t("toast.admin.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update admin"));
+      toast.error(getApiErrorMessage(error, t("toast.admin.couldNotUpdate")));
     },
   });
 }
@@ -118,10 +119,10 @@ export function useDeleteUser() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "users", "trash-users");
-      toast.success("Admin moved to trash!");
+      toast.success(t("toast.admin.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete admin"));
+      toast.error(getApiErrorMessage(error, t("toast.admin.couldNotDelete")));
     },
   });
 }
@@ -135,10 +136,10 @@ export function useRestoreUser() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "users", "trash-users");
-      toast.success("Admin restored successfully!");
+      toast.success(t("toast.admin.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore admin"));
+      toast.error(getApiErrorMessage(error, t("toast.admin.couldNotRestore")));
     },
   });
 }
@@ -152,10 +153,10 @@ export function usePermanentDeleteUser() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "users", "trash-users");
-      toast.success("Admin permanently deleted!");
+      toast.success(t("toast.admin.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }

@@ -6,8 +6,12 @@ import { DateRange } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format } from "date-fns";
+import { ar as arLocale, enUS } from "date-fns/locale";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function DateRangeModal({ show, onClose, onApply, initialRange }) {
+    const { t, isRtl } = useI18n();
+    const dateLocale = isRtl ? arLocale : enUS;
     const [range, setRange] = useState([{
         startDate: null,
         endDate: null,
@@ -78,8 +82,9 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
     };
 
     const getRangeDisplay = () => {
-        if (!range[0].startDate || !range[0].endDate) return "Select Range";
-        return `${format(range[0].startDate, "MMM dd, yyyy")} - ${format(range[0].endDate, "MMM dd, yyyy")}`;
+        if (!range[0].startDate || !range[0].endDate) return t("dateRange.title");
+        const pattern = "MMM dd, yyyy";
+        return `${format(range[0].startDate, pattern, { locale: dateLocale })} - ${format(range[0].endDate, pattern, { locale: dateLocale })}`;
     };
 
     return createPortal(
@@ -87,7 +92,7 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
             <div className="rdr-modal-content">
                 {/* Header */}
                 <div className="rdr-header">
-                    <h5>Select Date Range</h5>
+                    <h5>{t("dateRange.title")}</h5>
                     <div className="rdr-selected-display">
                         <i className="far fa-calendar-alt"></i>
                         {getRangeDisplay()}
@@ -97,42 +102,42 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
                 <div className="rdr-modal-body">
                     {/* Presets Sidebar */}
                     <div className="rdr-presets">
-                        <h6>Quick Select</h6>
+                        <h6>{t("dateRange.quick")}</h6>
                         <button
                             className={activePreset === "today" ? "active" : ""}
                             onClick={() => applyPreset("today")}
                         >
-                            Today
+                            {t("dateRange.today")}
                         </button>
                         <button
                             className={activePreset === "yesterday" ? "active" : ""}
                             onClick={() => applyPreset("yesterday")}
                         >
-                            Yesterday
+                            {t("dateRange.yesterday")}
                         </button>
                         <button
                             className={activePreset === "last7" ? "active" : ""}
                             onClick={() => applyPreset("last7")}
                         >
-                            Last 7 Days
+                            {t("dateRange.last7")}
                         </button>
                         <button
                             className={activePreset === "last30" ? "active" : ""}
                             onClick={() => applyPreset("last30")}
                         >
-                            Last 30 Days
+                            {t("dateRange.last30")}
                         </button>
                         <button
                             className={activePreset === "thisMonth" ? "active" : ""}
                             onClick={() => applyPreset("thisMonth")}
                         >
-                            This Month
+                            {t("dateRange.thisMonth")}
                         </button>
                         <button
                             className={activePreset === "lastMonth" ? "active" : ""}
                             onClick={() => applyPreset("lastMonth")}
                         >
-                            Last Month
+                            {t("dateRange.lastMonth")}
                         </button>
                     </div>
 
@@ -145,8 +150,9 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
                             moveRangeOnFirstSelection={false}
                             months={2}
                             direction="horizontal"
-                            showDateDisplay={false} // We typically hide default display to use our own or let it be 
-                            rangeColors={["#141414"]} // Fallback if CSS variable doesn't load immediately
+                            locale={dateLocale}
+                            showDateDisplay={false}
+                            rangeColors={["#141414"]}
                         />
                     </div>
                 </div>
@@ -154,10 +160,10 @@ export default function DateRangeModal({ show, onClose, onApply, initialRange })
                 {/* Footer */}
                 <div className="rdr-footer">
                     <button className="btn-cancel" onClick={onClose}>
-                        Cancel
+                        {t("dateRange.cancel")}
                     </button>
                     <button className="btn-apply" onClick={() => onApply(range)}>
-                        Apply Range
+                        {t("dateRange.apply")}
                     </button>
                 </div>
             </div>

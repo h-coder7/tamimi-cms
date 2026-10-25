@@ -18,8 +18,10 @@ import {
 } from "@/hooks/useUsers";
 import { useAuth } from "@/providers/AuthProvider";
 import { toast } from "react-hot-toast";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function UsersClient() {
+    const { t } = useI18n();
     const { user: currentAdmin } = useAuth();
     const { data: users = [], isLoading } = useUsers();
     const [showTrashModal, setShowTrashModal] = useState(false);
@@ -65,13 +67,13 @@ export default function UsersClient() {
 
     const handleDelete = (id) => {
         if (id === currentAdmin?.id) {
-            toast.error("You cannot delete your own account");
+            toast.error(t("admins.cannotDeleteSelf"));
             return;
         }
         confirmAction({
-            title: "Move to Trash?",
-            message: "This admin will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("admins.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteMutation.mutateAsync(id);
             },
@@ -81,7 +83,7 @@ export default function UsersClient() {
     return (
         <>
             <PageHeader
-                title="Admins"
+                title={t("admins.title")}
                 icon="fal fa-users"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
@@ -95,7 +97,7 @@ export default function UsersClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add admin</span>
+                    <span className="txt ms-2">{t("admins.add")}</span>
                 </button>
 
                 <button
@@ -104,12 +106,16 @@ export default function UsersClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashAdmins.length ? ` (${trashAdmins.length})` : ""}</span>
+                    <span className="txt ms-2">
+                        {trashAdmins.length
+                            ? t("common.viewTrashCount", { count: trashAdmins.length })
+                            : t("common.viewTrash")}
+                    </span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading admins...</div>
+                <div className="text-center py-5 text-muted">{t("admins.loading")}</div>
             ) : (
                 <UsersTable
                     data={users}

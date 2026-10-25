@@ -3,8 +3,17 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { TITLE_MAX, DESC_MAX, computeSeoHealth } from "@/hooks/useSeo";
+import { useI18n } from "@/hooks/useI18n";
+
+function pageLabel(page, t) {
+    if (!page?.pageSlug) return page?.page || "—";
+    const key = `seo.page.${page.pageSlug}`;
+    const label = t(key);
+    return label === key ? page.page || page.pageSlug : label;
+}
 
 export default function SeoModal({ isOpen, onClose, onSave, page }) {
+    const { t, isRtl, statusText } = useI18n();
     const [formData, setFormData] = useState({
         meta_title: "",
         meta_description: "",
@@ -42,6 +51,7 @@ export default function SeoModal({ isOpen, onClose, onSave, page }) {
     const titleLen = formData.meta_title.length;
     const descLen = formData.meta_description.length;
     const health = computeSeoHealth(formData.meta_title, formData.meta_description);
+    const proseDir = isRtl ? "rtl" : "ltr";
 
     return createPortal(
         <>
@@ -53,16 +63,16 @@ export default function SeoModal({ isOpen, onClose, onSave, page }) {
                 <div className="modal-dialog modal-dialog-centered modal-lg">
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Edit SEO — {page.page}</h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <h5 className="modal-title">{t("seo.edit")} — {pageLabel(page, t)}</h5>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="mb-3">
                                     <div className="d-flex justify-content-between align-items-center mb-1">
-                                        <label className="form-label mb-0">Meta title</label>
-                                        <span className={`fsz-11 ${titleLen > TITLE_MAX ? "text-warning" : "text-muted"}`}>
+                                        <label className="form-label mb-0">{t("seo.metaTitle")}</label>
+                                        <span className={`fsz-11 ${titleLen > TITLE_MAX ? "text-warning" : "text-muted"}`} dir="ltr">
                                             {titleLen} / {TITLE_MAX}
                                         </span>
                                     </div>
@@ -70,17 +80,18 @@ export default function SeoModal({ isOpen, onClose, onSave, page }) {
                                         type="text"
                                         className="form-control"
                                         name="meta_title"
+                                        dir={proseDir}
                                         value={formData.meta_title}
                                         onChange={handleChange}
-                                        placeholder="e.g. Careers | Tamimi Energy Group"
+                                        placeholder={t("seo.metaTitlePh")}
                                     />
-                                    <div className="form-text fsz-11">Recommended up to {TITLE_MAX} characters</div>
+                                    <div className="form-text fsz-11">{t("seo.recommended", { count: TITLE_MAX })}</div>
                                 </div>
 
                                 <div className="mb-3">
                                     <div className="d-flex justify-content-between align-items-center mb-1">
-                                        <label className="form-label mb-0">Meta description</label>
-                                        <span className={`fsz-11 ${descLen > DESC_MAX ? "text-warning" : "text-muted"}`}>
+                                        <label className="form-label mb-0">{t("seo.metaDescription")}</label>
+                                        <span className={`fsz-11 ${descLen > DESC_MAX ? "text-warning" : "text-muted"}`} dir="ltr">
                                             {descLen} / {DESC_MAX}
                                         </span>
                                     </div>
@@ -88,24 +99,25 @@ export default function SeoModal({ isOpen, onClose, onSave, page }) {
                                         className="form-control"
                                         name="meta_description"
                                         rows={4}
+                                        dir={proseDir}
                                         value={formData.meta_description}
                                         onChange={handleChange}
-                                        placeholder="Short summary for search results"
+                                        placeholder={t("seo.metaDescPh")}
                                     />
-                                    <div className="form-text fsz-11">Recommended up to {DESC_MAX} characters</div>
+                                    <div className="form-text fsz-11">{t("seo.recommended", { count: DESC_MAX })}</div>
                                 </div>
 
                                 <div className="alert alert-light border fsz-12 mb-0">
-                                    Health preview: <strong>{health}</strong>
+                                    {t("seo.healthPreview")}: <strong>{statusText(health)}</strong>
                                 </div>
                             </div>
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button type="submit" className="btn btn-primary">
-                                    Save
+                                    {t("common.save")}
                                 </button>
                             </div>
                         </form>

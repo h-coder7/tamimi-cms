@@ -1,4 +1,4 @@
-import { Poppins } from "next/font/google";
+import { Cairo, Poppins } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BootstrapClient from "@/components/BootstrapClient";
 import DeferredHeavyStyles from "@/components/DeferredHeavyStyles";
@@ -16,6 +16,13 @@ const poppins = Poppins({
   display: "swap",
 });
 
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
 export const metadata = {
   title: "tamimi cms",
   description: "tamimi cms",
@@ -27,7 +34,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={poppins.variable} suppressHydrationWarning={true}>
+      <body className={`${poppins.variable} ${cairo.variable}`} suppressHydrationWarning={true}>
         <BootstrapClient />
         <DeferredHeavyStyles />
         <LocaleBootstrap />

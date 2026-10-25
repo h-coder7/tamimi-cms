@@ -1,42 +1,47 @@
+"use client";
+
+import { useI18n } from "@/hooks/useI18n";
+
 const stats = [
     {
-        title: "Companies",
+        titleKey: "overview.companies",
         value: "18",
-        detail: "9 subsidiaries · 9 JVs",
+        detailKey: "overview.companiesDetail",
     },
     {
-        title: "Industries",
+        titleKey: "overview.industries",
         value: "9",
-        detail: "Draft mapping",
+        detailKey: "overview.industriesDetail",
     },
     {
-        title: "Projects",
+        titleKey: "overview.projects",
         value: "6",
-        detail: "Sample data · 3 featured",
+        detailKey: "overview.projectsDetail",
     },
     {
-        title: "Open jobs",
+        titleKey: "overview.openJobs",
         value: "4",
-        detail: "Sample data · 6 applications",
+        detailKey: "overview.openJobsDetail",
     },
     {
-        title: "New messages",
+        titleKey: "overview.newMessages",
         value: "3",
-        detail: "Sample data · 6 total",
+        detailKey: "overview.newMessagesDetail",
     },
 ];
 
 export default function StatisticsSection() {
+    const { t } = useI18n();
     return (
         <div className="statics-sec pt-0">
             <div className="statics">
                 <div className="row row-cols-1 row-cols-sm-2 row-cols-xl-5 g-3">
                     {stats.map((item) => (
-                        <div className="col" key={item.title}>
+                        <div className="col" key={item.titleKey}>
                             <div className="item">
-                                <div className="stat-label">{item.title}</div>
+                                <div className="stat-label">{t(item.titleKey)}</div>
                                 <h5 className="stat-value">{item.value}</h5>
-                                <div className="stat-detail">{item.detail}</div>
+                                <div className="stat-detail">{t(item.detailKey)}</div>
                             </div>
                         </div>
                     ))}

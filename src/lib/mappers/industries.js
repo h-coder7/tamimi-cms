@@ -75,6 +75,7 @@ export function industryFromApi(industry) {
   return {
     id: industry.id,
     title,
+    i18nTitle: industry.name,
     slug: industry.slug,
     order: industry.displayOrder ?? 0,
     status: STATUS_TO_UI[industry.status] || "Draft",

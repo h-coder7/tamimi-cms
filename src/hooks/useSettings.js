@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
+import { t } from "@/lib/i18n";
 import {
   settingsFromApi,
   settingsToApiPayload,
@@ -27,10 +28,10 @@ export function useUpdateSettings() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast.success("Settings saved successfully!");
+      toast.success(t("toast.settings.saved"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not save settings"));
+      toast.error(getApiErrorMessage(error, t("toast.settings.couldNotSave")));
     },
   });
 }

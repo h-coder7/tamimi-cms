@@ -39,6 +39,7 @@ export function clientFromApi(client) {
   return {
     id: client.id,
     title: localized(client.name),
+    i18nTitle: client.name,
     type: TYPE_TO_UI[client.type] || "Client",
     industryId: client.industryId || null,
     industry: localized(client.industry?.name, ""),

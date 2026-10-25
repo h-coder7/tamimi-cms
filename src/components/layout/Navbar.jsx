@@ -8,12 +8,14 @@ import { confirmAction } from "@/utils/confirm";
 import { publicPath } from "@/utils/publicPath";
 import { useAuth } from "@/providers/AuthProvider";
 import { getLocale, setLocale } from "@/lib/locale";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function TitleWrapper() {
     const { user: authUser, logout } = useAuth();
+    const { t } = useI18n();
     const [locale, setLocaleState] = useState("en");
     const user = {
-        name: authUser?.name || "Admin",
+        name: authUser?.name || t("admins.title"),
         email: authUser?.email || "",
     };
 
@@ -30,14 +32,14 @@ export default function TitleWrapper() {
     };
 
     const quickCreateItems = [
-        { label: "Company", icon: "fal fa-building", path: "/dashboard/companies" },
-        { label: "Industry", icon: "fal fa-industry", path: "/dashboard/industries" },
-        { label: "Project", icon: "fal fa-briefcase", path: "/dashboard/projects" },
-        { label: "Logo", icon: "fal fa-handshake", path: "/dashboard/clients-partners" },
-        { label: "Certificate", icon: "fal fa-certificate", path: "/dashboard/certificates" },
-        { label: "Download", icon: "fal fa-download", path: "/dashboard/downloads" },
-        { label: "Post", icon: "fal fa-newspaper", path: "/dashboard/posts" },
-        { label: "Job", icon: "fal fa-user-hard-hat", path: "/dashboard/jobs" },
+        { label: t("nav.company"), icon: "fal fa-building", path: "/dashboard/companies" },
+        { label: t("nav.industry"), icon: "fal fa-industry", path: "/dashboard/industries" },
+        { label: t("nav.project"), icon: "fal fa-briefcase", path: "/dashboard/projects" },
+        { label: t("nav.logo"), icon: "fal fa-handshake", path: "/dashboard/clients-partners" },
+        { label: t("nav.certificate"), icon: "fal fa-certificate", path: "/dashboard/certificates" },
+        { label: t("nav.download"), icon: "fal fa-download", path: "/dashboard/downloads" },
+        { label: t("nav.post"), icon: "fal fa-newspaper", path: "/dashboard/posts" },
+        { label: t("nav.job"), icon: "fal fa-user-hard-hat", path: "/dashboard/jobs" },
     ];
 
     const router = useRouter();
@@ -48,9 +50,9 @@ export default function TitleWrapper() {
 
     const handleLogout = () => {
         confirmAction({
-            title: "Logout?",
-            message: "Are you sure you want to logout?",
-            confirmLabel: "Logout",
+            title: t("confirm.logoutTitle"),
+            message: t("confirm.logoutMessage"),
+            confirmLabel: t("confirm.logout"),
             onConfirm: async () => {
                 await logout();
                 router.replace("/login");
@@ -73,7 +75,7 @@ export default function TitleWrapper() {
                 <div className="search-box">
                     <div className="form-group position-relative">
                         <i className="fal fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fsz-14"></i>
-                        <input type="text" className="form-control" placeholder="Search" />
+                        <input type="text" className="form-control" placeholder={t("nav.search")} />
                         <button className="shortcut-hint" type="button"> <i className="fal fa-search"></i> </button>
                     </div>
                 </div>
@@ -85,7 +87,7 @@ export default function TitleWrapper() {
                     <div className="dropdown quick-create">
                         <button className="butn-st2 blue-butn butn-md d-flex align-items-center gap-2 after-none" data-bs-toggle="dropdown">
                             <i className="fal fa-plus-circle"></i>
-                            <span>Add New</span>
+                            <span>{t("nav.addNew")}</span>
                         </button>
                         <div className="dropdown-menu dropdown-menu-end p-4 quick-create-grid">
                             <div className="row g-3">
@@ -114,7 +116,7 @@ export default function TitleWrapper() {
                                 type="button"
                                 data-bs-toggle="dropdown"
                                 aria-expanded="false"
-                                title="Language"
+                                title={t("common.language")}
                             >
                                 <i className="fal fa-globe"></i>
                                 <span className="ms-1 fsz-11 text-uppercase">{locale}</span>
@@ -172,12 +174,12 @@ export default function TitleWrapper() {
                             </li>
                             <li>
                                 <Link href="/dashboard/settings" className="dropdown-item fsz-13 mt-2">
-                                    <i className="fal fa-gear me-2"></i> Settings
+                                    <i className="fal fa-gear me-2"></i> {t("nav.settingsLink")}
                                 </Link>
                             </li>
                             <li>
                                 <button className="dropdown-item text-danger py-2 fsz-13" onClick={handleLogout}>
-                                    <i className="fal fa-sign-out me-2"></i> Sign Out
+                                    <i className="fal fa-sign-out me-2"></i> {t("nav.signOut")}
                                 </button>
                             </li>
                         </ul>

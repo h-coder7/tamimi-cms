@@ -6,6 +6,7 @@ import DashboardFilters from "@/components/dashboard/overview/DashboardFilters";
 import StatsCards from "@/components/dashboard/overview/StatsCards";
 import ContentReadiness from "@/components/dashboard/overview/ContentReadiness";
 import LatestMessages from "@/components/dashboard/overview/LatestMessages";
+import { useI18n } from "@/hooks/useI18n";
 
 const SalesTowardsTargets = dynamic(
   () => import("@/components/dashboard/overview/SalesTowardsTargets"),
@@ -17,9 +18,10 @@ const LeadConversionChart = dynamic(
 );
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   return (
     <div>
-      <PageHeader title="Overview" icon="fal fa-chart-simple" titleCol="col-lg-4" actionCol="col-lg-8">
+      <PageHeader title={t("overview.title")} icon="fal fa-chart-simple" titleCol="col-lg-4" actionCol="col-lg-8">
         <DashboardFilters />
       </PageHeader>
       <StatsCards />

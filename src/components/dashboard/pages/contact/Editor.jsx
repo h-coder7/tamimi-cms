@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/hooks/useI18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
@@ -7,12 +8,14 @@ import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
-    { id: "section_1", number: "01", title: "Contact Us intro", fieldsCount: 2 },
-    { id: "section_2", number: "02", title: "Section 2", fieldsCount: 2 },
-    { id: "section_3", number: "03", title: "Section 3", fieldsCount: 2 },
+    { id: "section_1", number: "01", titleKey: "pages.section.contactIntro", fieldsCount: 2 },
+    { id: "section_2", number: "02", titleKey: "pages.section.section2", fieldsCount: 2 },
+    { id: "section_3", number: "03", titleKey: "pages.section.section3", fieldsCount: 2 },
 ];
 
 export default function ContactEditor() {
+    const { t, isRtl } = useI18n();
+    const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
     const updateMutation = useUpdateCmsPage();
@@ -50,15 +53,15 @@ export default function ContactEditor() {
     };
 
     if (isLoading) {
-        return <div className="text-center py-5 text-muted">Loading page editor...</div>;
+        return <div className="text-center py-5 text-muted">{t("pages.loadingEditor")}</div>;
     }
 
     if (!page) {
         return (
             <div className="text-center py-5">
-                <p className="text-muted mb-3">Page not found</p>
+                <p className="text-muted mb-3">{t("pages.notFound")}</p>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handleCancel}>
-                    Back to Pages
+                    {t("pages.back")}
                 </button>
             </div>
         );
@@ -67,17 +70,17 @@ export default function ContactEditor() {
     return (
         <>
             <PageHeader
-                title={`Edit content — ${page.page}`}
+                title={t("pages.editTitle", { page: page.page })}
                 icon="fal fa-file-edit"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
             >
                 <button type="button" className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0" onClick={handlePreview}>
-                    <span className="txt">Preview page</span>
+                    <span className="txt">{t("pages.preview")}</span>
                     <i className="fal fa-external-link ms-2"></i>
                 </button>
                 <button type="button" className="alert alert-light rounded-pill py-2 px-3 fsz-12 ms-2 border mb-0" onClick={handleCancel}>
-                    <span className="txt">Cancel</span>
+                    <span className="txt">{t("common.cancel")}</span>
                 </button>
                 <button
                     type="button"
@@ -86,14 +89,14 @@ export default function ContactEditor() {
                     disabled={updateMutation.isPending}
                 >
                     <i className="fal fa-check"></i>
-                    <span className="txt ms-2">Save & publish</span>
+                    <span className="txt ms-2">{t("pages.savePublish")}</span>
                 </button>
             </PageHeader>
 
             <div className="page-editor mt-4">
                 <aside className="page-editor__sidebar table-content p-0 mt-0 mb-0">
                     <div className="page-editor__sidebar-head">
-                        <h6 className="mb-0 fsz-13 fw-600">Sections</h6>
+                        <h6 className="mb-0 fsz-13 fw-600">{t("pages.sections")}</h6>
                     </div>
                     <div className="page-editor__sections">
                         {SECTIONS.map((s) => (
@@ -105,23 +108,23 @@ export default function ContactEditor() {
                             >
                                 <span className="page-editor__section-main">
                                     <span className="page-editor__section-num">{s.number}</span>
-                                    <span className="page-editor__section-title">{s.title}</span>
+                                    <span className="page-editor__section-title">{t(s.titleKey)}</span>
                                 </span>
                                 <i className="fal fa-angle-right text-muted"></i>
                             </button>
                         ))}
                     </div>
                     <div className="page-editor__sidebar-foot">
-                        Section order and visibility follow the approved design.
+                        {t("pages.sectionOrder")}
                     </div>
                 </aside>
 
                 <section className="page-editor__main table-content mt-0 mb-0">
                     <div className="page-editor__main-head">
                         <h6 className="mb-0 fsz-14 fw-600">
-                            {activeSection.number} — {activeSection.title}
+                            {activeSection.number} — {t(activeSection.titleKey)}
                         </h6>
-                        <span className="fsz-12 text-muted">{activeSection.fieldsCount} editable fields</span>
+                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.fieldsCount })}</span>
                     </div>
 
                     <div className="page-editor__fields">
@@ -130,8 +133,8 @@ export default function ContactEditor() {
                             {activeSection.id === "section_1" && (
                                 <>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Title</label>
-                                        <input
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.title")}</label>
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             maxLength={90}
@@ -140,8 +143,8 @@ export default function ContactEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Body</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.body")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             maxLength={320}
@@ -155,8 +158,8 @@ export default function ContactEditor() {
                             {activeSection.id === "section_2" && (
                                 <>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Title</label>
-                                        <input
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.title")}</label>
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             maxLength={90}
@@ -165,8 +168,8 @@ export default function ContactEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Body</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.body")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             maxLength={320}
@@ -180,8 +183,8 @@ export default function ContactEditor() {
                             {activeSection.id === "section_3" && (
                                 <>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Title</label>
-                                        <input
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.title")}</label>
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             maxLength={90}
@@ -190,8 +193,8 @@ export default function ContactEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Body</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.body")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             maxLength={320}
@@ -209,14 +212,14 @@ export default function ContactEditor() {
                             {prevSection ? (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
-                                    {prevSection.title}
+                                    {t(prevSection.titleKey)}
                                 </button>
                             ) : (
                                 <span />
                             )}
                             {nextSection && (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(nextSection.id)}>
-                                    {nextSection.title}
+                                    {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>
                             )}

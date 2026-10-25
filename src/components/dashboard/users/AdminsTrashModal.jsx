@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { confirmAction } from "@/utils/confirm";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function AdminsTrashModal({
     isOpen,
@@ -11,6 +12,7 @@ export default function AdminsTrashModal({
     onRestore,
     onPermanentDelete,
 }) {
+    const { t, statusText } = useI18n();
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -29,37 +31,37 @@ export default function AdminsTrashModal({
                 <div className="modal-dialog modal-dialog-centered modal-lg">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Recycle Bin</h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <h5 className="modal-title">{t("common.recycleBin")}</h5>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
                         <div className="modal-body">
                             {trashAdmins.length === 0 ? (
                                 <div className="text-center py-5 text-muted">
                                     <i className="fal fa-trash-alt fa-3x mb-3"></i>
-                                    <p>Trash is empty</p>
+                                    <p>{t("common.trashEmpty")}</p>
                                 </div>
                             ) : (
                                 <div className="table-responsive">
                                     <table className="table align-middle mb-0">
                                         <thead className="bg-light">
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Email</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
+                                                <th>{t("common.name")}</th>
+                                                <th>{t("common.email")}</th>
+                                                <th>{t("common.status")}</th>
+                                                <th>{t("common.actions")}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {trashAdmins.map((admin) => (
                                                 <tr key={admin.id}>
                                                     <td>{admin.name}</td>
-                                                    <td>{admin.email}</td>
-                                                    <td>{admin.status || "Active"}</td>
+                                                    <td dir="ltr">{admin.email}</td>
+                                                    <td>{statusText(admin.status || "Active")}</td>
                                                     <td>
                                                         <button
                                                             className="btn btn-sm btn-outline-success me-2"
                                                             onClick={() => onRestore(admin.id)}
-                                                            title="Restore"
+                                                            title={t("common.restore")}
                                                         >
                                                             <i className="fal fa-trash-undo"></i>
                                                         </button>
@@ -67,13 +69,13 @@ export default function AdminsTrashModal({
                                                             className="btn btn-sm btn-outline-danger"
                                                             onClick={() => {
                                                                 confirmAction({
-                                                                    title: "Delete Permanently?",
-                                                                    message: "This action cannot be undone. Are you sure?",
-                                                                    confirmLabel: "Delete Forever",
+                                                                    title: t("confirm.deleteForeverTitle"),
+                                                                    message: t("confirm.deleteForeverMessage"),
+                                                                    confirmLabel: t("confirm.deleteForever"),
                                                                     onConfirm: () => onPermanentDelete(admin.id),
                                                                 });
                                                             }}
-                                                            title="Delete Permanently"
+                                                            title={t("common.deleteForever")}
                                                         >
                                                             <i className="fal fa-trash-alt"></i>
                                                         </button>

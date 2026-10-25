@@ -5,12 +5,14 @@ import {
   downloadApplicationCv,
   fetchApplicationCvBlobUrl,
 } from "@/hooks/useApplications";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function ApplicationDetailsOffcanvas({ show, application, onClose }) {
+  const { t, text } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState("");
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -22,7 +24,7 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
 
     async function loadPreview() {
       setPreviewUrl(null);
-      setPreviewError("");
+      setPreviewFailed(false);
 
       if (!show || !application?.id || !application.cv) {
         setPreviewLoading(false);
@@ -39,7 +41,7 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
         setPreviewUrl(objectUrl);
       } catch {
         if (!cancelled) {
-          setPreviewError("Could not load CV preview");
+          setPreviewFailed(true);
         }
       } finally {
         if (!cancelled) setPreviewLoading(false);
@@ -66,6 +68,8 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
     downloadApplicationCv(application);
   };
 
+  const jobTitle = application ? text(application.job_title) : "";
+
   return (
     <>
       <div
@@ -77,13 +81,13 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
       >
         <div className="offcanvas-header border-bottom py-3">
           <h5 className="offcanvas-title fsz-16" id="applicationDetailsOffcanvasLabel">
-            <i className="fal fa-file-user me-2"></i> Applicant
+            <i className="fal fa-file-user me-2"></i> {t("applications.applicant")}
           </h5>
           <button
             type="button"
             className="btn-close text-reset"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
           ></button>
         </div>
         <div className="offcanvas-body p-4 custom-scroll">
@@ -98,37 +102,37 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
                 </div>
                 <h6 className="fsz-18 mb-1">{application.name}</h6>
                 <div className="text-muted fsz-12 mb-2">
-                  {application.job_title || "Application"}
+                  {jobTitle || t("status.application")}
                 </div>
               </div>
 
               <div className="details-list mb-4 d-flex flex-wrap gap-4">
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Email
+                    {t("common.email")}
                   </label>
-                  <div className="fsz-13">{application.email || "—"}</div>
+                  <div className="fsz-13" dir="ltr">{application.email || "—"}</div>
                 </div>
 
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Mobile
+                    {t("common.mobile")}
                   </label>
-                  <div className="fsz-13">{application.mobile || "—"}</div>
+                  <div className="fsz-13" dir="ltr">{application.mobile || "—"}</div>
                 </div>
 
                 <div className="detail-item w-50">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    City
+                    {t("common.city")}
                   </label>
                   <div className="fsz-13">{application.city || "—"}</div>
                 </div>
 
                 <div className="detail-item w-50">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Years of experience
+                    {t("applications.years")}
                   </label>
-                  <div className="fsz-13">
+                  <div className="fsz-13" dir="ltr">
                     {application.experience_years != null
                       ? application.experience_years
                       : "—"}
@@ -137,23 +141,22 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
 
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Data-processing consent
+                    {t("applications.consentField")}
                   </label>
                   <div className="fsz-13">
-                    {application.consent ? "Given" : "Not given"}
+                    {application.consent ? t("applications.consentGiven") : t("applications.consentNotGiven")}
                   </div>
                 </div>
 
                 <div className="detail-item w-100">
                   <div className="alert alert-light border fsz-12 mb-0">
-                    Status tracking (New / Shortlisted / Rejected) is optional and
-                    outside the contract scope.
+                    {t("applications.statusNote")}
                   </div>
                 </div>
 
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-2">
-                    CV preview
+                    {t("applications.cvPreview")}
                   </label>
                   <div
                     className="border rounded-3 bg-light overflow-hidden mb-3"
@@ -162,21 +165,21 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
                     {!application.cv ? (
                       <div className="d-flex flex-column align-items-center justify-content-center text-center p-4 text-muted" style={{ minHeight: 280 }}>
                         <i className="fal fa-file-pdf fa-2x mb-2"></i>
-                        <div className="fsz-13">No CV uploaded</div>
+                        <div className="fsz-13">{t("applications.noCvUploaded")}</div>
                       </div>
                     ) : previewLoading ? (
                       <div className="d-flex flex-column align-items-center justify-content-center text-center p-4 text-muted" style={{ minHeight: 280 }}>
                         <i className="fal fa-spinner fa-spin fa-2x mb-2"></i>
-                        <div className="fsz-13">Loading preview…</div>
+                        <div className="fsz-13">{t("applications.previewLoading")}</div>
                       </div>
-                    ) : previewError ? (
+                    ) : previewFailed ? (
                       <div className="d-flex flex-column align-items-center justify-content-center text-center p-4 text-muted" style={{ minHeight: 280 }}>
                         <i className="fal fa-exclamation-circle fa-2x mb-2"></i>
-                        <div className="fsz-13">{previewError}</div>
+                        <div className="fsz-13">{t("applications.previewFailed")}</div>
                       </div>
                     ) : previewUrl ? (
                       <iframe
-                        title="CV PDF preview"
+                        title={t("applications.cvPreviewTitle")}
                         src={`${previewUrl}#toolbar=0&navpanes=0`}
                         className="w-100 border-0"
                         style={{ height: 360, background: "#fff" }}
@@ -190,7 +193,7 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
                     disabled={!application.cv}
                   >
                     <i className="fal fa-download me-2"></i>
-                    {application.cv ? "Download CV" : "No CV uploaded"}
+                    {application.cv ? t("applications.downloadCv") : t("applications.noCvUploaded")}
                   </button>
                 </div>
               </div>
@@ -198,7 +201,7 @@ export default function ApplicationDetailsOffcanvas({ show, application, onClose
           ) : (
             <div className="text-center py-5 text-muted">
               <i className="fal fa-spinner fa-spin fa-2x mb-3"></i>
-              <p>Loading application details...</p>
+              <p>{t("applications.loadingDetails")}</p>
             </div>
           )}
         </div>

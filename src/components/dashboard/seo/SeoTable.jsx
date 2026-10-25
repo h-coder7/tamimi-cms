@@ -11,11 +11,20 @@ import SeoFilter from "./SeoFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { TITLE_MAX, DESC_MAX } from "@/hooks/useSeo";
+import { useI18n } from "@/hooks/useI18n";
+
+function pageLabel(item, t) {
+    if (!item?.pageSlug) return item?.page || "—";
+    const key = `seo.page.${item.pageSlug}`;
+    const label = t(key);
+    return label === key ? item.page || item.pageSlug : label;
+}
 
 export default function SeoTable({
     data = [],
     onEdit,
 }) {
+    const { t, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
     const [search, setSearch] = useState("");
@@ -27,20 +36,22 @@ export default function SeoTable({
             const matchesSearch =
                 !q ||
                 String(item.page || "").toLowerCase().includes(q) ||
-                String(item.meta_title || "").toLowerCase().includes(q);
+                String(item.meta_title || "").toLowerCase().includes(q) ||
+                String(item.meta_title_ar || "").toLowerCase().includes(q) ||
+                pageLabel(item, t).toLowerCase().includes(q);
             const matchesHealth = !healthFilter || item.health === healthFilter;
             return matchesSearch && matchesHealth;
         });
-    }, [data, search, healthFilter]);
+    }, [data, search, healthFilter, t]);
 
     const columns = useMemo(() => [
-        { id: "page", accessorKey: "page", header: "Page", enableSorting: true },
-        { id: "meta_title", accessorKey: "meta_title", header: "Meta title", enableSorting: true },
-        { id: "title", accessorKey: "title_length", header: "Title", enableSorting: true },
-        { id: "description", accessorKey: "description_length", header: "Description", enableSorting: true },
-        { id: "health", accessorKey: "health", header: "Health", enableSorting: true },
-        { id: "columnActions", header: "Actions", enableSorting: false },
-    ], []);
+        { id: "page", accessorKey: "page", header: t("common.page"), enableSorting: true },
+        { id: "meta_title", accessorKey: "meta_title", header: t("seo.metaTitle"), enableSorting: true },
+        { id: "title", accessorKey: "title_length", header: t("common.title"), enableSorting: true },
+        { id: "description", accessorKey: "description_length", header: t("common.description"), enableSorting: true },
+        { id: "health", accessorKey: "health", header: t("seo.health"), enableSorting: true },
+        { id: "columnActions", header: t("common.actions"), enableSorting: false },
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -62,6 +73,8 @@ export default function SeoTable({
     };
 
     const filteredCount = filteredData.length;
+    const pageIndex = table.getState().pagination.pageIndex;
+    const pageSize = table.getState().pagination.pageSize;
 
     const healthClass = (health) => {
         if (health === "Good") return "badge bg-success-subtle text-success border fsz-11";
@@ -95,7 +108,7 @@ export default function SeoTable({
                                     if (id === "columnActions") {
                                         return (
                                             <SortableTh id={id} key={id} disabled>
-                                                Actions
+                                                {t("common.actions")}
                                             </SortableTh>
                                         );
                                     }
@@ -108,10 +121,10 @@ export default function SeoTable({
                                                 </button>
                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                     </li>
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                     </li>
                                                 </ul>
                                             </div>
@@ -125,19 +138,23 @@ export default function SeoTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={columnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No pages found
+                                        {t("seo.empty")}
                                     </td>
                                 </tr>
                             ) : (
                                 table.getRowModel().rows.map((row) => {
                                     const item = row.original;
+                                    const metaTitle = text(
+                                        { en: item.meta_title, ar: item.meta_title_ar },
+                                        item.meta_title
+                                    );
                                     return (
                                         <SortableRow key={row.id} items={columnOrder}>
                                             {columnOrder.map((colId) => {
                                                 if (colId === "page") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <div className="fw-500 fsz-13">{item.page}</div>
+                                                            <div className="fw-500 fsz-13">{pageLabel(item, t)}</div>
                                                         </td>
                                                     );
                                                 }
@@ -146,7 +163,7 @@ export default function SeoTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="fsz-12">
-                                                                {item.meta_title?.trim() ? item.meta_title : "—"}
+                                                                {metaTitle?.trim() ? metaTitle : "—"}
                                                             </span>
                                                         </td>
                                                     );
@@ -155,7 +172,7 @@ export default function SeoTable({
                                                 if (colId === "title") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className={`fsz-12 ${lengthClass(item.title_length, TITLE_MAX)}`}>
+                                                            <span className={`fsz-12 ${lengthClass(item.title_length, TITLE_MAX)}`} dir="ltr">
                                                                 {item.title_length} / {TITLE_MAX}
                                                             </span>
                                                         </td>
@@ -165,7 +182,7 @@ export default function SeoTable({
                                                 if (colId === "description") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className={`fsz-12 ${lengthClass(item.description_length, DESC_MAX)}`}>
+                                                            <span className={`fsz-12 ${lengthClass(item.description_length, DESC_MAX)}`} dir="ltr">
                                                                 {item.description_length} / {DESC_MAX}
                                                             </span>
                                                         </td>
@@ -176,7 +193,7 @@ export default function SeoTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className={healthClass(item.health)}>
-                                                                {item.health || "Missing"}
+                                                                {statusText(item.health || "Missing")}
                                                             </span>
                                                         </td>
                                                     );
@@ -192,7 +209,7 @@ export default function SeoTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -214,12 +231,11 @@ export default function SeoTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : pageIndex * pageSize + 1,
+                        to: Math.min((pageIndex + 1) * pageSize, filteredCount),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -229,7 +245,10 @@ export default function SeoTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", {
+                            page: pageIndex + 1,
+                            pages: Math.max(table.getPageCount(), 1),
+                        })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

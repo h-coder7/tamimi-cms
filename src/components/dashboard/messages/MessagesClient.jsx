@@ -17,8 +17,11 @@ import {
 } from "@/hooks/useMessages";
 import { getApiErrorMessage } from "@/app/api/api";
 import { toast } from "react-hot-toast";
+import { confirmAction } from "@/utils/confirm";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function MessagesClient() {
+  const { t } = useI18n();
   const { data: messages = [], isLoading, refetch } = useMessages();
   const { data: companies = [] } = useCompanies();
   const addMutation = useAddMessage();
@@ -42,7 +45,7 @@ export default function MessagesClient() {
       setViewMessage(fresh);
       await refetch();
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Could not load message"));
+      toast.error(getApiErrorMessage(error, t("messages.couldNotLoad")));
     }
   };
 
@@ -68,20 +71,26 @@ export default function MessagesClient() {
     }
   };
 
-  const handleDelete = async (message) => {
+  const handleDelete = (message) => {
     if (!message?.id) return;
-    if (!window.confirm("Move this message to trash?")) return;
-    await deleteMutation.mutateAsync(message.id);
-    if (viewMessage?.id === message.id) {
-      setShowOffcanvas(false);
-      setViewMessage(null);
-    }
+    confirmAction({
+      title: t("confirm.moveTrashTitle"),
+      message: t("confirm.moveTrashMessage", { item: t("messages.item") }),
+      confirmLabel: t("confirm.moveTrashYes"),
+      onConfirm: async () => {
+        await deleteMutation.mutateAsync(message.id);
+        if (viewMessage?.id === message.id) {
+          setShowOffcanvas(false);
+          setViewMessage(null);
+        }
+      },
+    });
   };
 
   return (
     <>
       <PageHeader
-        title="Messages & inquiries"
+        title={t("messages.pageTitle")}
         icon="fal fa-envelope"
         titleCol="col-lg-5"
         actionCol="col-lg-7"
@@ -92,7 +101,7 @@ export default function MessagesClient() {
           onClick={() => setIsModalOpen(true)}
         >
           <i className="fal fa-plus"></i>
-          <span className="txt ms-2">Add message</span>
+          <span className="txt ms-2">{t("messages.add")}</span>
         </button>
         <button
           type="button"
@@ -102,13 +111,13 @@ export default function MessagesClient() {
         >
           <i className="fal fa-file-csv"></i>
           <span className="txt ms-2">
-            {exporting ? "Exporting..." : "Export CSV"}
+            {exporting ? t("messages.exporting") : t("messages.exportCsv")}
           </span>
         </button>
       </PageHeader>
 
       {isLoading ? (
-        <div className="text-center py-5 text-muted">Loading messages...</div>
+        <div className="text-center py-5 text-muted">{t("messages.loading")}</div>
       ) : (
         <MessagesTable
           data={messages}

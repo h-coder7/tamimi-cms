@@ -11,6 +11,7 @@ import { POST_CATEGORIES, POST_STATUSES } from "@/hooks/usePosts";
 import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { getLocale } from "@/lib/locale";
 import { te } from "@/locales/errors";
+import { useI18n } from "@/hooks/useI18n";
 
 const SUMMARY_MAX = 200;
 const META_TITLE_MAX = 60;
@@ -20,6 +21,14 @@ const COVER_ACCEPT = {
     "image/jpeg": [".jpg", ".jpeg"],
     "image/webp": [".webp"],
     "image/png": [".png"],
+};
+
+const CATEGORY_STATUS = {
+    News: "news",
+    "Events & Exhibitions": "events_exhibitions",
+    Insights: "insights",
+    Article: "article",
+    Press: "press",
 };
 
 const emptyForm = () => ({
@@ -54,6 +63,7 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function PostModal({ isOpen, onClose, onSave, post }) {
+    const { t, isRtl, statusText } = useI18n();
     const {
         data: companies = [],
         refetch: refetchCompanies,
@@ -65,18 +75,29 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
     const editorRef = useRef(null);
 
     const categoryOptions = useMemo(
-        () => POST_CATEGORIES.map((category) => ({ value: category, label: category })),
-        []
+        () =>
+            POST_CATEGORIES.map((category) => ({
+                value: category,
+                label: statusText(CATEGORY_STATUS[category] || category),
+            })),
+        [statusText]
     );
 
     const statusOptions = useMemo(
-        () => POST_STATUSES.map((status) => ({ value: status, label: status })),
-        []
+        () => POST_STATUSES.map((status) => ({ value: status, label: statusText(status) })),
+        [statusText]
     );
 
     const companyOptions = useMemo(
-        () => buildCompanyFormOptions(companies, { includeNone: true }),
-        [companies]
+        () =>
+            buildCompanyFormOptions(companies, { includeNone: true }).map((opt) => {
+                if (opt.value === "") return { ...opt, label: t("common.none") };
+                if (opt.value === "group" || opt.label === "Tamimi Energy Group") {
+                    return { ...opt, label: t("status.group") };
+                }
+                return opt;
+            }),
+        [companies, t]
     );
 
     const isEvent = formData.category === "Events & Exhibitions";
@@ -113,7 +134,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                 relatedCompanyId: post.relatedCompanyId || "",
                 company_code: post.company_code || "",
                 coverFiles: post.cover
-                    ? [{ preview: post.cover, type: "image/jpeg", name: "Cover" }]
+                    ? [{ preview: post.cover, type: "image/jpeg", name: t("common.cover") }]
                     : [],
                 coverPath: post.coverPath || null,
                 seo_title: post.seo_title || "",
@@ -122,7 +143,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
         } else {
             setFormData(emptyForm());
         }
-    }, [isOpen, post]);
+    }, [isOpen, post, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -209,34 +230,35 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {post ? "Edit Post" : "Add Post"}
+                                {post ? t("posts.edit") : t("posts.add")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="row">
-                                    <Section title="Content">
+                                    <Section title={t("posts.content")}>
                                         <div className="row">
                                             <div className="col-12 mb-3">
                                                 <label className="form-label">
-                                                    Title <span className="text-danger">*</span>
+                                                    {t("common.title")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="title"
                                                     required
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.title}
                                                     onChange={handleChange}
-                                                    placeholder="Post title"
+                                                    placeholder={t("posts.titlePh")}
                                                 />
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">Summary</label>
-                                                    <small className={`fsz-11 ${formData.summary.length >= SUMMARY_MAX ? "text-danger" : "text-muted"}`}>
+                                                    <label className="form-label mb-0">{t("posts.summary")}</label>
+                                                    <small className={`fsz-11 ${formData.summary.length >= SUMMARY_MAX ? "text-danger" : "text-muted"}`} dir="ltr">
                                                         {formData.summary.length}/{SUMMARY_MAX}
                                                     </small>
                                                 </div>
@@ -244,100 +266,109 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                     className="form-control"
                                                     name="summary"
                                                     rows={3}
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.summary}
                                                     onChange={handleChange}
-                                                    placeholder="Short summary for cards"
+                                                    placeholder={t("posts.summaryPh")}
                                                 />
                                                 <small className="text-muted fsz-11">
-                                                    Shown on cards · max {SUMMARY_MAX} characters
+                                                    {t("posts.summaryHint", { count: SUMMARY_MAX })}
                                                 </small>
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <label className="form-label">
-                                                    Body <span className="text-danger">*</span>
+                                                    {t("posts.body")} <span className="text-danger">*</span>
                                                 </label>
-                                                <SimpleRichTextEditor
-                                                    ref={editorRef}
-                                                    value={formData.body}
-                                                    onChange={(html) =>
-                                                        setFormData((prev) => ({ ...prev, body: html }))
-                                                    }
-                                                    placeholder="Write the article…"
-                                                    required
-                                                />
+                                                <div dir={isRtl ? "rtl" : "ltr"}>
+                                                    <SimpleRichTextEditor
+                                                        ref={editorRef}
+                                                        value={formData.body}
+                                                        onChange={(html) =>
+                                                            setFormData((prev) => ({ ...prev, body: html }))
+                                                        }
+                                                        placeholder={t("posts.bodyPh")}
+                                                        required
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </Section>
 
                                     {isEvent && (
-                                        <Section title="Event details">
+                                        <Section title={t("posts.event")}>
                                             <div className="row">
                                                 <div className="col-lg-6 mb-3">
                                                     <label className="form-label">
-                                                        Start date <span className="text-danger">*</span>
+                                                        {t("posts.start")} <span className="text-danger">*</span>
                                                     </label>
                                                     <input
                                                         type="date"
                                                         className="form-control"
                                                         name="event_start"
                                                         required={isEvent}
+                                                        dir="ltr"
                                                         value={formData.event_start}
                                                         onChange={handleChange}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-3">
-                                                    <label className="form-label">End date</label>
+                                                    <label className="form-label">{t("posts.end")}</label>
                                                     <input
                                                         type="date"
                                                         className="form-control"
                                                         name="event_end"
                                                         min={formData.event_start || undefined}
+                                                        dir="ltr"
                                                         value={formData.event_end}
                                                         onChange={handleChange}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-3">
                                                     <label className="form-label">
-                                                        Venue <span className="text-danger">*</span>
+                                                        {t("posts.venue")} <span className="text-danger">*</span>
                                                     </label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
                                                         name="venue"
                                                         required={isEvent}
+                                                        dir={isRtl ? "rtl" : "ltr"}
                                                         value={formData.venue}
                                                         onChange={handleChange}
-                                                        placeholder="Venue name"
+                                                        placeholder={t("posts.venuePh")}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-3">
-                                                    <label className="form-label">City</label>
+                                                    <label className="form-label">{t("common.city")}</label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
                                                         name="city"
+                                                        dir={isRtl ? "rtl" : "ltr"}
                                                         value={formData.city}
                                                         onChange={handleChange}
-                                                        placeholder="City, Country"
+                                                        placeholder={t("posts.cityPh")}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-3">
-                                                    <label className="form-label">Booth / stand</label>
+                                                    <label className="form-label">{t("posts.booth")}</label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
                                                         name="booth"
+                                                        dir={isRtl ? "rtl" : "ltr"}
                                                         value={formData.booth}
                                                         onChange={handleChange}
-                                                        placeholder="Optional"
+                                                        placeholder={t("common.optional")}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-3">
-                                                    <label className="form-label">Event website</label>
+                                                    <label className="form-label">{t("posts.eventSite")}</label>
                                                     <input
                                                         type="url"
                                                         className="form-control"
                                                         name="event_website"
+                                                        dir="ltr"
                                                         value={formData.event_website}
                                                         onChange={handleChange}
                                                         placeholder="https://"
@@ -347,11 +378,11 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                         </Section>
                                     )}
 
-                                    <Section title="Publishing">
+                                    <Section title={t("posts.publishing")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Category <span className="text-danger">*</span>
+                                                    {t("common.category")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={categoryOptions}
@@ -368,7 +399,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Status</label>
+                                                <label className="form-label">{t("common.status")}</label>
                                                 <Select
                                                     options={statusOptions}
                                                     value={statusOptions.find((o) => o.value === formData.status) || null}
@@ -384,17 +415,18 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Publish date</label>
+                                                <label className="form-label">{t("posts.publishDate")}</label>
                                                 <input
                                                     type="date"
                                                     className="form-control"
                                                     name="publish_date"
+                                                    dir="ltr"
                                                     value={formData.publish_date}
                                                     onChange={handleChange}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Related company</label>
+                                                <label className="form-label">{t("posts.relatedCompany")}</label>
                                                 <Select
                                                     options={companyOptions}
                                                     value={
@@ -414,27 +446,27 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                     classNamePrefix="react-select"
                                                     placeholder={
                                                         companiesError
-                                                            ? "Failed to load companies"
+                                                            ? t("posts.companiesFailed")
                                                             : companiesLoading
-                                                              ? "Loading companies…"
-                                                              : "None"
+                                                              ? t("posts.companiesLoading")
+                                                              : t("common.none")
                                                     }
                                                     noOptionsMessage={() =>
                                                         companiesLoading
-                                                            ? "Loading…"
-                                                            : "No companies found"
+                                                            ? t("common.loading")
+                                                            : t("posts.noCompanies")
                                                     }
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                                 {!companiesLoading && companies.length === 0 && (
                                                     <small className="text-danger fsz-11 d-block mt-1">
-                                                        No companies loaded. Check Companies module / API.
+                                                        {t("posts.noCompaniesLoaded")}
                                                     </small>
                                                 )}
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">Cover image</label>
+                                                <label className="form-label">{t("posts.cover")}</label>
                                                 <FileUpload
                                                     files={formData.coverFiles}
                                                     onFilesChange={(files) =>
@@ -442,45 +474,47 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                     }
                                                     accept={COVER_ACCEPT}
                                                     maxFiles={1}
-                                                    title="Upload cover"
-                                                    hint="JPG / WEBP · 1600×900 recommended"
+                                                    title={t("posts.uploadCover")}
+                                                    hint={t("posts.coverHint")}
                                                 />
                                             </div>
                                         </div>
                                     </Section>
 
-                                    <Section title="SEO">
+                                    <Section title={t("posts.seo")}>
                                         <div className="row">
                                             <div className="col-12 mb-3">
                                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">Meta title</label>
+                                                    <label className="form-label mb-0">{t("posts.metaTitle")}</label>
                                                     <small className={`fsz-11 ${formData.seo_title.length >= META_TITLE_MAX ? "text-danger" : "text-muted"}`}>
-                                                        {formData.seo_title.length} / {META_TITLE_MAX} characters
+                                                        {t("posts.characters", { count: formData.seo_title.length, max: META_TITLE_MAX })}
                                                     </small>
                                                 </div>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="seo_title"
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.seo_title}
                                                     onChange={handleChange}
-                                                    placeholder="Meta title"
+                                                    placeholder={t("posts.metaTitle")}
                                                 />
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">Meta description</label>
+                                                    <label className="form-label mb-0">{t("posts.metaDescription")}</label>
                                                     <small className={`fsz-11 ${formData.seo_description.length >= META_DESC_MAX ? "text-danger" : "text-muted"}`}>
-                                                        {formData.seo_description.length} / {META_DESC_MAX} characters
+                                                        {t("posts.characters", { count: formData.seo_description.length, max: META_DESC_MAX })}
                                                     </small>
                                                 </div>
                                                 <textarea
                                                     className="form-control"
                                                     name="seo_description"
                                                     rows={3}
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.seo_description}
                                                     onChange={handleChange}
-                                                    placeholder="Meta description"
+                                                    placeholder={t("posts.metaDescription")}
                                                 />
                                             </div>
                                         </div>
@@ -490,10 +524,10 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button type="submit" className="butn-st2">
-                                    {post ? "Update Post" : "Add Post"}
+                                    {post ? t("posts.update") : t("posts.add")}
                                 </button>
                             </div>
                         </form>

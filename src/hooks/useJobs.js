@@ -10,6 +10,7 @@ import {
   jobToApiPayload,
 } from "@/lib/mappers/jobs";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export { JOB_CITIES, JOB_STATUSES };
 
@@ -47,10 +48,10 @@ export function useAddJob() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Job added successfully!");
+      toast.success(t("toast.job.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add job"));
+      toast.error(getApiErrorMessage(error, t("toast.job.couldNotAdd")));
     },
   });
 }
@@ -67,10 +68,10 @@ export function useUpdateJob() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Job updated successfully!");
+      toast.success(t("toast.job.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update job"));
+      toast.error(getApiErrorMessage(error, t("toast.job.couldNotUpdate")));
     },
   });
 }
@@ -84,10 +85,10 @@ export function useDeleteJob() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Job moved to trash!");
+      toast.success(t("toast.job.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete job"));
+      toast.error(getApiErrorMessage(error, t("toast.job.couldNotDelete")));
     },
   });
 }
@@ -101,10 +102,10 @@ export function useRestoreJob() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Job restored successfully!");
+      toast.success(t("toast.job.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore job"));
+      toast.error(getApiErrorMessage(error, t("toast.job.couldNotRestore")));
     },
   });
 }
@@ -118,10 +119,10 @@ export function usePermanentDeleteJob() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Job permanently deleted!");
+      toast.success(t("toast.job.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -135,10 +136,10 @@ export function useBulkDeleteJobs() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "jobs", "trash-jobs");
-      toast.success("Selected jobs moved to trash!");
+      toast.success(t("toast.job.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete jobs"));
+      toast.error(getApiErrorMessage(error, t("toast.job.couldNotBulk")));
     },
   });
 }

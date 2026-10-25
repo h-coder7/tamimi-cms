@@ -72,6 +72,7 @@ export function downloadFromApi(item) {
   return {
     id: item.id,
     title: localized(item.title),
+    i18nTitle: item.title,
     title_ar: typeof item.title === "object" ? item.title?.ar || "" : "",
     type: TYPE_TO_UI[item.type] || "Brochure",
     company: isGroup ? GROUP_VALUE : item.company || "",

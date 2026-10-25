@@ -1,34 +1,38 @@
 "use client";
 
 import { useRef, useEffect, useImperativeHandle, forwardRef } from "react";
+import { isSafeHttpUrl, sanitizeRichText } from "@/lib/sanitizeRichText";
+import { useI18n } from "@/hooks/useI18n";
 
 const TOOLS = [
-    { cmd: "bold", label: "B", title: "Bold" },
-    { cmd: "italic", label: "I", title: "Italic" },
-    { cmd: "formatBlock", value: "h2", label: "H2", title: "Heading 2" },
-    { cmd: "formatBlock", value: "h3", label: "H3", title: "Heading 3" },
-    { cmd: "insertUnorderedList", label: "• List", title: "Bullet list" },
-    { cmd: "insertOrderedList", label: "1. List", title: "Numbered list" },
-    { cmd: "createLink", label: "Link", title: "Link" },
-    { cmd: "formatBlock", value: "blockquote", label: "Quote", title: "Quote" },
+    { cmd: "bold", label: "B", titleKey: "editor.bold" },
+    { cmd: "italic", label: "I", titleKey: "editor.italic" },
+    { cmd: "formatBlock", value: "h2", label: "H2", titleKey: "editor.h2" },
+    { cmd: "formatBlock", value: "h3", label: "H3", titleKey: "editor.h3" },
+    { cmd: "insertUnorderedList", labelKey: "editor.listBullet", titleKey: "editor.bullet" },
+    { cmd: "insertOrderedList", labelKey: "editor.listNumbered", titleKey: "editor.numbered" },
+    { cmd: "createLink", labelKey: "editor.link", titleKey: "editor.link" },
+    { cmd: "formatBlock", value: "blockquote", labelKey: "editor.quote", titleKey: "editor.quote" },
 ];
 
 const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
     {
         value = "",
         onChange,
-        placeholder = "Write the article…",
+        placeholder,
         required = false,
     },
     ref
 ) {
+    const { t, isRtl } = useI18n();
+    const resolvedPlaceholder = placeholder ?? t("posts.bodyPh");
     const editorRef = useRef(null);
     const lastExternalValue = useRef(null);
     const skipNextSync = useRef(false);
 
     const getHTML = () => {
         if (!editorRef.current) return value || "";
-        return editorRef.current.innerHTML || "";
+        return sanitizeRichText(editorRef.current.innerHTML || "");
     };
 
     useImperativeHandle(ref, () => ({
@@ -45,14 +49,14 @@ const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
             return;
         }
         if (value !== lastExternalValue.current) {
-            editorRef.current.innerHTML = value || "";
+            editorRef.current.innerHTML = sanitizeRichText(value || "");
             lastExternalValue.current = value;
         }
     }, [value]);
 
     const emitChange = () => {
         if (!editorRef.current) return;
-        const html = editorRef.current.innerHTML;
+        const html = sanitizeRichText(editorRef.current.innerHTML);
         lastExternalValue.current = html;
         skipNextSync.current = true;
         onChange?.(html);
@@ -62,8 +66,8 @@ const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
         editorRef.current?.focus();
 
         if (tool.cmd === "createLink") {
-            const url = window.prompt("Enter URL");
-            if (!url) return;
+            const url = window.prompt(t("editor.enterUrl"));
+            if (!url || !isSafeHttpUrl(url)) return;
             document.execCommand("createLink", false, url);
         } else if (tool.cmd === "formatBlock") {
             document.execCommand("formatBlock", false, tool.value);
@@ -84,11 +88,11 @@ const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
                         key={`${tool.cmd}-${tool.value || tool.label}`}
                         type="button"
                         className="btn btn-sm btn-white border fsz-12 px-2"
-                        title={tool.title}
+                        title={t(tool.titleKey)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => runCommand(tool)}
                     >
-                        {tool.label}
+                        {tool.label || t(tool.labelKey)}
                     </button>
                 ))}
             </div>
@@ -97,7 +101,8 @@ const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
                 className="simple-rich-text__editor p-3"
                 contentEditable
                 suppressContentEditableWarning
-                data-placeholder={placeholder}
+                data-placeholder={resolvedPlaceholder}
+                dir={isRtl ? "rtl" : "ltr"}
                 onInput={emitChange}
                 onBlur={emitChange}
             />

@@ -13,6 +13,7 @@ import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
 import { useIndustries } from "@/hooks/useIndustries";
 import { buildIndustryFilterOptions } from "@/lib/industryOptions";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function CompaniesTable({
     data = [],
@@ -22,6 +23,7 @@ export default function CompaniesTable({
     onDelete,
     onView
 }) {
+    const { t, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [rowSelection, setRowSelection] = useState({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -32,17 +34,24 @@ export default function CompaniesTable({
     const { data: industries = [] } = useIndustries();
 
     const industryOptions = useMemo(
-        () => buildIndustryFilterOptions(industries),
-        [industries]
+        () => buildIndustryFilterOptions(industries).map((opt) => {
+            const industry = industries.find((item) => item.title === opt.value || item.id === opt.value);
+            return {
+                ...opt,
+                label: industry ? text(industry.i18nTitle, opt.label) : opt.label,
+            };
+        }),
+        [industries, text]
     );
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch =
-                !q ||
-                String(item.title || "").toLowerCase().includes(q) ||
-                String(item.code || "").toLowerCase().includes(q);
+            const titleBlob = [item.title, item.i18nTitle?.en, item.i18nTitle?.ar, item.code]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+            const matchesSearch = !q || titleBlob.includes(q);
             const matchesType = !typeFilter || item.type === typeFilter;
             const matchesIndustry =
                 !industryFilter || (item.industries || []).includes(industryFilter);
@@ -63,45 +72,45 @@ export default function CompaniesTable({
         {
             id: "title",
             accessorKey: "title",
-            header: "Company",
+            header: t("common.company"),
             enableSorting: true,
         },
         {
             id: "type",
             accessorKey: "type",
-            header: "Type",
+            header: t("common.type"),
             enableSorting: true,
         },
         {
             id: "field",
             accessorKey: "field",
-            header: "Field",
+            header: t("common.field"),
             enableSorting: true,
         },
         {
             id: "industries",
             accessorKey: "industries_label",
-            header: "Industries",
+            header: t("common.industries"),
             enableSorting: true,
         },
         {
             id: "website",
             accessorKey: "website",
-            header: "Website",
+            header: t("common.website"),
             enableSorting: true,
         },
         {
             id: "status",
             accessorKey: "status",
-            header: "Status",
+            header: t("common.status"),
             enableSorting: true,
         },
         {
             id: "columnActions",
-            header: "Actions",
+            header: t("common.actions"),
             enableSorting: false,
         },
-    ], []);
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -180,17 +189,17 @@ export default function CompaniesTable({
                                             />
                                             <label className="form-check-label" htmlFor="select-all-companies"></label>
                                         </div>
-                                        <span>Company</span>
+                                        <span>{t("common.company")}</span>
                                         <div className="dropdown ms-auto" onClick={(e) => e.stopPropagation()}>
                                             <button className="btn bg-transparent border-0 p-0" data-bs-toggle="dropdown">
                                                 <i className="fat fa-sort fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(false)}>
-                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                 </li>
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(true)}>
-                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                 </li>
                                             </ul>
                                         </div>
@@ -210,10 +219,10 @@ export default function CompaniesTable({
                                                     </button>
                                                     <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                         </li>
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -228,7 +237,7 @@ export default function CompaniesTable({
                                                 <i className="fas fa-ellipsis-v fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-3" onClick={(e) => e.stopPropagation()}>
-                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">Toggle Columns</h6>
+                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">{t("common.toggleColumns")}</h6>
                                                 {table.getAllLeafColumns().map((column) => {
                                                     if (column.id === "columnActions" || column.id === "title") return null;
                                                     return (
@@ -259,7 +268,7 @@ export default function CompaniesTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No companies found
+                                        {t("companies.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -287,18 +296,18 @@ export default function CompaniesTable({
                                                             <div
                                                                 className="hover-underline d-flex align-items-center"
                                                                 onClick={() => onView?.(item)}
-                                                                title="View Details"
+                                                                title={t("common.viewDetails")}
                                                                 style={{ cursor: "pointer", transition: "all 0.3s ease" }}
                                                             >
                                                                 <div className="icon-40 p-1 rounded-circle border me-3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
                                                                     {item.image ? (
-                                                                        <img src={resolveImage(item.image)} alt={`${item.code} logo`} className="img-contain h-100 w-100" />
+                                                                        <img src={resolveImage(item.image)} alt={t("companies.logoAlt", { code: item.code })} className="img-contain h-100 w-100" />
                                                                     ) : (
                                                                         <i className="fas fa-building text-muted"></i>
                                                                     )}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="fw-500">{item.title}</div>
+                                                                    <div className="fw-500">{text(item.i18nTitle, item.title)}</div>
                                                                     <small className="text-muted fsz-11">{item.code}</small>
                                                                 </div>
                                                             </div>
@@ -320,7 +329,11 @@ export default function CompaniesTable({
                                                 if (colId === "industries") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">{item.industries_label || "0 industries · draft"}</span>
+                                                            <span className="fsz-12 text-muted">{
+                                                                item.industries_count != null || item.industries_label
+                                                                    ? t("companies.industriesCount", { count: item.industries_count ?? (item.industries || []).length })
+                                                                    : t("companies.industriesDraft", { count: 0 })
+                                                            }</span>
                                                         </td>
                                                     );
                                                 }
@@ -345,11 +358,19 @@ export default function CompaniesTable({
                                                     );
                                                 }
 
+                                                if (colId === "type") {
+                                                    return (
+                                                        <td key={colId} id={colId}>
+                                                            {item.type ? statusText(item.type) : "-"}
+                                                        </td>
+                                                    );
+                                                }
+
                                                 if (colId === "status") {
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="badge bg-light text-dark border fsz-11">
-                                                                {item.status || "Draft"}
+                                                                {statusText(item.status || "Draft")}
                                                             </span>
                                                         </td>
                                                     );
@@ -365,17 +386,17 @@ export default function CompaniesTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item.id)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
-                                                                            <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                            <i className="fal fa-eye me-2 text-muted"></i> {t("common.view")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                            <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                            <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -401,12 +422,14 @@ export default function CompaniesTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+                        to: Math.min(
+                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                            filteredCount
+                        ),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -416,7 +439,7 @@ export default function CompaniesTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", { page: table.getState().pagination.pageIndex + 1, pages: Math.max(table.getPageCount(), 1) })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

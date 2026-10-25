@@ -8,6 +8,7 @@ import ProjectModal from "./ProjectModal";
 import ProjectsTrashModal from "./ProjectsTrashModal";
 import ProjectDetailsOffcanvas from "./ProjectDetailsOffcanvas";
 import { confirmAction } from "@/utils/confirm";
+import { useI18n } from "@/hooks/useI18n";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompaniesByCode } from "@/lib/companyOptions";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/hooks/useProjects";
 
 export default function ProjectsClient() {
+    const { t } = useI18n();
     const { data: projects = [], isLoading } = useProjects();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const { data: trashProjects = [] } = useTrashProjects({ enabled: showTrashModal });
@@ -85,9 +87,9 @@ export default function ProjectsClient() {
 
     const handleDelete = (id) => {
         confirmAction({
-            title: "Move to Trash?",
-            message: "This project will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("projects.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteProjectMutation.mutateAsync(id);
                 setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
@@ -99,9 +101,9 @@ export default function ProjectsClient() {
         if (selectedIds.length === 0) return;
 
         confirmAction({
-            title: "Delete Selected Items?",
-            message: `Are you sure you want to move ${selectedIds.length} items to trash?`,
-            confirmLabel: "Yes, Delete",
+            title: t("confirm.deleteSelectedTitle"),
+            message: t("confirm.deleteSelectedMessage", { count: selectedIds.length }),
+            confirmLabel: t("confirm.deleteYes"),
             onConfirm: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
                 setSelectedIds([]);
@@ -112,7 +114,7 @@ export default function ProjectsClient() {
     return (
         <>
             <PageHeader
-                title="Projects"
+                title={t("projects.title")}
                 icon="fal fa-briefcase"
                 titleCol="col-lg-4"
                 actionCol="col-lg-8"
@@ -126,7 +128,7 @@ export default function ProjectsClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add project</span>
+                    <span className="txt ms-2">{t("projects.add")}</span>
                 </button>
 
                 <button
@@ -135,7 +137,7 @@ export default function ProjectsClient() {
                     onClick={handleBulkDelete}
                 >
                     <i className="fal fa-trash"></i>
-                    <span className="txt ms-2">Delete ({selectedIds.length})</span>
+                    <span className="txt ms-2">{t("common.deleteCount", { count: selectedIds.length })}</span>
                 </button>
 
                 <button
@@ -144,12 +146,12 @@ export default function ProjectsClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashProjects.length ? ` (${trashProjects.length})` : ""}</span>
+                    <span className="txt ms-2">{trashProjects.length ? t("common.viewTrashCount", { count: trashProjects.length }) : t("common.viewTrash")}</span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading projects...</div>
+                <div className="text-center py-5 text-muted">{t("projects.loading")}</div>
             ) : (
                 <ProjectsTable
                     data={projects}

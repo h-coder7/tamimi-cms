@@ -8,6 +8,7 @@ import {
   clientToFormData,
 } from "@/lib/mappers/clients";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export const PARTNER_TYPES = [
   "Client",
@@ -56,10 +57,10 @@ export function useAddClientPartner() {
         "clients-partners",
         "trash-clients-partners"
       );
-      toast.success("Logo added successfully!");
+      toast.success(t("toast.logo.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add client"));
+      toast.error(getApiErrorMessage(error, t("toast.logo.couldNotAdd")));
     },
   });
 }
@@ -78,10 +79,10 @@ export function useUpdateClientPartner() {
         "clients-partners",
         "trash-clients-partners"
       );
-      toast.success("Logo updated successfully!");
+      toast.success(t("toast.logo.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update client"));
+      toast.error(getApiErrorMessage(error, t("toast.logo.couldNotUpdate")));
     },
   });
 }
@@ -99,10 +100,10 @@ export function useDeleteClientPartner() {
         "clients-partners",
         "trash-clients-partners"
       );
-      toast.success("Logo moved to trash!");
+      toast.success(t("toast.logo.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete client"));
+      toast.error(getApiErrorMessage(error, t("toast.logo.couldNotDelete")));
     },
   });
 }
@@ -120,10 +121,10 @@ export function useRestoreClientPartner() {
         "clients-partners",
         "trash-clients-partners"
       );
-      toast.success("Logo restored successfully!");
+      toast.success(t("toast.logo.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore client"));
+      toast.error(getApiErrorMessage(error, t("toast.logo.couldNotRestore")));
     },
   });
 }
@@ -141,10 +142,10 @@ export function usePermanentDeleteClientPartner() {
         "clients-partners",
         "trash-clients-partners"
       );
-      toast.success("Logo permanently deleted!");
+      toast.success(t("toast.logo.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }

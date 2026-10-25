@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { publicPath } from "@/utils/publicPath";
 import { downloadMessageAttachment } from "@/hooks/useMessages";
+import { useI18n } from "@/hooks/useI18n";
+
+const TYPE_KEY = {
+  Inquiry: "inquiry",
+  Contact: "contact",
+  Application: "application",
+};
 
 export default function MessageDetailsOffcanvas({
   show,
@@ -12,6 +19,7 @@ export default function MessageDetailsOffcanvas({
   onMarkUnread,
   onDelete,
 }) {
+  const { t, isRtl, statusText, text } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -19,6 +27,11 @@ export default function MessageDetailsOffcanvas({
   }, []);
 
   if (!isMounted) return null;
+
+  const companyName =
+    message?.company_code === "TEG"
+      ? statusText("group")
+      : text(company?.i18nTitle, company?.title || message?.company_label || message?.company_code || "—");
 
   return (
     <>
@@ -31,13 +44,13 @@ export default function MessageDetailsOffcanvas({
       >
         <div className="offcanvas-header border-bottom py-3">
           <h5 className="offcanvas-title fsz-16" id="messageDetailsOffcanvasLabel">
-            <i className="fal fa-envelope me-2"></i> Message Details
+            <i className="fal fa-envelope me-2"></i> {t("messages.details")}
           </h5>
           <button
             type="button"
             className="btn-close text-reset"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
           ></button>
         </div>
         <div className="offcanvas-body p-4 custom-scroll">
@@ -50,14 +63,14 @@ export default function MessageDetailsOffcanvas({
                 >
                   <i className="fas fa-envelope fa-2x text-muted"></i>
                 </div>
-                <h6 className="fsz-18 mb-1">{message.name}</h6>
-                <div className="text-muted fsz-12 mb-2">{message.email}</div>
+                <h6 className="fsz-18 mb-1" dir={isRtl ? "rtl" : "ltr"}>{message.name}</h6>
+                <div className="text-muted fsz-12 mb-2" dir="ltr">{message.email}</div>
                 <div className="d-flex flex-wrap gap-2 justify-content-center">
                   <span className="badge bg-light text-dark border fsz-11">
-                    {message.type}
+                    {statusText(TYPE_KEY[message.type] || message.type)}
                   </span>
                   <span className="badge bg-light text-dark border fsz-11">
-                    {message.status}
+                    {statusText(message.status)}
                   </span>
                 </div>
               </div>
@@ -65,14 +78,14 @@ export default function MessageDetailsOffcanvas({
               <div className="details-list mb-4 d-flex flex-wrap gap-4">
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Subject
+                    {t("common.subject")}
                   </label>
-                  <div className="fsz-13">{message.subject || "—"}</div>
+                  <div className="fsz-13" dir={isRtl ? "rtl" : "ltr"}>{message.subject || "—"}</div>
                 </div>
 
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Target company
+                    {t("messages.target")}
                   </label>
                   <div className="d-flex align-items-center gap-2 fsz-13">
                     {(company?.image || message.company_code === "TEG") && (
@@ -85,39 +98,39 @@ export default function MessageDetailsOffcanvas({
                       </div>
                     )}
                     <span>
-                      {message.company_label || message.company_code || "—"}
+                      {companyName}
                     </span>
                   </div>
                 </div>
 
                 <div className="detail-item w-50">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Date
+                    {t("common.date")}
                   </label>
-                  <div className="fsz-13">{message.received_at || "—"}</div>
+                  <div className="fsz-13" dir="ltr">{message.received_at || "—"}</div>
                 </div>
 
                 <div className="detail-item w-50">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Mobile
+                    {t("common.mobile")}
                   </label>
-                  <div className="fsz-13">{message.mobile || "—"}</div>
+                  <div className="fsz-13" dir="ltr">{message.mobile || "—"}</div>
                 </div>
 
                 {message.company ? (
                   <div className="detail-item w-100">
                     <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                      Sender company
+                      {t("messages.senderCompany")}
                     </label>
-                    <div className="fsz-13">{message.company}</div>
+                    <div className="fsz-13" dir={isRtl ? "rtl" : "ltr"}>{message.company}</div>
                   </div>
                 ) : null}
 
                 <div className="detail-item w-100">
                   <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                    Message
+                    {t("messages.message")}
                   </label>
-                  <div className="fsz-13" style={{ whiteSpace: "pre-wrap" }}>
+                  <div className="fsz-13" dir={isRtl ? "rtl" : "ltr"} style={{ whiteSpace: "pre-wrap" }}>
                     {message.body || "—"}
                   </div>
                 </div>
@@ -125,7 +138,7 @@ export default function MessageDetailsOffcanvas({
                 {message.attachments?.length ? (
                   <div className="detail-item w-100">
                     <label className="text-muted fsz-11 text-uppercase d-block mb-1">
-                      Attachments
+                      {t("messages.attachments")}
                     </label>
                     <div className="d-flex flex-column gap-2">
                       {message.attachments.map((att) => (
@@ -133,6 +146,7 @@ export default function MessageDetailsOffcanvas({
                           key={att.fileId}
                           type="button"
                           className="btn btn-sm btn-outline-secondary text-start"
+                          dir="ltr"
                           onClick={() =>
                             downloadMessageAttachment(message, att)
                           }
@@ -153,7 +167,7 @@ export default function MessageDetailsOffcanvas({
                     className="btn btn-sm btn-outline-secondary"
                     onClick={() => onMarkUnread?.(message)}
                   >
-                    Mark unread
+                    {t("messages.unread")}
                   </button>
                 )}
                 <button
@@ -161,14 +175,14 @@ export default function MessageDetailsOffcanvas({
                   className="btn btn-sm btn-outline-danger"
                   onClick={() => onDelete?.(message)}
                 >
-                  Delete
+                  {t("common.delete")}
                 </button>
               </div>
             </div>
           ) : (
             <div className="text-center py-5 text-muted">
               <i className="fal fa-spinner fa-spin fa-2x mb-3"></i>
-              <p>Loading message details...</p>
+              <p>{t("messages.loadingDetails")}</p>
             </div>
           )}
         </div>

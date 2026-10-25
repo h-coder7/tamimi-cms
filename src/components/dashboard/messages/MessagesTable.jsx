@@ -13,6 +13,13 @@ import SortableRow from "../../shared/table/SortableRow";
 import { publicPath } from "@/utils/publicPath";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompanyFilterOptions } from "@/lib/companyOptions";
+import { useI18n } from "@/hooks/useI18n";
+
+const TYPE_KEY = {
+    Inquiry: "inquiry",
+    Contact: "contact",
+    Application: "application",
+};
 
 export default function MessagesTable({
     data = [],
@@ -21,6 +28,7 @@ export default function MessagesTable({
     onMarkUnread,
     onDelete,
 }) {
+    const { t, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([{ id: "received_at", desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
     const [search, setSearch] = useState("");
@@ -28,10 +36,18 @@ export default function MessagesTable({
     const [statusFilter, setStatusFilter] = useState("");
     const { data: companies = [] } = useCompanies();
 
-    const companyOptions = useMemo(
-        () => buildCompanyFilterOptions(companies, { includeGroup: true }),
-        [companies]
-    );
+    const companyOptions = useMemo(() => {
+        return buildCompanyFilterOptions(companies, { includeGroup: true }).map((opt) => {
+            if (opt.value === "TEG") return { ...opt, label: statusText("group") };
+            const company = companies.find((item) => (item.code || item.id) === opt.value);
+            if (!company) return opt;
+            const name = text(company.i18nTitle, company.title || "");
+            return {
+                ...opt,
+                label: company.code ? `${company.code} — ${name}`.trim() : name || opt.label,
+            };
+        });
+    }, [companies, statusText, text]);
 
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -49,14 +65,14 @@ export default function MessagesTable({
     }, [data, search, companyFilter, statusFilter]);
 
     const columns = useMemo(() => [
-        { id: "from", accessorKey: "name", header: "From", enableSorting: true },
-        { id: "type", accessorKey: "type", header: "Type", enableSorting: true },
-        { id: "company", accessorKey: "company_label", header: "Target company", enableSorting: true },
-        { id: "subject", accessorKey: "subject", header: "Subject", enableSorting: true },
-        { id: "received_at", accessorKey: "received_at", header: "Date", enableSorting: true },
-        { id: "status", accessorKey: "status", header: "Status", enableSorting: true },
-        { id: "columnActions", header: "Actions", enableSorting: false },
-    ], []);
+        { id: "from", accessorKey: "name", header: t("messages.from"), enableSorting: true },
+        { id: "type", accessorKey: "type", header: t("common.type"), enableSorting: true },
+        { id: "company", accessorKey: "company_label", header: t("messages.target"), enableSorting: true },
+        { id: "subject", accessorKey: "subject", header: t("common.subject"), enableSorting: true },
+        { id: "received_at", accessorKey: "received_at", header: t("common.date"), enableSorting: true },
+        { id: "status", accessorKey: "status", header: t("common.status"), enableSorting: true },
+        { id: "columnActions", header: t("common.actions"), enableSorting: false },
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -79,13 +95,22 @@ export default function MessagesTable({
     };
 
     const filteredCount = filteredData.length;
+    const pageIndex = table.getState().pagination.pageIndex;
+    const pageSize = table.getState().pagination.pageSize;
 
     const statusClass = (status) => {
         if (status === "New") return "badge bg-warning-subtle text-dark border fsz-11";
         return "badge bg-light text-dark border fsz-11";
     };
 
-    const companyLabel = (item) => item.company_label || item.company_code || "—";
+    const companyLabel = (item) => {
+        if (item.company_code === "TEG") return statusText("group");
+        const company = companiesByCode[item.company_code];
+        if (company?.i18nTitle || company?.title) {
+            return text(company.i18nTitle, company.title || item.company_label || "");
+        }
+        return item.company_label || item.company_code || "—";
+    };
 
     return (
         <>
@@ -110,7 +135,7 @@ export default function MessagesTable({
                                     if (id === "columnActions") {
                                         return (
                                             <SortableTh id={id} key={id} disabled>
-                                                Actions
+                                                {t("common.actions")}
                                             </SortableTh>
                                         );
                                     }
@@ -127,7 +152,7 @@ export default function MessagesTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={columnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No messages found
+                                        {t("messages.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -148,7 +173,7 @@ export default function MessagesTable({
                                                             >
                                                                 {item.name}
                                                             </div>
-                                                            <small className="text-muted fsz-11">{item.email}</small>
+                                                            <small className="text-muted fsz-11" dir="ltr">{item.email}</small>
                                                         </td>
                                                     );
                                                 }
@@ -156,7 +181,7 @@ export default function MessagesTable({
                                                 if (colId === "type") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12">{item.type}</span>
+                                                            <span className="fsz-12">{statusText(TYPE_KEY[item.type] || item.type)}</span>
                                                         </td>
                                                     );
                                                 }
@@ -191,7 +216,7 @@ export default function MessagesTable({
                                                 if (colId === "received_at") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">{item.received_at || "—"}</span>
+                                                            <span className="fsz-12 text-muted" dir="ltr">{item.received_at || "—"}</span>
                                                         </td>
                                                     );
                                                 }
@@ -200,7 +225,7 @@ export default function MessagesTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className={statusClass(item.status)}>
-                                                                {item.status || "New"}
+                                                                {statusText(item.status || "New")}
                                                             </span>
                                                         </td>
                                                     );
@@ -216,7 +241,7 @@ export default function MessagesTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
-                                                                            <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                            <i className="fal fa-eye me-2 text-muted"></i> {t("common.view")}
                                                                         </button>
                                                                     </li>
                                                                     {item.status === "Read" && (
@@ -225,7 +250,7 @@ export default function MessagesTable({
                                                                                 className="dropdown-item fsz-12 py-2"
                                                                                 onClick={() => onMarkUnread?.(item)}
                                                                             >
-                                                                                <i className="fal fa-envelope me-2 text-muted"></i> Mark unread
+                                                                                <i className="fal fa-envelope me-2 text-muted"></i> {t("messages.unread")}
                                                                             </button>
                                                                         </li>
                                                                     )}
@@ -234,7 +259,7 @@ export default function MessagesTable({
                                                                             className="dropdown-item fsz-12 py-2 text-danger"
                                                                             onClick={() => onDelete?.(item)}
                                                                         >
-                                                                            <i className="fal fa-trash me-2"></i> Delete
+                                                                            <i className="fal fa-trash me-2"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -256,12 +281,11 @@ export default function MessagesTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : pageIndex * pageSize + 1,
+                        to: Math.min((pageIndex + 1) * pageSize, filteredCount),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -271,7 +295,10 @@ export default function MessagesTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", {
+                            page: pageIndex + 1,
+                            pages: Math.max(table.getPageCount(), 1),
+                        })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

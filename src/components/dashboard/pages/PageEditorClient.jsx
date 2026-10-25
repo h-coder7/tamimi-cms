@@ -13,6 +13,7 @@ import MediaCenterEditor from "./media-center/Editor";
 import CareersEditor from "./careers/Editor";
 import DownloadsEditor from "./downloads/Editor";
 import ContactEditor from "./contact/Editor";
+import { useI18n } from "@/hooks/useI18n";
 
 const EDITORS = {
     1: HomeEditor,
@@ -29,6 +30,7 @@ const EDITORS = {
 };
 
 export default function PageEditorClient() {
+    const { t } = useI18n();
     const params = useParams();
     const pageId = Number(params?.id);
     const Editor = EDITORS[pageId];
@@ -36,9 +38,9 @@ export default function PageEditorClient() {
     if (!Editor) {
         return (
             <div className="text-center py-5">
-                <p className="text-muted mb-3">Page editor not found</p>
+                <p className="text-muted mb-3">{t("pages.editorNotFound")}</p>
                 <Link href="/dashboard/pages" className="btn btn-outline-secondary btn-sm">
-                    Back to Pages
+                    {t("pages.back")}
                 </Link>
             </div>
         );

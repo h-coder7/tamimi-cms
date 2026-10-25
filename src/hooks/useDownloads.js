@@ -10,6 +10,7 @@ import {
   downloadToFormData,
 } from "@/lib/mappers/downloads";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export { DOWNLOAD_TYPES, DOWNLOAD_STATUSES };
 
@@ -48,10 +49,10 @@ export function useAddDownload() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("File added successfully!");
+      toast.success(t("toast.file.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add file"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotAdd")));
     },
   });
 }
@@ -66,10 +67,10 @@ export function useUpdateDownload() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("File updated successfully!");
+      toast.success(t("toast.file.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update file"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotUpdate")));
     },
   });
 }
@@ -83,10 +84,10 @@ export function useDeleteDownload() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("File moved to trash!");
+      toast.success(t("toast.file.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete file"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotDelete")));
     },
   });
 }
@@ -100,10 +101,10 @@ export function useRestoreDownload() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("File restored!");
+      toast.success(t("toast.file.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore file"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotRestore")));
     },
   });
 }
@@ -117,10 +118,10 @@ export function usePermanentDeleteDownload() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("File permanently deleted!");
+      toast.success(t("toast.file.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete file"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotPurge")));
     },
   });
 }
@@ -134,10 +135,10 @@ export function useBulkDeleteDownloads() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "downloads", "trash-downloads");
-      toast.success("Selected files moved to trash!");
+      toast.success(t("toast.file.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete selected files"));
+      toast.error(getApiErrorMessage(error, t("toast.file.couldNotBulk")));
     },
   });
 }

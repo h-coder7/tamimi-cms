@@ -7,6 +7,7 @@ import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { CERTIFICATE_TYPES } from "@/hooks/useCertificates";
+import { useI18n } from "@/hooks/useI18n";
 
 const IMAGE_ACCEPT = {
     "image/jpeg": [".jpg", ".jpeg"],
@@ -42,26 +43,32 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function CertificateModal({ isOpen, onClose, onSave, certificate }) {
+    const { t, isRtl, statusText } = useI18n();
     const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
     const typeOptions = useMemo(
-        () => CERTIFICATE_TYPES.map((type) => ({ value: type, label: type })),
-        []
+        () => CERTIFICATE_TYPES.map((type) => ({ value: type, label: statusText(type) })),
+        [statusText]
     );
 
     const holderOptions = useMemo(
-        () => buildCompanyFormOptions(companies, { includeGroup: true }),
-        [companies]
+        () =>
+            buildCompanyFormOptions(companies, { includeGroup: true }).map((opt) =>
+                opt.value === "group" || opt.label === "Tamimi Energy Group"
+                    ? { ...opt, label: t("status.group") }
+                    : opt
+            ),
+        [companies, t]
     );
 
     const statusOptions = useMemo(
         () => [
-            { value: "Draft", label: "Draft" },
-            { value: "Published", label: "Published" },
+            { value: "Draft", label: statusText("Draft") },
+            { value: "Published", label: statusText("Published") },
         ],
-        []
+        [statusText]
     );
 
     useEffect(() => {
@@ -85,7 +92,7 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                 holder_code: certificate.holder_code || "TEG",
                 expiry: certificate.expiry || "",
                 imageFiles: certificate.image
-                    ? [{ preview: certificate.image, type: "image/jpeg", name: "Certificate" }]
+                    ? [{ preview: certificate.image, type: "image/jpeg", name: t("certificates.column") }]
                     : [],
                 pdfFiles: certificate.pdf
                     ? [{ preview: certificate.pdf, type: "application/pdf", name: "Certificate.pdf" }]
@@ -97,7 +104,7 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
         } else {
             setFormData(emptyForm());
         }
-    }, [isOpen, certificate]);
+    }, [isOpen, certificate, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -144,33 +151,34 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {certificate ? "Edit Certificate" : "Add Certificate"}
+                                {certificate ? t("certificates.edit") : t("certificates.add")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="row">
-                                    <Section title="Details">
+                                    <Section title={t("certificates.details")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Certificate name <span className="text-danger">*</span>
+                                                    {t("certificates.name")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="title"
                                                     required
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.title}
                                                     onChange={handleChange}
-                                                    placeholder="e.g. ISO 9001:2015"
+                                                    placeholder={t("certificates.namePh")}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Type <span className="text-danger">*</span>
+                                                    {t("common.type")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={typeOptions}
@@ -187,19 +195,20 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Issuing body</label>
+                                                <label className="form-label">{t("certificates.issuingBody")}</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="issuing_body"
+                                                    dir={isRtl ? "rtl" : "ltr"}
                                                     value={formData.issuing_body}
                                                     onChange={handleChange}
-                                                    placeholder="Certification body"
+                                                    placeholder={t("certificates.issuingBodyPh")}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Holder <span className="text-danger">*</span>
+                                                    {t("certificates.holder")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={holderOptions}
@@ -217,31 +226,32 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                                         }));
                                                     }}
                                                     classNamePrefix="react-select"
-                                                    placeholder="Tamimi Energy Group"
+                                                    placeholder={t("status.group")}
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Expiry date</label>
+                                                <label className="form-label">{t("certificates.expiryDate")}</label>
                                                 <input
                                                     type="date"
                                                     className="form-control"
                                                     name="expiry"
+                                                    dir="ltr"
                                                     value={formData.expiry}
                                                     onChange={handleChange}
                                                 />
                                                 <small className="text-muted fsz-11">
-                                                    Optional · reminder 30 days before
+                                                    {t("certificates.expiryHint")}
                                                 </small>
                                             </div>
                                         </div>
                                     </Section>
 
-                                    <Section title="Files">
+                                    <Section title={t("certificates.files")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Certificate image</label>
+                                                <label className="form-label">{t("certificates.image")}</label>
                                                 <FileUpload
                                                     files={formData.imageFiles}
                                                     onFilesChange={(files) =>
@@ -249,12 +259,12 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                                     }
                                                     accept={IMAGE_ACCEPT}
                                                     maxFiles={1}
-                                                    title="Upload image"
-                                                    hint="JPG / PNG for display"
+                                                    title={t("certificates.uploadImage")}
+                                                    hint={t("certificates.imageHint")}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Certificate PDF</label>
+                                                <label className="form-label">{t("certificates.pdf")}</label>
                                                 <FileUpload
                                                     files={formData.pdfFiles}
                                                     onFilesChange={(files) =>
@@ -262,17 +272,17 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
                                                     }
                                                     accept={PDF_ACCEPT}
                                                     maxFiles={1}
-                                                    title="Upload PDF"
-                                                    hint="Optional download · max 10 MB"
+                                                    title={t("certificates.uploadPdf")}
+                                                    hint={t("certificates.pdfHint")}
                                                 />
                                             </div>
                                         </div>
                                     </Section>
 
-                                    <Section title="Publishing">
+                                    <Section title={t("certificates.publishing")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Status</label>
+                                                <label className="form-label">{t("common.status")}</label>
                                                 <Select
                                                     options={statusOptions}
                                                     value={statusOptions.find((o) => o.value === formData.publish_status) || null}
@@ -294,14 +304,14 @@ export default function CertificateModal({ isOpen, onClose, onSave, certificate 
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button
                                     type="submit"
                                     className="butn-st2"
                                     disabled={!formData.type || !formData.holder}
                                 >
-                                    {certificate ? "Update Certificate" : "Add Certificate"}
+                                    {certificate ? t("certificates.update") : t("certificates.add")}
                                 </button>
                             </div>
                         </form>

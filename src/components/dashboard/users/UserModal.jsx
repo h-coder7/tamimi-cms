@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import { USER_STATUSES } from "@/hooks/useUsers";
+import { useI18n } from "@/hooks/useI18n";
 
 const emptyForm = () => ({
     name: "",
@@ -14,12 +15,13 @@ const emptyForm = () => ({
 });
 
 export default function UserModal({ isOpen, onClose, onSave, user }) {
+    const { t, isRtl, statusText } = useI18n();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
     const statusOptions = useMemo(
-        () => USER_STATUSES.map((status) => ({ value: status, label: status })),
-        []
+        () => USER_STATUSES.map((status) => ({ value: status, label: statusText(status) })),
+        [statusText]
     );
 
     useEffect(() => {
@@ -80,50 +82,52 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">{user ? "Edit admin" : "Add admin"}</h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <h5 className="modal-title">{user ? t("admins.edit") : t("admins.addTitle")}</h5>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Full name <span className="text-danger">*</span>
+                                        {t("admins.fullName")} <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         name="name"
                                         required
+                                        dir={isRtl ? "rtl" : "ltr"}
                                         value={formData.name}
                                         onChange={handleChange}
-                                        placeholder="e.g. Sara Al-Harbi"
+                                        placeholder={t("admins.namePh")}
                                     />
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Work email <span className="text-danger">*</span>
+                                        {t("admins.workEmail")} <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         className="form-control"
                                         name="email"
                                         required
+                                        dir="ltr"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="name@tamimienergy.com"
+                                        placeholder={t("admins.emailPh")}
                                         disabled={Boolean(user)}
                                     />
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Password{" "}
+                                        {t("common.password")}{" "}
                                         {!user && <span className="text-danger">*</span>}
                                         {user && (
                                             <span className="text-muted fsz-11 fw-normal">
-                                                (leave blank to keep current)
+                                                {t("admins.passwordHint")}
                                             </span>
                                         )}
                                     </label>
@@ -133,16 +137,17 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         name="password"
                                         required={!user}
                                         minLength={user ? undefined : 8}
+                                        dir="ltr"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        placeholder="Min 8 chars, upper, digit, symbol"
+                                        placeholder={t("admins.passwordPh")}
                                         autoComplete="new-password"
                                     />
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Confirm password{" "}
+                                        {t("admins.confirmPassword")}{" "}
                                         {!user && <span className="text-danger">*</span>}
                                     </label>
                                     <input
@@ -151,20 +156,21 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         name="passwordConfirmation"
                                         required={!user || Boolean(formData.password)}
                                         minLength={user && !formData.password ? undefined : 8}
+                                        dir="ltr"
                                         value={formData.passwordConfirmation}
                                         onChange={handleChange}
                                         autoComplete="new-password"
                                     />
                                     {passwordsMismatch && (
                                         <div className="form-text text-danger fsz-11">
-                                            Passwords do not match
+                                            {t("admins.passwordMismatch")}
                                         </div>
                                     )}
                                 </div>
 
                                 {user && (
                                     <div className="mb-0">
-                                        <label className="form-label">Status</label>
+                                        <label className="form-label">{t("common.status")}</label>
                                         <Select
                                             options={statusOptions}
                                             value={
@@ -177,6 +183,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                                     status: opt?.value || "Active",
                                                 }))
                                             }
+                                            isRtl={isRtl}
                                             classNamePrefix="react-select"
                                             menuPortalTarget={
                                                 typeof document !== "undefined" ? document.body : null
@@ -189,14 +196,14 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
                                     disabled={passwordsMismatch}
                                 >
-                                    {user ? "Save" : "Create admin"}
+                                    {user ? t("common.save") : t("admins.create")}
                                 </button>
                             </div>
                         </form>
