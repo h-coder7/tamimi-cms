@@ -7,6 +7,7 @@ import {
   applicationToFormData,
 } from "@/lib/mappers/applications";
 import { toast } from "react-hot-toast";
+import { t } from "@/lib/i18n";
 
 export function useApplications() {
   return useQuery({
@@ -31,10 +32,10 @@ export function useAddApplication() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      toast.success("Application added successfully!");
+      toast.success(t("toast.application.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add application"));
+      toast.error(getApiErrorMessage(error, t("toast.application.couldNotAdd")));
     },
   });
 }
@@ -54,7 +55,7 @@ export async function exportApplicationsCsv(params = {}) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    toast.error(getApiErrorMessage(error, "Could not export applications"));
+    toast.error(getApiErrorMessage(error, t("toast.application.couldNotExport")));
     throw error;
   }
 }
@@ -74,7 +75,7 @@ export async function fetchApplicationCvBlobUrl(application) {
 /** Authenticated CV download via API stream. */
 export async function downloadApplicationCv(application) {
   if (!application?.id || !application.cv) {
-    toast.error("No CV available for this application");
+    toast.error(t("toast.application.noCv"));
     return;
   }
   try {
@@ -88,6 +89,6 @@ export async function downloadApplicationCv(application) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    toast.error(getApiErrorMessage(error, "Could not download CV"));
+    toast.error(getApiErrorMessage(error, t("toast.application.couldNotDownload")));
   }
 }

@@ -75,6 +75,7 @@ export function postFromApi(post) {
   return {
     id: post.id,
     title: localized(post.title),
+    i18nTitle: post.title,
     slug: post.slug || "",
     summary: localized(post.summary, ""),
     body: localized(post.body, ""),

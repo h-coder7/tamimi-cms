@@ -7,6 +7,7 @@ import FileUpload from "@/components/shared/FileUpload";
 import { useJobs } from "@/hooks/useJobs";
 import { buildJobFilterOptions } from "@/lib/jobOptions";
 import { toast } from "react-hot-toast";
+import { useI18n } from "@/hooks/useI18n";
 
 const PDF_ACCEPT = {
   "application/pdf": [".pdf"],
@@ -24,12 +25,20 @@ const emptyForm = () => ({
 });
 
 export default function ApplicationModal({ isOpen, onClose, onSave }) {
+  const { t, isRtl, text } = useI18n();
   const { data: jobs = [], refetch: refetchJobs } = useJobs();
   const [formData, setFormData] = useState(emptyForm);
   const [isMounted, setIsMounted] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const jobOptions = useMemo(() => buildJobFilterOptions(jobs), [jobs]);
+  const jobOptions = useMemo(() => {
+    const byId = new Map(jobs.map((job) => [job.id, job]));
+    return buildJobFilterOptions(jobs).map((opt) => {
+      const job = byId.get(opt.value);
+      if (!job) return opt;
+      return { ...opt, label: text(job.i18nTitle, job.title) };
+    });
+  }, [jobs, text]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -52,19 +61,19 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.job_id) {
-      toast.error("Please select a job");
+      toast.error(t("validation.selectJob"));
       return;
     }
     if (!formData.name.trim()) {
-      toast.error("Full name is required");
+      toast.error(t("validation.fullName"));
       return;
     }
     if (!formData.email.trim()) {
-      toast.error("Email is required");
+      toast.error(t("validation.email"));
       return;
     }
     if (!formData.consent) {
-      toast.error("Consent is required");
+      toast.error(t("validation.consent"));
       return;
     }
 
@@ -98,8 +107,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
         <div className="modal-dialog modal-dialog-centered modal-lg">
           <div className="modal-content company-modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Add application</h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
+              <h5 className="modal-title">{t("applications.add")}</h5>
+              <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -107,7 +116,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                 <div className="row">
                   <div className="col-12 mb-3">
                     <label className="form-label">
-                      Job <span className="text-danger">*</span>
+                      {t("applications.job")} <span className="text-danger">*</span>
                     </label>
                     <Select
                       options={jobOptions}
@@ -120,8 +129,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       }
                       placeholder={
                         jobOptions.length
-                          ? "Select job"
-                          : "No jobs yet — create a job first"
+                          ? t("applications.selectJobPh")
+                          : t("applications.noJobs")
                       }
                       classNamePrefix="react-select"
                       menuPortalTarget={
@@ -133,69 +142,75 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
 
                   <div className="col-lg-6 mb-3">
                     <label className="form-label">
-                      Full name <span className="text-danger">*</span>
+                      {t("applications.fullName")} <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
                       className="form-control"
                       name="name"
                       required
+                      dir={isRtl ? "rtl" : "ltr"}
                       value={formData.name}
                       onChange={handleChange}
+                      placeholder={t("applications.fullNamePh")}
                     />
                   </div>
 
                   <div className="col-lg-6 mb-3">
                     <label className="form-label">
-                      Email <span className="text-danger">*</span>
+                      {t("common.email")} <span className="text-danger">*</span>
                     </label>
                     <input
                       type="email"
                       className="form-control"
                       name="email"
                       required
+                      dir="ltr"
                       value={formData.email}
                       onChange={handleChange}
                     />
                   </div>
 
                   <div className="col-lg-6 mb-3">
-                    <label className="form-label">Mobile</label>
+                    <label className="form-label">{t("common.mobile")}</label>
                     <input
                       type="text"
                       className="form-control"
                       name="mobile"
+                      dir="ltr"
                       value={formData.mobile}
                       onChange={handleChange}
                     />
                   </div>
 
                   <div className="col-lg-6 mb-3">
-                    <label className="form-label">City</label>
+                    <label className="form-label">{t("common.city")}</label>
                     <input
                       type="text"
                       className="form-control"
                       name="city"
+                      dir={isRtl ? "rtl" : "ltr"}
                       value={formData.city}
                       onChange={handleChange}
-                      placeholder="Dammam"
+                      placeholder={t("applications.cityPh")}
                     />
                   </div>
 
                   <div className="col-lg-6 mb-3">
-                    <label className="form-label">Years of experience</label>
+                    <label className="form-label">{t("applications.years")}</label>
                     <input
                       type="number"
                       min="0"
                       className="form-control"
                       name="experience_years"
+                      dir="ltr"
                       value={formData.experience_years}
                       onChange={handleChange}
                     />
                   </div>
 
                   <div className="col-12 mb-3">
-                    <label className="form-label">CV (PDF)</label>
+                    <label className="form-label">{t("applications.cvPdf")}</label>
                     <FileUpload
                       files={formData.cvFiles}
                       onFilesChange={(files) =>
@@ -203,8 +218,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       }
                       accept={PDF_ACCEPT}
                       maxFiles={1}
-                      title="Upload CV"
-                      hint="Optional PDF, max 10MB"
+                      title={t("applications.uploadCv")}
+                      hint={t("applications.cvHint")}
                     />
                   </div>
 
@@ -219,23 +234,24 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                         onChange={handleChange}
                       />
                       <label className="form-check-label" htmlFor="application-consent">
-                        Data-processing consent given <span className="text-danger">*</span>
+                        {t("applications.consentLabel")} <span className="text-danger">*</span>
                       </label>
                     </div>
+                    <small className="text-muted fsz-11 d-block mt-1">{t("applications.consentHint")}</small>
                   </div>
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-light" onClick={onClose}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="butn-st2"
                   disabled={saving || !formData.job_id}
                 >
-                  {saving ? "Saving..." : "Add application"}
+                  {saving ? t("common.saving") : t("applications.add")}
                 </button>
               </div>
             </form>

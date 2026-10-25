@@ -23,6 +23,7 @@
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.4.17",
     "next": "^16.1.7",
     "react": "^19.2.4",
     "react-apexcharts": "^1.9.0",

@@ -8,6 +8,7 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { buildIndustryFormOptions } from "@/lib/industryOptions";
 import { useIndustries, VALUE_CHAIN_STAGES } from "@/hooks/useIndustries";
+import { useI18n } from "@/hooks/useI18n";
 
 const SUMMARY_MAX = 200;
 
@@ -58,6 +59,8 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function ProjectModal({ isOpen, onClose, onSave, project }) {
+    const { t, isRtl, statusText, text } = useI18n();
+    const textDir = isRtl ? "rtl" : "ltr";
     const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const { data: industries = [], refetch: refetchIndustries } = useIndustries();
     const [formData, setFormData] = useState(emptyForm);
@@ -66,20 +69,34 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
 
     const statusOptions = useMemo(
         () => [
-            { value: "Draft", label: "Draft" },
-            { value: "Published", label: "Published" },
+            { value: "Draft", label: statusText("Draft") },
+            { value: "Published", label: statusText("Published") },
         ],
-        []
+        [statusText]
     );
 
     const companyOptions = useMemo(
-        () => buildCompanyFormOptions(companies),
-        [companies]
+        () => buildCompanyFormOptions(companies).map((opt) => {
+            const company = companies.find((item) => item.id === opt.value);
+            if (!company) return opt;
+            const name = text(company.i18nTitle, company.title);
+            return {
+                ...opt,
+                label: company.code ? `${company.code} — ${name}`.trim() : name,
+            };
+        }),
+        [companies, text]
     );
 
     const industryOptions = useMemo(
-        () => buildIndustryFormOptions(industries),
-        [industries]
+        () => buildIndustryFormOptions(industries).map((opt) => {
+            const industry = industries.find((item) => item.id === opt.value);
+            return {
+                ...opt,
+                label: industry ? text(industry.i18nTitle, opt.label) : opt.label,
+            };
+        }),
+        [industries, text]
     );
 
     useEffect(() => {
@@ -113,7 +130,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                         preview: item.url || item.videoUrl || "",
                         path: item.path || null,
                         videoUrl: item.videoUrl || null,
-                        name: `Gallery ${idx + 1}`,
+                        name: t("companies.galleryItem", { n: idx + 1 }),
                         type: item.videoUrl || String(item.url || "").includes(".mp4")
                             ? "video/mp4"
                             : "image/jpeg",
@@ -121,7 +138,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                     : Array.isArray(project.gallery)
                         ? project.gallery.map((item, idx) => (
                             typeof item === "string"
-                                ? { preview: item, name: `Gallery ${idx + 1}`, type: "image/jpeg" }
+                                ? { preview: item, name: t("companies.galleryItem", { n: idx + 1 }), type: "image/jpeg" }
                                 : item
                         ))
                         : [],
@@ -134,7 +151,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                 status: project.status || "Draft",
                 featured: Boolean(project.featured),
                 coverFiles: project.cover
-                    ? [{ preview: project.cover, type: "image/jpeg", name: "Cover" }]
+                    ? [{ preview: project.cover, type: "image/jpeg", name: t("common.cover") }]
                     : [],
                 coverPath: project.coverPath || null,
                 is_sample: Boolean(project.is_sample),
@@ -145,7 +162,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
         }
 
         setServiceInput("");
-    }, [isOpen, project]);
+    }, [isOpen, project, t]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -234,58 +251,61 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {project ? "Edit Project" : "Add New Project"}
+                                {project ? t("projects.edit") : t("projects.addTitle")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="row">
-                                    <Section title="Project details">
+                                    <Section title={t("projects.details")}>
                                         <div className="row">
                                             <div className="col-lg-8 mb-3">
                                                 <label className="form-label">
-                                                    Project name <span className="text-danger">*</span>
+                                                    {t("projects.name")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="title"
                                                     required
+                                                    dir={textDir}
                                                     value={formData.title}
                                                     onChange={handleChange}
-                                                    placeholder="Project name"
+                                                    placeholder={t("projects.namePh")}
                                                 />
                                             </div>
                                             <div className="col-lg-4 mb-3">
                                                 <label className="form-label">
-                                                    Client <span className="text-danger">*</span>
+                                                    {t("common.client")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="client"
                                                     required
+                                                    dir={textDir}
                                                     value={formData.client}
                                                     onChange={handleChange}
-                                                    placeholder="Client name"
+                                                    placeholder={t("projects.clientPh")}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Location</label>
+                                                <label className="form-label">{t("common.location")}</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="location"
+                                                    dir={textDir}
                                                     value={formData.location}
                                                     onChange={handleChange}
-                                                    placeholder="City, Country"
+                                                    placeholder={t("projects.locationPh")}
                                                 />
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">Summary</label>
+                                                    <label className="form-label mb-0">{t("common.summary")}</label>
                                                     <small className={`fsz-11 ${summaryCount >= SUMMARY_MAX ? "text-danger" : "text-muted"}`}>
                                                         {summaryCount}/{SUMMARY_MAX}
                                                     </small>
@@ -294,61 +314,65 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                     className="form-control"
                                                     name="summary"
                                                     rows={3}
+                                                    dir={textDir}
                                                     value={formData.summary}
                                                     onChange={handleChange}
-                                                    placeholder="Short summary for cards"
+                                                    placeholder={t("projects.summaryPh")}
                                                 />
                                                 <small className="text-muted fsz-11">
-                                                    Shown on cards · max {SUMMARY_MAX} characters
+                                                    {t("projects.summaryHint", { max: SUMMARY_MAX })}
                                                 </small>
                                             </div>
                                         </div>
                                     </Section>
 
-                                    <Section title="Case study">
+                                    <Section title={t("projects.caseStudy")}>
                                         <div className="row">
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">The challenge</label>
+                                                <label className="form-label">{t("projects.challenge")}</label>
                                                 <textarea
                                                     className="form-control"
                                                     name="challenge"
                                                     rows={3}
+                                                    dir={textDir}
                                                     value={formData.challenge}
                                                     onChange={handleChange}
-                                                    placeholder="Describe the challenge"
+                                                    placeholder={t("projects.challengePh")}
                                                 />
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">Our solution</label>
+                                                <label className="form-label">{t("projects.solution")}</label>
                                                 <textarea
                                                     className="form-control"
                                                     name="solution"
                                                     rows={3}
+                                                    dir={textDir}
                                                     value={formData.solution}
                                                     onChange={handleChange}
-                                                    placeholder="Describe the solution"
+                                                    placeholder={t("projects.solutionPh")}
                                                 />
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">The result</label>
+                                                <label className="form-label">{t("projects.result")}</label>
                                                 <textarea
                                                     className="form-control"
                                                     name="result"
                                                     rows={3}
+                                                    dir={textDir}
                                                     value={formData.result}
                                                     onChange={handleChange}
-                                                    placeholder="Describe the result"
+                                                    placeholder={t("projects.resultPh")}
                                                 />
                                             </div>
                                         </div>
                                     </Section>
 
                                     <Section
-                                        title="Scope & services"
-                                        hint="Services delivered on this project. Shown as a numbered list on the project page."
+                                        title={t("projects.scope")}
+                                        hint={t("projects.servicesHint")}
                                     >
                                         {formData.services.length === 0 ? (
-                                            <div className="text-muted fsz-12 mb-2">No services added yet</div>
+                                            <div className="text-muted fsz-12 mb-2">{t("projects.noServices")}</div>
                                         ) : (
                                             <ol className="mb-3 ps-3">
                                                 {formData.services.map((service, index) => (
@@ -379,33 +403,34 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                         addService();
                                                     }
                                                 }}
-                                                placeholder="Type a service, e.g. Valves"
+                                                placeholder={t("projects.servicePh")}
+                                                dir={textDir}
                                             />
                                             <button type="button" className="butn-st2 butn-md" onClick={addService}>
-                                                + Add
+                                                {t("projects.addService")}
                                             </button>
                                         </div>
                                     </Section>
 
                                     <Section
-                                        title="Gallery"
-                                        hint="JPG / WEBP up to 5 MB each · MP4 up to 50 MB"
+                                        title={t("projects.gallery")}
+                                        hint={t("projects.galleryHint")}
                                     >
                                         <FileUpload
                                             files={formData.gallery}
                                             onFilesChange={(files) => setFormData((prev) => ({ ...prev, gallery: files }))}
                                             accept={GALLERY_ACCEPT}
                                             maxFiles={12}
-                                            title="Drop project photos or video"
-                                            hint="JPG / WEBP up to 5 MB each · MP4 up to 50 MB"
+                                            title={t("projects.drop")}
+                                            hint={t("projects.galleryHint")}
                                         />
                                     </Section>
 
-                                    <Section title="Links">
+                                    <Section title={t("projects.links")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Delivered by (company) <span className="text-danger">*</span>
+                                                    {t("projects.deliveredBy")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={companyOptions}
@@ -418,15 +443,17 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                                 companies.find((c) => c.id === opt?.value)?.code || "",
                                                         }))
                                                     }
+                                                    required
                                                     classNamePrefix="react-select"
-                                                    placeholder="Select company"
+                                                    isRtl={isRtl}
+                                                    placeholder={t("projects.selectCompany")}
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">
-                                                    Industry <span className="text-danger">*</span>
+                                                    {t("common.industry")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={industryOptions}
@@ -439,27 +466,30 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                                 industries.find((i) => i.id === opt?.value)?.title || "",
                                                         }))
                                                     }
+                                                    required
                                                     classNamePrefix="react-select"
-                                                    placeholder="Select industry"
+                                                    isRtl={isRtl}
+                                                    placeholder={t("projects.selectIndustry")}
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                             </div>
                                             <div className="col-lg-4 mb-3">
-                                                <label className="form-label">Year</label>
+                                                <label className="form-label">{t("common.year")}</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="year"
+                                                    dir="ltr"
                                                     value={formData.year}
                                                     onChange={handleChange}
-                                                    placeholder="2025"
+                                                    placeholder={t("projects.yearPh")}
                                                     inputMode="numeric"
                                                 />
-                                                <small className="text-muted fsz-11">4-digit year</small>
+                                                <small className="text-muted fsz-11">{t("projects.yearHint")}</small>
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label d-block mb-2">Value-chain stages</label>
+                                                <label className="form-label d-block mb-2">{t("projects.valueChain")}</label>
                                                 <div className="d-flex flex-column gap-2">
                                                     {VALUE_CHAIN_STAGES.map((stage) => (
                                                         <div className="form-check" key={stage}>
@@ -471,24 +501,25 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                                 onChange={() => toggleValueChain(stage)}
                                                             />
                                                             <label className="form-check-label fsz-13" htmlFor={`project-stage-${stage}`}>
-                                                                {stage}
+                                                                {t(`valueChain.${stage}`)}
                                                             </label>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 <small className="text-muted fsz-11 d-block mt-2">
-                                                    Select one or more. The five stages are the fixed Industries We Power value chain (Industries module). Shown on the project page and used for filtering.
+                                                    {t("projects.valueChainHint")}
                                                 </small>
                                             </div>
                                         </div>
                                     </Section>
 
-                                    <Section title="Publishing">
+                                    <Section title={t("projects.publishing")}>
                                         <div className="row">
                                             <div className="col-lg-4 mb-3">
-                                                <label className="form-label">Status</label>
+                                                <label className="form-label">{t("common.status")}</label>
                                                 <Select
                                                     options={statusOptions}
+                                                    isRtl={isRtl}
                                                     value={statusOptions.find((o) => o.value === formData.status) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
@@ -512,19 +543,19 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                                         onChange={handleChange}
                                                     />
                                                     <label className="form-check-label fsz-13" htmlFor="project-featured">
-                                                        Featured on Home page and Project Experience
+                                                        {t("projects.featuredHome")}
                                                     </label>
                                                 </div>
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">Cover image</label>
+                                                <label className="form-label">{t("projects.cover")}</label>
                                                 <FileUpload
                                                     files={formData.coverFiles}
                                                     onFilesChange={(files) => setFormData((prev) => ({ ...prev, coverFiles: files }))}
                                                     accept={COVER_ACCEPT}
                                                     maxFiles={1}
-                                                    title="Upload cover"
-                                                    hint="JPG / WEBP · 1600×900 recommended"
+                                                    title={t("projects.uploadCover")}
+                                                    hint={t("projects.coverHint")}
                                                 />
                                             </div>
                                         </div>
@@ -534,14 +565,14 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button
                                     type="submit"
                                     className="butn-st2"
-                                    disabled={!formData.companyId || !formData.industryId}
+                                    // disabled={!formData.companyId || !formData.industryId}
                                 >
-                                    {project ? "Update Project" : "Add Project"}
+                                    {project ? t("projects.update") : t("projects.add")}
                                 </button>
                             </div>
                         </form>

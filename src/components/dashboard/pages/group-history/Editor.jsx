@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/hooks/useI18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,15 +9,17 @@ import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, GROUP_VALUES, JOURNEY_MILESTONES, pageMeta } from "./data";
 
 const SECTIONS = [
-    { id: "hero", number: "01", title: "Hero", fieldsCount: 2 },
-    { id: "our_journey", number: "02", title: "Our journey", fieldsCount: 31 },
-    { id: "vision_mission", number: "03", title: "Vision & mission", fieldsCount: 2 },
-    { id: "values", number: "04", title: "Values", fieldsCount: 12 },
-    { id: "group_structure", number: "05", title: "Group structure", fieldsCount: 1 },
-    { id: "vision_2030", number: "06", title: "Vision 2030", fieldsCount: 3 },
+    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
+    { id: "our_journey", number: "02", titleKey: "pages.section.journey", fieldsCount: 31 },
+    { id: "vision_mission", number: "03", titleKey: "pages.section.visionMission", fieldsCount: 2 },
+    { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 12 },
+    { id: "group_structure", number: "05", titleKey: "pages.section.structure", fieldsCount: 1 },
+    { id: "vision_2030", number: "06", titleKey: "pages.section.vision2030", fieldsCount: 3 },
 ];
 
 export default function GroupHistoryEditor() {
+    const { t, isRtl } = useI18n();
+    const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
     const updateMutation = useUpdateCmsPage();
@@ -112,15 +115,15 @@ export default function GroupHistoryEditor() {
     };
 
     if (isLoading) {
-        return <div className="text-center py-5 text-muted">Loading page editor...</div>;
+        return <div className="text-center py-5 text-muted">{t("pages.loadingEditor")}</div>;
     }
 
     if (!page) {
         return (
             <div className="text-center py-5">
-                <p className="text-muted mb-3">Page not found</p>
+                <p className="text-muted mb-3">{t("pages.notFound")}</p>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handleCancel}>
-                    Back to Pages
+                    {t("pages.back")}
                 </button>
             </div>
         );
@@ -129,17 +132,17 @@ export default function GroupHistoryEditor() {
     return (
         <>
             <PageHeader
-                title={`Edit content — ${page.page}`}
+                title={t("pages.editTitle", { page: page.page })}
                 icon="fal fa-file-edit"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
             >
                 <button type="button" className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0" onClick={handlePreview}>
-                    <span className="txt">Preview page</span>
+                    <span className="txt">{t("pages.preview")}</span>
                     <i className="fal fa-external-link ms-2"></i>
                 </button>
                 <button type="button" className="alert alert-light rounded-pill py-2 px-3 fsz-12 ms-2 border mb-0" onClick={handleCancel}>
-                    <span className="txt">Cancel</span>
+                    <span className="txt">{t("common.cancel")}</span>
                 </button>
                 <button
                     type="button"
@@ -148,14 +151,14 @@ export default function GroupHistoryEditor() {
                     disabled={updateMutation.isPending}
                 >
                     <i className="fal fa-check"></i>
-                    <span className="txt ms-2">Save & publish</span>
+                    <span className="txt ms-2">{t("pages.savePublish")}</span>
                 </button>
             </PageHeader>
 
             <div className="page-editor mt-4">
                 <aside className="page-editor__sidebar table-content p-0 mt-0 mb-0">
                     <div className="page-editor__sidebar-head">
-                        <h6 className="mb-0 fsz-13 fw-600">Sections</h6>
+                        <h6 className="mb-0 fsz-13 fw-600">{t("pages.sections")}</h6>
                     </div>
                     <div className="page-editor__sections">
                         {SECTIONS.map((s) => (
@@ -167,23 +170,23 @@ export default function GroupHistoryEditor() {
                             >
                                 <span className="page-editor__section-main">
                                     <span className="page-editor__section-num">{s.number}</span>
-                                    <span className="page-editor__section-title">{s.title}</span>
+                                    <span className="page-editor__section-title">{t(s.titleKey)}</span>
                                 </span>
                                 <i className="fal fa-angle-right text-muted"></i>
                             </button>
                         ))}
                     </div>
                     <div className="page-editor__sidebar-foot">
-                        Section order and visibility follow the approved design.
+                        {t("pages.sectionOrder")}
                     </div>
                 </aside>
 
                 <section className="page-editor__main table-content mt-0 mb-0">
                     <div className="page-editor__main-head">
                         <h6 className="mb-0 fsz-14 fw-600">
-                            {activeSection.number} · {activeSection.title}
+                            {activeSection.number} · {t(activeSection.titleKey)}
                         </h6>
-                        <span className="fsz-12 text-muted">{activeSection.fieldsCount} editable fields</span>
+                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.fieldsCount })}</span>
                     </div>
 
                     <div className="page-editor__fields">
@@ -192,9 +195,9 @@ export default function GroupHistoryEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             maxLength={90}
@@ -203,8 +206,8 @@ export default function GroupHistoryEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Intro text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.intro")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             maxLength={240}
@@ -219,9 +222,9 @@ export default function GroupHistoryEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Section title <span className="text-danger">*</span>
+                                            {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.section_title || ""}
@@ -233,8 +236,8 @@ export default function GroupHistoryEditor() {
                                         <div className="col-12" key={`milestone-${index}`}>
                                             <div className="row g-3">
                                                 <div className="col-md-3">
-                                                    <label className="form-label fsz-12 text-muted">Year</label>
-                                                    <input
+                                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.year")}</label>
+                                                    <input dir={dir}
                                                         type="text"
                                                         className="form-control"
                                                         value={item.year || ""}
@@ -242,8 +245,8 @@ export default function GroupHistoryEditor() {
                                                     />
                                                 </div>
                                                 <div className="col-md-9">
-                                                    <label className="form-label fsz-12 text-muted">Milestone</label>
-                                                    <textarea
+                                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.milestone")}</label>
+                                                    <textarea dir={dir}
                                                         className="form-control"
                                                         rows={2}
                                                         value={item.milestone || ""}
@@ -260,9 +263,9 @@ export default function GroupHistoryEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Vision <span className="text-danger">*</span>
+                                            {t("pages.fields.vision")} <span className="text-danger">*</span>
                                         </label>
-                                        <textarea
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.vision || ""}
@@ -271,9 +274,9 @@ export default function GroupHistoryEditor() {
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Mission <span className="text-danger">*</span>
+                                            {t("pages.fields.mission")} <span className="text-danger">*</span>
                                         </label>
-                                        <textarea
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.mission || ""}
@@ -289,8 +292,8 @@ export default function GroupHistoryEditor() {
                                         <div className="col-12" key={`value-${index}`}>
                                             <div className="row g-3">
                                                 <div className="col-md-4">
-                                                    <label className="form-label fsz-12 text-muted">Value</label>
-                                                    <input
+                                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.value")}</label>
+                                                    <input dir={dir}
                                                         type="text"
                                                         className="form-control"
                                                         value={item.value || ""}
@@ -298,8 +301,8 @@ export default function GroupHistoryEditor() {
                                                     />
                                                 </div>
                                                 <div className="col-md-8">
-                                                    <label className="form-label fsz-12 text-muted">Description</label>
-                                                    <textarea
+                                                    <label className="form-label fsz-12 text-muted">{t("common.description")}</label>
+                                                    <textarea dir={dir}
                                                         className="form-control"
                                                         rows={2}
                                                         value={item.description || ""}
@@ -315,19 +318,19 @@ export default function GroupHistoryEditor() {
                             {activeSection.id === "group_structure" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">
-                                        Section title <span className="text-danger">*</span>
+                                        {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                     </label>
-                                    <input
+                                    <input dir={dir}
                                         type="text"
                                         className="form-control"
                                         value={section.section_title || ""}
                                         onChange={(e) => setField("section_title", e.target.value)}
                                     />
                                     <p className="fsz-12 text-muted mt-3 mb-0">
-                                        The structure is built automatically from the Companies module (Subsidiary / Joint Venture).
+                                        {t("pages.structureNote")}
                                     </p>
                                     <Link href="/dashboard/companies" className="btn btn-outline-primary fsz-12 mt-3">
-                                        Manage in Companies
+                                        {t("pages.manageCompanies")}
                                         <i className="fal fa-arrow-right ms-2"></i>
                                     </Link>
                                 </div>
@@ -337,9 +340,9 @@ export default function GroupHistoryEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Section title <span className="text-danger">*</span>
+                                            {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.section_title || ""}
@@ -347,8 +350,8 @@ export default function GroupHistoryEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.text || ""}
@@ -356,8 +359,8 @@ export default function GroupHistoryEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Local content figure</label>
-                                        <input
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.localContent")}</label>
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.local_content_figure || ""}
@@ -374,14 +377,14 @@ export default function GroupHistoryEditor() {
                             {prevSection ? (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
-                                    {prevSection.title}
+                                    {t(prevSection.titleKey)}
                                 </button>
                             ) : (
                                 <span />
                             )}
                             {nextSection && (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(nextSection.id)}>
-                                    {nextSection.title}
+                                    {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>
                             )}

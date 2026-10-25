@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
+import { t } from "@/lib/i18n";
 import {
   seoPageFromApi,
   seoPageToApiPayload,
@@ -49,10 +50,10 @@ export function useUpdateSeoPage() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["seo-pages"] });
-      toast.success("SEO settings updated!");
+      toast.success(t("toast.seo.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update SEO"));
+      toast.error(getApiErrorMessage(error, t("toast.seo.couldNotUpdate")));
     },
   });
 }
@@ -94,10 +95,10 @@ export async function downloadSitemapXml(pages = []) {
     URL.revokeObjectURL(url);
     toast.success(
       urlCount != null
-        ? `sitemap.xml generated (${urlCount} URLs)!`
-        : "sitemap.xml generated!"
+        ? t("toast.seo.sitemap", { count: urlCount })
+        : t("toast.seo.sitemapPlain")
     );
   } catch (error) {
-    toast.error(getApiErrorMessage(error, "Could not generate sitemap"));
+    toast.error(getApiErrorMessage(error, t("toast.seo.couldNotSitemap")));
   }
 }

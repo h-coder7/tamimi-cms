@@ -7,6 +7,7 @@ import FileUpload from "../../shared/FileUpload";
 import { useIndustries } from "@/hooks/useIndustries";
 import { buildIndustryFormOptions } from "@/lib/industryOptions";
 import { PARTNER_TYPES } from "@/hooks/useClientsPartners";
+import { useI18n } from "@/hooks/useI18n";
 
 const LOGO_ACCEPT = {
     "image/svg+xml": [".svg"],
@@ -35,26 +36,34 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, nextOrder = 1 }) {
+    const { t, isRtl, statusText, text } = useI18n();
+    const textDir = isRtl ? "rtl" : "ltr";
     const { data: industries = [] } = useIndustries();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
     const industryOptions = useMemo(
-        () => buildIndustryFormOptions(industries),
-        [industries]
+        () => buildIndustryFormOptions(industries).map((opt) => {
+            const industry = industries.find((item) => item.id === opt.value);
+            return {
+                ...opt,
+                label: industry ? text(industry.i18nTitle, opt.label) : opt.label,
+            };
+        }),
+        [industries, text]
     );
 
     const typeOptions = useMemo(
-        () => PARTNER_TYPES.map((type) => ({ value: type, label: type })),
-        []
+        () => PARTNER_TYPES.map((type) => ({ value: type, label: statusText(type) })),
+        [statusText]
     );
 
     const statusOptions = useMemo(
         () => [
-            { value: "Draft", label: "Draft" },
-            { value: "Published", label: "Published" },
+            { value: "Draft", label: statusText("Draft") },
+            { value: "Published", label: statusText("Published") },
         ],
-        []
+        [statusText]
     );
 
     useEffect(() => {
@@ -74,7 +83,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                 status: partner.status || "Draft",
                 display_order: partner.display_order != null ? String(partner.display_order) : "1",
                 logoFiles: partner.logo
-                    ? [{ preview: partner.logo, type: "image/svg+xml", name: "Logo" }]
+                    ? [{ preview: partner.logo, type: "image/svg+xml", name: t("clients.logo") }]
                     : [],
                 logoPath: partner.logoPath || null,
                 is_sample: Boolean(partner.is_sample),
@@ -85,7 +94,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                 display_order: String(nextOrder || 1),
             });
         }
-    }, [isOpen, partner, nextOrder]);
+    }, [isOpen, partner, nextOrder, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -128,36 +137,38 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {partner ? "Edit Logo" : "Add Logo"}
+                                {partner ? t("clients.edit") : t("clients.add")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="row">
-                                    <Section title="Details">
+                                    <Section title={t("clients.details")}>
                                         <div className="row">
                                             <div className="col-lg-8 mb-3">
                                                 <label className="form-label">
-                                                    Name <span className="text-danger">*</span>
+                                                    {t("clients.name")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="title"
                                                     required
+                                                    dir={textDir}
                                                     value={formData.title}
                                                     onChange={handleChange}
-                                                    placeholder="Client or partner name"
+                                                    placeholder={t("clients.namePh")}
                                                 />
                                             </div>
                                             <div className="col-lg-4 mb-3">
                                                 <label className="form-label">
-                                                    Type <span className="text-danger">*</span>
+                                                    {t("common.type")} <span className="text-danger">*</span>
                                                 </label>
                                                 <Select
                                                     options={typeOptions}
+                                                    isRtl={isRtl}
                                                     value={typeOptions.find((o) => o.value === formData.type) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
@@ -171,9 +182,10 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Industry</label>
+                                                <label className="form-label">{t("common.industry")}</label>
                                                 <Select
                                                     options={industryOptions}
+                                                    isRtl={isRtl}
                                                     value={
                                                         industryOptions.find(
                                                             (o) => o.value === formData.industryId
@@ -187,18 +199,19 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                                         }))
                                                     }
                                                     classNamePrefix="react-select"
-                                                    placeholder="Select industry"
+                                                    placeholder={t("projects.selectIndustry")}
                                                     isClearable
                                                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                                                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Website</label>
+                                                <label className="form-label">{t("common.website")}</label>
                                                 <input
                                                     type="url"
                                                     className="form-control"
                                                     name="website"
+                                                    dir="ltr"
                                                     value={formData.website}
                                                     onChange={handleChange}
                                                     placeholder="https://"
@@ -207,7 +220,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                         </div>
                                     </Section>
 
-                                    <Section title="Logo">
+                                    <Section title={t("clients.logo")}>
                                         <FileUpload
                                             files={formData.logoFiles}
                                             onFilesChange={(files) =>
@@ -215,17 +228,18 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                             }
                                             accept={LOGO_ACCEPT}
                                             maxFiles={1}
-                                            title="Upload logo"
-                                            hint="SVG or transparent PNG, max 1 MB"
+                                            title={t("clients.upload")}
+                                            hint={t("clients.logoHint")}
                                         />
                                     </Section>
 
-                                    <Section title="Publishing">
+                                    <Section title={t("companies.publishing")}>
                                         <div className="row">
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Status</label>
+                                                <label className="form-label">{t("common.status")}</label>
                                                 <Select
                                                     options={statusOptions}
+                                                    isRtl={isRtl}
                                                     value={statusOptions.find((o) => o.value === formData.status) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
@@ -239,12 +253,13 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                                                 />
                                             </div>
                                             <div className="col-lg-6 mb-3">
-                                                <label className="form-label">Display order</label>
+                                                <label className="form-label">{t("companies.displayOrder")}</label>
                                                 <input
                                                     type="number"
                                                     min="1"
                                                     className="form-control"
                                                     name="display_order"
+                                                    dir="ltr"
                                                     value={formData.display_order}
                                                     onChange={handleChange}
                                                     placeholder="1"
@@ -257,10 +272,10 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button type="submit" className="butn-st2" disabled={!formData.type}>
-                                    {partner ? "Update Logo" : "Add Logo"}
+                                    {partner ? t("clients.update") : t("clients.add")}
                                 </button>
                             </div>
                         </form>

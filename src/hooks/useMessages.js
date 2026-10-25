@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api, { getApiErrorMessage } from "@/app/api/api";
 import { messageFromApi, messageToFormData } from "@/lib/mappers/messages";
 import { toast } from "react-hot-toast";
+import { t } from "@/lib/i18n";
 
 export const MESSAGE_TYPES = ["Inquiry", "Contact"];
 export const MESSAGE_STATUSES = ["New", "Read"];
@@ -30,10 +31,10 @@ export function useAddMessage() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["messages"] });
-      toast.success("Message added successfully!");
+      toast.success(t("toast.message.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add message"));
+      toast.error(getApiErrorMessage(error, t("toast.message.couldNotAdd")));
     },
   });
 }
@@ -47,10 +48,10 @@ export function useMarkMessageUnread() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["messages"] });
-      toast.success("Marked as unread");
+      toast.success(t("toast.message.unread"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not mark unread"));
+      toast.error(getApiErrorMessage(error, t("toast.message.couldNotUnread")));
     },
   });
 }
@@ -63,10 +64,10 @@ export function useDeleteMessage() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["messages"] });
-      toast.success("Message moved to trash");
+      toast.success(t("toast.message.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete message"));
+      toast.error(getApiErrorMessage(error, t("toast.message.couldNotDelete")));
     },
   });
 }
@@ -92,7 +93,7 @@ export async function exportMessagesCsv(params = {}) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    toast.error(getApiErrorMessage(error, "Could not export messages"));
+    toast.error(getApiErrorMessage(error, t("toast.message.couldNotExport")));
     throw error;
   }
 }
@@ -100,7 +101,7 @@ export async function exportMessagesCsv(params = {}) {
 /** Download a message attachment via authenticated stream. */
 export async function downloadMessageAttachment(message, attachment) {
   if (!message?.id || !attachment?.fileId) {
-    toast.error("Attachment not available");
+    toast.error(t("toast.message.attachmentMissing"));
     return;
   }
   try {
@@ -116,6 +117,6 @@ export async function downloadMessageAttachment(message, attachment) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    toast.error(getApiErrorMessage(error, "Could not download attachment"));
+    toast.error(getApiErrorMessage(error, t("toast.message.couldNotDownload")));
   }
 }

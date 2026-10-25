@@ -11,12 +11,14 @@ import { useAuth } from "@/providers/AuthProvider";
 import UsersFilter from "./UsersFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function UsersTable({
     data = [],
     onEdit,
     onDelete,
 }) {
+    const { t, statusText } = useI18n();
     const { user: currentAdmin } = useAuth();
     const [sorting, setSorting] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -36,12 +38,12 @@ export default function UsersTable({
     }, [data, search, statusFilter]);
 
     const columns = useMemo(() => [
-        { id: "name", accessorKey: "name", header: "Name", enableSorting: true },
-        { id: "email", accessorKey: "email", header: "Email", enableSorting: true },
-        { id: "last_sign_in", accessorKey: "last_sign_in", header: "Last sign-in", enableSorting: true },
-        { id: "status", accessorKey: "status", header: "Status", enableSorting: true },
-        { id: "columnActions", header: "Actions", enableSorting: false },
-    ], []);
+        { id: "name", accessorKey: "name", header: t("common.name"), enableSorting: true },
+        { id: "email", accessorKey: "email", header: t("common.email"), enableSorting: true },
+        { id: "last_sign_in", accessorKey: "last_sign_in", header: t("admins.lastSignIn"), enableSorting: true },
+        { id: "status", accessorKey: "status", header: t("common.status"), enableSorting: true },
+        { id: "columnActions", header: t("common.actions"), enableSorting: false },
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -63,6 +65,8 @@ export default function UsersTable({
     };
 
     const filteredCount = filteredData.length;
+    const pageIndex = table.getState().pagination.pageIndex;
+    const pageSize = table.getState().pagination.pageSize;
 
     const statusClass = (status) => {
         if (status === "Active") return "badge bg-success-subtle text-success border fsz-11";
@@ -90,7 +94,7 @@ export default function UsersTable({
                                     if (id === "columnActions") {
                                         return (
                                             <SortableTh id={id} key={id} disabled>
-                                                Actions
+                                                {t("common.actions")}
                                             </SortableTh>
                                         );
                                     }
@@ -103,10 +107,10 @@ export default function UsersTable({
                                                 </button>
                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                     </li>
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                     </li>
                                                 </ul>
                                             </div>
@@ -120,7 +124,7 @@ export default function UsersTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={columnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No admins found
+                                        {t("admins.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -140,7 +144,7 @@ export default function UsersTable({
                                                 if (colId === "email") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">{item.email}</span>
+                                                            <span className="fsz-12 text-muted" dir="ltr">{item.email}</span>
                                                         </td>
                                                     );
                                                 }
@@ -148,7 +152,7 @@ export default function UsersTable({
                                                 if (colId === "last_sign_in") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <span className="fsz-12 text-muted">
+                                                            <span className="fsz-12 text-muted" dir="ltr">
                                                                 {item.last_sign_in || "—"}
                                                             </span>
                                                         </td>
@@ -159,7 +163,7 @@ export default function UsersTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className={statusClass(item.status)}>
-                                                                {item.status || "Invited"}
+                                                                {statusText(item.status || "Invited")}
                                                             </span>
                                                         </td>
                                                     );
@@ -175,13 +179,13 @@ export default function UsersTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     {item.id !== currentAdmin?.id && (
                                                                         <li>
                                                                             <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                                <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                                <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                             </button>
                                                                         </li>
                                                                     )}
@@ -204,12 +208,11 @@ export default function UsersTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : pageIndex * pageSize + 1,
+                        to: Math.min((pageIndex + 1) * pageSize, filteredCount),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -219,7 +222,10 @@ export default function UsersTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", {
+                            page: pageIndex + 1,
+                            pages: Math.max(table.getPageCount(), 1),
+                        })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

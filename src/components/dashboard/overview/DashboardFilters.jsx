@@ -6,8 +6,10 @@ import DateRangeModal from "@/components/shared/DateRangeModal";
 import { useIndustries } from "@/hooks/useIndustries";
 import { useUsers } from "@/hooks/useUsers";
 import { buildIndustryFilterOptions } from "@/lib/industryOptions";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function DashboardFilters() {
+    const { t } = useI18n();
     const [employeeFilter, setEmployeeFilter] = useState(null);
     const [industryFilter, setIndustryFilter] = useState(null);
     const [periodFilter, setPeriodFilter] = useState("");
@@ -41,19 +43,22 @@ export default function DashboardFilters() {
         [industries]
     );
 
-    const periodOptions = [
-        { value: "week", label: "Week" },
-        { value: "month", label: "Month" },
-        { value: "quarter", label: "Quarter" },
-        { value: "year", label: "Year" },
-    ];
+    const periodOptions = useMemo(
+        () => [
+            { value: "week", label: t("overview.week") },
+            { value: "month", label: t("overview.month") },
+            { value: "quarter", label: t("overview.quarter") },
+            { value: "year", label: t("overview.year") },
+        ],
+        [t]
+    );
 
     const formatDateRangeDisplay = () => {
         const { startDate, endDate } = dateRange[0];
-        if (!startDate || !endDate) return "Select Date Range";
+        if (!startDate || !endDate) return t("overview.selectRange");
         return isMounted
             ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`
-            : "Select Date Range";
+            : t("overview.selectRange");
     };
 
     const confirmDateRange = (newRange) => {
@@ -70,7 +75,7 @@ export default function DashboardFilters() {
                         options={employeeOptions}
                         value={employeeFilter}
                         onChange={setEmployeeFilter}
-                        placeholder="Search Employee..."
+                        placeholder={t("overview.searchEmployee")}
                         instanceId="dashboard-employee-filter"
                     />
                 </div>
@@ -80,7 +85,7 @@ export default function DashboardFilters() {
                         options={industryOptions}
                         value={industryFilter}
                         onChange={setIndustryFilter}
-                        placeholder="Search Industry..."
+                        placeholder={t("overview.searchIndustry")}
                         instanceId="dashboard-industry-filter"
                     />
                 </div>
@@ -90,7 +95,7 @@ export default function DashboardFilters() {
                         options={periodOptions}
                         value={periodFilter}
                         onChange={setPeriodFilter}
-                        placeholder="Time Period"
+                        placeholder={t("overview.timePeriod")}
                         instanceId="dashboard-period-filter"
                     />
                 </div>

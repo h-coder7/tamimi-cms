@@ -10,8 +10,10 @@ import {
   useAddApplication,
   useApplications,
 } from "@/hooks/useApplications";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function ApplicationsClient() {
+  const { t } = useI18n();
   const { data: applications = [], isLoading } = useApplications();
   const addMutation = useAddApplication();
   const [viewApplication, setViewApplication] = useState(null);
@@ -41,7 +43,7 @@ export default function ApplicationsClient() {
   return (
     <>
       <PageHeader
-        title="Applications"
+        title={t("applications.title")}
         icon="fal fa-file-user"
         titleCol="col-lg-5"
         actionCol="col-lg-7"
@@ -52,7 +54,7 @@ export default function ApplicationsClient() {
           onClick={() => setIsModalOpen(true)}
         >
           <i className="fal fa-plus"></i>
-          <span className="txt ms-2">Add application</span>
+          <span className="txt ms-2">{t("applications.add")}</span>
         </button>
         <button
           type="button"
@@ -62,13 +64,13 @@ export default function ApplicationsClient() {
         >
           <i className="fal fa-file-csv"></i>
           <span className="txt ms-2">
-            {exporting ? "Exporting..." : "Export CSV"}
+            {exporting ? t("applications.exporting") : t("applications.exportCsv")}
           </span>
         </button>
       </PageHeader>
 
       {isLoading ? (
-        <div className="text-center py-5 text-muted">Loading applications...</div>
+        <div className="text-center py-5 text-muted">{t("applications.loading")}</div>
       ) : (
         <ApplicationsTable data={applications} onView={handleView} />
       )}

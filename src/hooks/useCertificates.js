@@ -9,6 +9,7 @@ import {
   certificateToFormData,
 } from "@/lib/mappers/certificates";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export { CERTIFICATE_TYPES };
 
@@ -51,10 +52,10 @@ export function useAddCertificate() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Certificate added successfully!");
+      toast.success(t("toast.certificate.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add certificate"));
+      toast.error(getApiErrorMessage(error, t("toast.certificate.couldNotAdd")));
     },
   });
 }
@@ -73,10 +74,10 @@ export function useUpdateCertificate() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Certificate updated successfully!");
+      toast.success(t("toast.certificate.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update certificate"));
+      toast.error(getApiErrorMessage(error, t("toast.certificate.couldNotUpdate")));
     },
   });
 }
@@ -94,10 +95,10 @@ export function useDeleteCertificate() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Certificate moved to trash!");
+      toast.success(t("toast.certificate.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete certificate"));
+      toast.error(getApiErrorMessage(error, t("toast.certificate.couldNotDelete")));
     },
   });
 }
@@ -115,10 +116,10 @@ export function useRestoreCertificate() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Certificate restored successfully!");
+      toast.success(t("toast.certificate.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore certificate"));
+      toast.error(getApiErrorMessage(error, t("toast.certificate.couldNotRestore")));
     },
   });
 }
@@ -136,10 +137,10 @@ export function usePermanentDeleteCertificate() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Certificate permanently deleted!");
+      toast.success(t("toast.certificate.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -157,10 +158,10 @@ export function useBulkDeleteCertificates() {
         "certificates",
         "trash-certificates"
       );
-      toast.success("Selected certificates moved to trash!");
+      toast.success(t("toast.certificate.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete certificates"));
+      toast.error(getApiErrorMessage(error, t("toast.certificate.couldNotBulk")));
     },
   });
 }

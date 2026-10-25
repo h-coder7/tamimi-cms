@@ -10,11 +10,13 @@ import {
 import PagesFilter from "./PagesFilter";
 import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function PagesTable({
     data = [],
     onEditContent,
 }) {
+    const { t, statusText } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
     const [search, setSearch] = useState("");
@@ -31,14 +33,14 @@ export default function PagesTable({
     }, [data, search, statusFilter]);
 
     const columns = useMemo(() => [
-        { id: "page", accessorKey: "page", header: "Page", enableSorting: true },
-        { id: "url", accessorKey: "url", header: "URL", enableSorting: true },
-        { id: "editable_fields", accessorKey: "editable_fields", header: "Editable fields", enableSorting: true },
-        { id: "sections", accessorKey: "sections", header: "Sections", enableSorting: true },
-        { id: "status", accessorKey: "status", header: "Status", enableSorting: true },
-        { id: "last_updated", accessorKey: "last_updated", header: "Last updated", enableSorting: true },
-        { id: "columnActions", header: "Actions", enableSorting: false },
-    ], []);
+        { id: "page", accessorKey: "page", header: t("common.page"), enableSorting: true },
+        { id: "url", accessorKey: "url", header: t("pages.col.url"), enableSorting: true },
+        { id: "editable_fields", accessorKey: "editable_fields", header: t("pages.col.editable"), enableSorting: true },
+        { id: "sections", accessorKey: "sections", header: t("pages.sections"), enableSorting: true },
+        { id: "status", accessorKey: "status", header: t("common.status"), enableSorting: true },
+        { id: "last_updated", accessorKey: "last_updated", header: t("pages.col.lastUpdated"), enableSorting: true },
+        { id: "columnActions", header: t("common.actions"), enableSorting: false },
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -81,7 +83,7 @@ export default function PagesTable({
                                     if (id === "columnActions") {
                                         return (
                                             <SortableTh id={id} key={id} disabled>
-                                                Actions
+                                                {t("common.actions")}
                                             </SortableTh>
                                         );
                                     }
@@ -94,10 +96,10 @@ export default function PagesTable({
                                                 </button>
                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                        <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                     </li>
                                                     <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                        <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                     </li>
                                                 </ul>
                                             </div>
@@ -111,7 +113,7 @@ export default function PagesTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={columnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No pages found
+                                        {t("pages.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -148,7 +150,7 @@ export default function PagesTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="badge bg-light text-dark border fsz-11">
-                                                                {item.status || "Draft"}
+                                                                {statusText(item.status || "Draft")}
                                                             </span>
                                                         </td>
                                                     );
@@ -173,7 +175,7 @@ export default function PagesTable({
                                                                 onClick={() => onEditContent?.(item)}
                                                             >
                                                                 <i className="fal fa-pen me-1"></i>
-                                                                Edit content
+                                                                {t("pages.editContent")}
                                                             </button>
                                                         </td>
                                                     );
@@ -192,12 +194,14 @@ export default function PagesTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+                        to: Math.min(
+                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                            filteredCount
+                        ),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -207,7 +211,10 @@ export default function PagesTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", {
+                            page: table.getState().pagination.pageIndex + 1,
+                            pages: Math.max(table.getPageCount(), 1),
+                        })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

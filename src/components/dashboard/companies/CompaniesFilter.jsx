@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import SearchableSelect from "../../shared/SearchableSelect";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function CompaniesFilter({
     search,
@@ -13,41 +14,43 @@ export default function CompaniesFilter({
     industryOptions = [],
     onReset,
 }) {
+    const { t, isRtl, statusText } = useI18n();
     const typeOptions = useMemo(() => [
-        { value: "Subsidiary", label: "Subsidiary" },
-        { value: "Joint Venture", label: "Joint Venture" },
-    ], []);
+        { value: "Subsidiary", label: statusText("Subsidiary") },
+        { value: "Joint Venture", label: statusText("Joint Venture") },
+    ], [statusText]);
 
     return (
         <div className="search mt-4 border mb-4 radius-15 p-4">
             <div className="row g-3 align-items-end">
                 <div className="col-lg-4">
-                    <label className="form-label fsz-12 text-muted mb-1">Search</label>
+                    <label className="form-label fsz-12 text-muted mb-1">{t("common.search")}</label>
                     <input
                         className="form-control"
-                        placeholder="Company name or code"
+                        placeholder={t("companies.searchPh")}
                         value={search}
+                        dir={isRtl ? "rtl" : "ltr"}
                         onChange={(e) => onSearchChange?.(e.target.value)}
                     />
                 </div>
                 <div className="col-lg-3">
-                    <label className="form-label fsz-12 text-muted mb-1">Type</label>
+                    <label className="form-label fsz-12 text-muted mb-1">{t("common.type")}</label>
                     <SearchableSelect
                         options={typeOptions}
                         value={typeFilter}
                         onChange={onTypeChange}
-                        placeholder="All types"
+                        placeholder={t("companies.allTypes")}
                         className="form-select-sm fsz-12"
                         instanceId="company-type-filter"
                     />
                 </div>
                 <div className="col-lg-4">
-                    <label className="form-label fsz-12 text-muted mb-1">Industry</label>
+                    <label className="form-label fsz-12 text-muted mb-1">{t("common.industry")}</label>
                     <SearchableSelect
                         options={industryOptions}
                         value={industryFilter}
                         onChange={onIndustryChange}
-                        placeholder="All industries"
+                        placeholder={t("companies.allIndustries")}
                         className="form-select-sm fsz-12"
                         instanceId="company-industry-filter"
                     />
@@ -56,7 +59,7 @@ export default function CompaniesFilter({
                     <button
                         type="button"
                         className="btn bg-white icon-45 p-0 border-0 mb-1 w-100"
-                        title="Clear All Filters"
+                        title={t("common.clearFilters")}
                         onClick={onReset}
                     >
                         <i className="fal fa-filter-slash fsz-12 text-danger"></i>

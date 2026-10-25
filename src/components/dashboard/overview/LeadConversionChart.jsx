@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api from "@/app/api/api";
+import { useI18n } from "@/hooks/useI18n";
 
 // Dynamic import for ApexCharts to handle SSR properly
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -11,20 +12,28 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 // Original Data
 // =======================
 const FULL_DATA = [45, 52, 38, 65, 72, 58, 80, 75, 68, 82, 78, 85];
-const FULL_CATEGORIES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const MOBILE_MONTH_KEYS = ["jan", "mar", "may", "jul", "sep", "nov"];
 const MOBILE_DATA = [45, 38, 72, 80, 68, 78];
-const MOBILE_CATEGORIES = ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'];
 
 export default function LeadConversionChart() {
+    const { t } = useI18n();
+    const fullCategories = useMemo(
+        () => MONTH_KEYS.map((key) => t(`overview.month.${key}`)),
+        [t]
+    );
+    const mobileCategories = useMemo(
+        () => MOBILE_MONTH_KEYS.map((key) => t(`overview.month.${key}`)),
+        [t]
+    );
+    const chartName = t("overview.chart.conversion");
+
     const [series, setSeries] = useState([
         {
-            name: "Conversion Rate (%)",
+            name: chartName,
             data: FULL_DATA,
         }
     ]);
-
-    const [categories, setCategories] = useState(FULL_CATEGORIES);
 
     const [options, setOptions] = useState({
         chart: {
@@ -57,11 +66,11 @@ export default function LeadConversionChart() {
             colors: ['transparent']
         },
         xaxis: {
-            categories: FULL_CATEGORIES,
+            categories: fullCategories,
         },
         yaxis: {
             title: {
-                text: 'Conversion Rate (%)'
+                text: chartName
             },
             max: 100
         },
@@ -97,14 +106,18 @@ export default function LeadConversionChart() {
             const isMobile = window.innerWidth < 768;
 
             setSeries([{
-                name: "Conversion Rate (%)",
+                name: chartName,
                 data: isMobile ? MOBILE_DATA : FULL_DATA
             }]);
 
             setOptions(prev => ({
                 ...prev,
                 xaxis: {
-                    categories: isMobile ? MOBILE_CATEGORIES : FULL_CATEGORIES
+                    categories: isMobile ? mobileCategories : fullCategories
+                },
+                yaxis: {
+                    ...prev.yaxis,
+                    title: { text: chartName },
                 },
                 plotOptions: {
                     bar: {
@@ -119,13 +132,13 @@ export default function LeadConversionChart() {
         window.addEventListener("resize", handleResize);
 
         return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    }, [chartName, fullCategories, mobileCategories]);
 
     return (
         <div className="card border-0 radius-15 p-4 mt-4">
             <div className="card-title py-2 pb-1 border-bottom">
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5 className="mb-0 fsz-18">Lead Conversion Rate</h5>
+                    <h5 className="mb-0 fsz-18">{t("overview.chart.lead")}</h5>
                 </div>
             </div>
 

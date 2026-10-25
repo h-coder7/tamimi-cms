@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
+import { useI18n } from "@/hooks/useI18n";
+import { t } from "@/lib/i18n";
 import VideoLightbox from "./VideoLightbox";
 
 const isImageFile = (file) => {
@@ -49,11 +51,13 @@ export default function FileUpload({
     onFilesChange,
     maxFiles = 10,
     accept = DEFAULT_ACCEPT,
-    title = "Attachments",
+    title,
     hint = "",
     /** When set, uploads to POST /files with this purpose and attaches fileId/url */
     uploadPurpose = null,
 }) {
+    const { t: tr } = useI18n();
+    const resolvedTitle = title ?? tr("messages.attachments");
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [activeVideoUrl, setActiveVideoUrl] = useState("");
     const [uploading, setUploading] = useState(false);
@@ -102,7 +106,7 @@ export default function FileUpload({
                 onFilesChange([...files, ...uploaded]);
             }
         } catch (error) {
-            toast.error(getApiErrorMessage(error, "Upload failed"));
+            toast.error(getApiErrorMessage(error, t("common.uploadFailed")));
         } finally {
             setUploading(false);
         }
@@ -138,8 +142,8 @@ export default function FileUpload({
     return (
         <div className="upload-comp">
             <label className="form-label mb-2 fsz-13 fw-600 text-uppercase text-muted letter-spacing-1">
-                {title}
-                {uploading ? " — uploading..." : ""}
+                {resolvedTitle}
+                {uploading ? ` — ${tr("common.uploading")}` : ""}
             </label>
 
             <div
@@ -160,7 +164,7 @@ export default function FileUpload({
                     <i className={`fal ${isDragActive ? 'fa-box-open' : 'fa-cloud-upload'} fsz-16`}></i>
                 </div>
                 <p className="fsz-10 text-muted mb-0 text-center">
-                    {hint || `Images, PDF, Doc, Excel, Video (Max ${maxFiles})`}
+                    {hint || tr("upload.hint", { count: maxFiles })}
                 </p>
             </div>
 
@@ -177,7 +181,7 @@ export default function FileUpload({
                                 {isImageFile(file) ? (
                                     <img
                                         src={file.preview}
-                                        alt="Preview"
+                                        alt={tr("common.preview")}
                                         className="w-100 h-100 object-fit-cover"
                                     />
                                 ) : (
@@ -190,15 +194,15 @@ export default function FileUpload({
                                     {file.size
                                         ? (file.size / 1024).toFixed(1) + " KB"
                                         : file.preview || file.url
-                                          ? "Click to open"
-                                          : "Unknown size"}
+                                          ? tr("common.clickToOpen")
+                                          : tr("common.unknownSize")}
                                 </p>
                             </div>
                             {(file.preview || file.url) && (
                                 <button
                                     type="button"
                                     className="btn btn-icon btn-sm text-muted hover-bg-light rounded-circle"
-                                    title="Open in new tab"
+                                    title={tr("common.openNewTab")}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleFileClick(file);

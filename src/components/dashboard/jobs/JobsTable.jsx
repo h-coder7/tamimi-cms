@@ -15,6 +15,7 @@ import { publicPath } from "@/utils/publicPath";
 import { useCompanies } from "@/hooks/useCompanies";
 import { JOB_CITIES } from "@/lib/mappers/jobs";
 import { buildCompanyFilterOptions } from "@/lib/companyOptions";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function JobsTable({
     data = [],
@@ -24,6 +25,7 @@ export default function JobsTable({
     onEdit,
     onDelete,
 }) {
+    const { t, isRtl, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [rowSelection, setRowSelection] = useState({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -44,8 +46,8 @@ export default function JobsTable({
     }, [selectedIds, data]);
 
     const cityOptions = useMemo(
-        () => JOB_CITIES.map((city) => ({ value: city, label: city })),
-        []
+        () => JOB_CITIES.map((city) => ({ value: city, label: statusText(city) })),
+        [statusText]
     );
 
     const companyOptions = useMemo(
@@ -56,24 +58,28 @@ export default function JobsTable({
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch = !q || String(item.title || "").toLowerCase().includes(q);
+            const title = text(item.i18nTitle, item.title);
+            const matchesSearch =
+                !q ||
+                String(title || "").toLowerCase().includes(q) ||
+                String(item.title || "").toLowerCase().includes(q);
             const matchesCity = !cityFilter || item.city === cityFilter;
             const matchesCompany = !companyFilter || item.company_code === companyFilter;
             const matchesStatus = !statusFilter || item.status === statusFilter;
             return matchesSearch && matchesCity && matchesCompany && matchesStatus;
         });
-    }, [data, search, cityFilter, companyFilter, statusFilter]);
+    }, [data, search, cityFilter, companyFilter, statusFilter, text]);
 
     const columns = useMemo(() => [
-        { id: "title", accessorKey: "title", header: "Job title", enableSorting: true },
-        { id: "city", accessorKey: "city", header: "City", enableSorting: true },
-        { id: "company", accessorKey: "company_code", header: "Company", enableSorting: true },
-        { id: "vacancies", accessorKey: "vacancies", header: "Vacancies", enableSorting: true },
-        { id: "deadline", accessorKey: "deadline", header: "Deadline", enableSorting: true },
-        { id: "applications", accessorKey: "applications", header: "Applications", enableSorting: true },
-        { id: "status", accessorKey: "status", header: "Status", enableSorting: true },
-        { id: "columnActions", header: "Actions", enableSorting: false },
-    ], []);
+        { id: "title", accessorKey: "title", header: t("jobs.column"), enableSorting: true },
+        { id: "city", accessorKey: "city", header: t("common.city"), enableSorting: true },
+        { id: "company", accessorKey: "company_code", header: t("common.company"), enableSorting: true },
+        { id: "vacancies", accessorKey: "vacancies", header: t("common.vacancies"), enableSorting: true },
+        { id: "deadline", accessorKey: "deadline", header: t("common.deadline"), enableSorting: true },
+        { id: "applications", accessorKey: "applications", header: t("common.applications"), enableSorting: true },
+        { id: "status", accessorKey: "status", header: t("common.status"), enableSorting: true },
+        { id: "columnActions", header: t("common.actions"), enableSorting: false },
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -115,9 +121,14 @@ export default function JobsTable({
     }, [columnOrder, columnVisibility, table]);
 
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const pageIndex = table.getState().pagination.pageIndex;
+    const pageSize = table.getState().pagination.pageSize;
+    const from = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
+    const to = Math.min((pageIndex + 1) * pageSize, filteredCount);
+    const pages = Math.max(table.getPageCount(), 1);
 
     const companyLabel = (code) => {
-        if (code === "TEG") return "Tamimi Energy Group";
+        if (code === "TEG") return t("status.group");
         return code || "—";
     };
 
@@ -160,7 +171,7 @@ export default function JobsTable({
                                             />
                                             <label className="form-check-label" htmlFor="select-all-jobs"></label>
                                         </div>
-                                        <span>Job title</span>
+                                        <span>{t("jobs.column")}</span>
                                     </SortableTh>
                                 )}
 
@@ -177,7 +188,7 @@ export default function JobsTable({
 
                                 {table.getColumn("columnActions")?.getIsVisible() && (
                                     <SortableTh id="columnActions" key="columnActions" disabled>
-                                        Actions
+                                        {t("common.actions")}
                                     </SortableTh>
                                 )}
                             </SortableRow>
@@ -187,13 +198,14 @@ export default function JobsTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No jobs found
+                                        {t("jobs.empty")}
                                     </td>
                                 </tr>
                             ) : (
                                 table.getRowModel().rows.map((row) => {
                                     const item = row.original;
                                     const company = companiesByCode[item.company_code];
+                                    const title = text(item.i18nTitle, item.title);
 
                                     return (
                                         <SortableRow key={row.id} items={visibleColumnOrder}>
@@ -214,7 +226,15 @@ export default function JobsTable({
                                                                 />
                                                                 <label className="form-check-label" htmlFor={`job-${item.id}`}></label>
                                                             </div>
-                                                            <div className="fw-500 fsz-13">{item.title}</div>
+                                                            <div className="fw-500 fsz-13" dir={isRtl ? "rtl" : "ltr"}>{title}</div>
+                                                        </td>
+                                                    );
+                                                }
+
+                                                if (colId === "city") {
+                                                    return (
+                                                        <td key={colId} id={colId}>
+                                                            {item.city ? statusText(item.city) : "—"}
                                                         </td>
                                                     );
                                                 }
@@ -240,7 +260,7 @@ export default function JobsTable({
 
                                                 if (colId === "deadline") {
                                                     return (
-                                                        <td key={colId} id={colId}>
+                                                        <td key={colId} id={colId} dir="ltr">
                                                             <span className="fsz-12 text-muted">{item.deadline || "—"}</span>
                                                         </td>
                                                     );
@@ -250,7 +270,7 @@ export default function JobsTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className={statusClass(item.status)}>
-                                                                {item.status || "Open"}
+                                                                {statusText(item.status || "Open")}
                                                             </span>
                                                         </td>
                                                     );
@@ -266,12 +286,12 @@ export default function JobsTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item.id)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                            <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                            <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -297,12 +317,7 @@ export default function JobsTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", { from, to, total: filteredCount })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -312,7 +327,7 @@ export default function JobsTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", { page: pageIndex + 1, pages })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

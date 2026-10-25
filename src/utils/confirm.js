@@ -1,14 +1,19 @@
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
+import { t } from '@/lib/i18n';
 
 export const confirmAction = ({
-  title = "Confirm",
-  message = "Are you sure you want to do this?",
+  title,
+  message,
   onConfirm,
   onCancel,
-  confirmLabel = "Yes, Delete it!",
-  cancelLabel = "Cancel"
-}) => {
+  confirmLabel,
+  cancelLabel,
+} = {}) => {
+  const resolvedTitle = title ?? t("confirm.defaultTitle");
+  const resolvedMessage = message ?? t("confirm.defaultMessage");
+  const resolvedConfirm = confirmLabel ?? t("confirm.defaultConfirm");
+  const resolvedCancel = cancelLabel ?? t("common.cancel");
   confirmAlert({
     customUI: ({ onClose }) => {
       return (
@@ -16,8 +21,8 @@ export const confirmAction = ({
           <div className="mb-3">
              <i className="fal fa-exclamation-triangle fa-3x text-warning"></i>
           </div>
-          <h4 className="mb-2">{title}</h4>
-          <p className="text-muted mb-4">{message}</p>
+          <h4 className="mb-2">{resolvedTitle}</h4>
+          <p className="text-muted mb-4">{resolvedMessage}</p>
           <div className="d-flex justify-content-center gap-2">
             <button
               className="alert alert-secondary radius-10 py-2 px-3 fsz-14 ms-2 border-0 mb-0"
@@ -26,7 +31,7 @@ export const confirmAction = ({
                 onClose();
               }}
             >
-              {cancelLabel}
+              {resolvedCancel}
             </button>
             <button
               className="alert alert-danger radius-10 py-2 px-3 fsz-14 ms-2 border-0 mb-0"
@@ -35,7 +40,7 @@ export const confirmAction = ({
                 onClose();
               }}
             >
-              {confirmLabel}
+              {resolvedConfirm}
             </button>
           </div>
         </div>

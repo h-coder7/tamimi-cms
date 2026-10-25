@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/hooks/useI18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -19,15 +20,17 @@ function filesFromValue(value) {
 }
 
 const SECTIONS = [
-    { id: "hero", number: "01", title: "Hero", fieldsCount: 2 },
-    { id: "hse_commitment", number: "02", title: "HSE commitment", fieldsCount: 3 },
-    { id: "sustainability_esg", number: "03", title: "Sustainability & ESG", fieldsCount: 3 },
-    { id: "quality", number: "04", title: "Quality", fieldsCount: 3 },
-    { id: "environmental_responsibility", number: "05", title: "Environmental responsibility", fieldsCount: 3 },
-    { id: "certificates", number: "06", title: "Certificates & accreditations", fieldsCount: 1 },
+    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
+    { id: "hse_commitment", number: "02", titleKey: "pages.section.hse", fieldsCount: 3 },
+    { id: "sustainability_esg", number: "03", titleKey: "pages.section.esg", fieldsCount: 3 },
+    { id: "quality", number: "04", titleKey: "pages.section.quality", fieldsCount: 3 },
+    { id: "environmental_responsibility", number: "05", titleKey: "pages.section.env", fieldsCount: 3 },
+    { id: "certificates", number: "06", titleKey: "pages.section.certs", fieldsCount: 1 },
 ];
 
 export default function SustainabilityEditor() {
+    const { t, isRtl } = useI18n();
+    const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
     const updateMutation = useUpdateCmsPage();
@@ -78,15 +81,15 @@ export default function SustainabilityEditor() {
     };
 
     if (isLoading) {
-        return <div className="text-center py-5 text-muted">Loading page editor...</div>;
+        return <div className="text-center py-5 text-muted">{t("pages.loadingEditor")}</div>;
     }
 
     if (!page) {
         return (
             <div className="text-center py-5">
-                <p className="text-muted mb-3">Page not found</p>
+                <p className="text-muted mb-3">{t("pages.notFound")}</p>
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handleCancel}>
-                    Back to Pages
+                    {t("pages.back")}
                 </button>
             </div>
         );
@@ -95,17 +98,17 @@ export default function SustainabilityEditor() {
     return (
         <>
             <PageHeader
-                title={`Edit content — ${page.page}`}
+                title={t("pages.editTitle", { page: page.page })}
                 icon="fal fa-file-edit"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
             >
                 <button type="button" className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0" onClick={handlePreview}>
-                    <span className="txt">Preview page</span>
+                    <span className="txt">{t("pages.preview")}</span>
                     <i className="fal fa-external-link ms-2"></i>
                 </button>
                 <button type="button" className="alert alert-light rounded-pill py-2 px-3 fsz-12 ms-2 border mb-0" onClick={handleCancel}>
-                    <span className="txt">Cancel</span>
+                    <span className="txt">{t("common.cancel")}</span>
                 </button>
                 <button
                     type="button"
@@ -114,14 +117,14 @@ export default function SustainabilityEditor() {
                     disabled={updateMutation.isPending}
                 >
                     <i className="fal fa-check"></i>
-                    <span className="txt ms-2">Save & publish</span>
+                    <span className="txt ms-2">{t("pages.savePublish")}</span>
                 </button>
             </PageHeader>
 
             <div className="page-editor mt-4">
                 <aside className="page-editor__sidebar table-content p-0 mt-0 mb-0">
                     <div className="page-editor__sidebar-head">
-                        <h6 className="mb-0 fsz-13 fw-600">Sections</h6>
+                        <h6 className="mb-0 fsz-13 fw-600">{t("pages.sections")}</h6>
                     </div>
                     <div className="page-editor__sections">
                         {SECTIONS.map((s) => (
@@ -133,26 +136,26 @@ export default function SustainabilityEditor() {
                             >
                                 <span className="page-editor__section-main">
                                     <span className="page-editor__section-num">{s.number}</span>
-                                    <span className="page-editor__section-title">{s.title}</span>
+                                    <span className="page-editor__section-title">{t(s.titleKey)}</span>
                                 </span>
                                 <i className="fal fa-angle-right text-muted"></i>
                             </button>
                         ))}
                     </div>
                     <div className="page-editor__sidebar-foot">
-                        Section order and visibility follow the approved design.
+                        {t("pages.sectionOrder")}
                     </div>
                 </aside>
 
                 <section className="page-editor__main table-content mt-0 mb-0">
                     <div className="page-editor__main-head">
                         <h6 className="mb-0 fsz-14 fw-600">
-                            {activeSection.number} · {activeSection.title}
+                            {activeSection.number} · {t(activeSection.titleKey)}
                         </h6>
                         <span className="fsz-12 text-muted">
                             {activeSection.fieldsCount
-                                ? `${activeSection.fieldsCount} editable fields`
-                                : "Pending content"}
+                                ? `${t("pages.editableFields", { count: activeSection.fieldsCount })}`
+                                : t("pages.pendingContent")}
                         </span>
                     </div>
 
@@ -162,9 +165,9 @@ export default function SustainabilityEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             maxLength={90}
@@ -172,13 +175,13 @@ export default function SustainabilityEditor() {
                                             onChange={(e) => setField("title", e.target.value)}
                                         />
                                         <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>Max 90 characters</span>
+                                            <span>{t("pages.maxChars", { count: 90 })}</span>
                                             <span>{String(section.title || "").length}/90</span>
                                         </div>
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Intro text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.intro")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             maxLength={240}
@@ -186,7 +189,7 @@ export default function SustainabilityEditor() {
                                             onChange={(e) => setField("intro_text", e.target.value)}
                                         />
                                         <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>Max 240 characters</span>
+                                            <span>{t("pages.maxChars", { count: 240 })}</span>
                                             <span>{String(section.intro_text || "").length}/240</span>
                                         </div>
                                     </div>
@@ -197,9 +200,9 @@ export default function SustainabilityEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.title || ""}
@@ -207,8 +210,8 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.text || ""}
@@ -216,14 +219,14 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Image</label>
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.image")}</label>
                                         <FileUpload
                                             files={filesFromValue(section.image)}
                                             onFilesChange={(files) => setField("image", files?.[0]?.preview || "")}
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
-                                            title="Upload image"
-                                            hint="JPG / WEBP up to 5 MB"
+                                            title={t("pages.uploadImage")}
+                                            hint={t("pages.imageFormats")}
                                         />
                                     </div>
                                 </>
@@ -233,9 +236,9 @@ export default function SustainabilityEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.title || ""}
@@ -243,8 +246,8 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.text || ""}
@@ -252,14 +255,14 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Image</label>
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.image")}</label>
                                         <FileUpload
                                             files={filesFromValue(section.image)}
                                             onFilesChange={(files) => setField("image", files?.[0]?.preview || "")}
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
-                                            title="Upload image"
-                                            hint="JPG / WEBP up to 5 MB"
+                                            title={t("pages.uploadImage")}
+                                            hint={t("pages.imageFormats")}
                                         />
                                     </div>
                                 </>
@@ -269,9 +272,9 @@ export default function SustainabilityEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.title || ""}
@@ -279,8 +282,8 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.text || ""}
@@ -288,14 +291,14 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Image</label>
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.image")}</label>
                                         <FileUpload
                                             files={filesFromValue(section.image)}
                                             onFilesChange={(files) => setField("image", files?.[0]?.preview || "")}
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
-                                            title="Upload image"
-                                            hint="JPG / WEBP up to 5 MB"
+                                            title={t("pages.uploadImage")}
+                                            hint={t("pages.imageFormats")}
                                         />
                                     </div>
                                 </>
@@ -305,9 +308,9 @@ export default function SustainabilityEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">
-                                            Title <span className="text-danger">*</span>
+                                            {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
+                                        <input dir={dir}
                                             type="text"
                                             className="form-control"
                                             value={section.title || ""}
@@ -315,8 +318,8 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Text</label>
-                                        <textarea
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
+                                        <textarea dir={dir}
                                             className="form-control"
                                             rows={4}
                                             value={section.text || ""}
@@ -324,14 +327,14 @@ export default function SustainabilityEditor() {
                                         />
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">Image</label>
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.image")}</label>
                                         <FileUpload
                                             files={filesFromValue(section.image)}
                                             onFilesChange={(files) => setField("image", files?.[0]?.preview || "")}
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
-                                            title="Upload image"
-                                            hint="JPG / WEBP up to 5 MB"
+                                            title={t("pages.uploadImage")}
+                                            hint={t("pages.imageFormats")}
                                         />
                                     </div>
                                 </>
@@ -340,19 +343,19 @@ export default function SustainabilityEditor() {
                             {activeSection.id === "certificates" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">
-                                        Section title <span className="text-danger">*</span>
+                                        {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                     </label>
-                                    <input
+                                    <input dir={dir}
                                         type="text"
                                         className="form-control"
                                         value={section.section_title || ""}
                                         onChange={(e) => setField("section_title", e.target.value)}
                                     />
                                     <p className="fsz-12 text-muted mt-3 mb-0">
-                                        Certificates come from the Certificates module.
+                                        {t("pages.certsNote")}
                                     </p>
                                     <Link href="/dashboard/certificates" className="btn btn-outline-primary fsz-12 mt-3">
-                                        Manage in Certificates
+                                        {t("pages.manageCertificates")}
                                         <i className="fal fa-arrow-right ms-2"></i>
                                     </Link>
                                 </div>
@@ -365,14 +368,14 @@ export default function SustainabilityEditor() {
                             {prevSection ? (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
-                                    {prevSection.title}
+                                    {t(prevSection.titleKey)}
                                 </button>
                             ) : (
                                 <span />
                             )}
                             {nextSection && (
                                 <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(nextSection.id)}>
-                                    {nextSection.title}
+                                    {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>
                             )}

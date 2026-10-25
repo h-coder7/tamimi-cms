@@ -15,6 +15,7 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { useIndustries } from "@/hooks/useIndustries";
 import { buildCompanyFilterOptions } from "@/lib/companyOptions";
 import { buildIndustryFilterOptions } from "@/lib/industryOptions";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function ProjectsTable({
     data = [],
@@ -25,6 +26,7 @@ export default function ProjectsTable({
     onDelete,
     onView,
 }) {
+    const { t, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [rowSelection, setRowSelection] = useState({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -38,13 +40,27 @@ export default function ProjectsTable({
     const { data: industries = [] } = useIndustries();
 
     const companyOptions = useMemo(
-        () => buildCompanyFilterOptions(companies),
-        [companies]
+        () => buildCompanyFilterOptions(companies).map((opt) => {
+            const company = companies.find((item) => item.code === opt.value || item.id === opt.value);
+            if (!company) return opt;
+            const name = text(company.i18nTitle, company.title);
+            return {
+                ...opt,
+                label: company.code ? `${company.code} — ${name}`.trim() : name,
+            };
+        }),
+        [companies, text]
     );
 
     const industryOptions = useMemo(
-        () => buildIndustryFilterOptions(industries),
-        [industries]
+        () => buildIndustryFilterOptions(industries).map((opt) => {
+            const industry = industries.find((item) => item.title === opt.value || item.id === opt.value);
+            return {
+                ...opt,
+                label: industry ? text(industry.i18nTitle, opt.label) : opt.label,
+            };
+        }),
+        [industries, text]
     );
 
     const yearOptions = useMemo(() => {
@@ -56,10 +72,11 @@ export default function ProjectsTable({
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch =
-                !q ||
-                String(item.title || "").toLowerCase().includes(q) ||
-                String(item.client || "").toLowerCase().includes(q);
+            const titleBlob = [item.title, item.i18nTitle?.en, item.i18nTitle?.ar, item.client]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+            const matchesSearch = !q || titleBlob.includes(q);
             const matchesCompany = !companyFilter || item.company_code === companyFilter;
             const matchesIndustry = !industryFilter || item.industry === industryFilter;
             const matchesYear = !yearFilter || String(item.year) === String(yearFilter);
@@ -83,51 +100,51 @@ export default function ProjectsTable({
         {
             id: "title",
             accessorKey: "title",
-            header: "Project",
+            header: t("projects.column"),
             enableSorting: true,
         },
         {
             id: "client",
             accessorKey: "client",
-            header: "Client",
+            header: t("common.client"),
             enableSorting: true,
         },
         {
             id: "company",
             accessorKey: "company_code",
-            header: "Company",
+            header: t("common.company"),
             enableSorting: true,
         },
         {
             id: "industry",
             accessorKey: "industry",
-            header: "Industry",
+            header: t("common.industry"),
             enableSorting: true,
         },
         {
             id: "year",
             accessorKey: "year",
-            header: "Year",
+            header: t("common.year"),
             enableSorting: true,
         },
         {
             id: "featured",
             accessorKey: "featured",
-            header: "Featured",
+            header: t("common.featured"),
             enableSorting: true,
         },
         {
             id: "status",
             accessorKey: "status",
-            header: "Status",
+            header: t("common.status"),
             enableSorting: true,
         },
         {
             id: "columnActions",
-            header: "Actions",
+            header: t("common.actions"),
             enableSorting: false,
         },
-    ], []);
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -206,17 +223,17 @@ export default function ProjectsTable({
                                             />
                                             <label className="form-check-label" htmlFor="select-all-projects"></label>
                                         </div>
-                                        <span>Project</span>
+                                        <span>{t("projects.column")}</span>
                                         <div className="dropdown ms-auto" onClick={(e) => e.stopPropagation()}>
                                             <button className="btn bg-transparent border-0 p-0" data-bs-toggle="dropdown">
                                                 <i className="fat fa-sort fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(false)}>
-                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                 </li>
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(true)}>
-                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                 </li>
                                             </ul>
                                         </div>
@@ -236,10 +253,10 @@ export default function ProjectsTable({
                                                     </button>
                                                     <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                         </li>
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -254,7 +271,7 @@ export default function ProjectsTable({
                                                 <i className="fas fa-ellipsis-v fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-3" onClick={(e) => e.stopPropagation()}>
-                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">Toggle Columns</h6>
+                                                <h6 className="fsz-11 text-uppercase fw-600 text-muted mb-3 border-bottom pb-2">{t("common.toggleColumns")}</h6>
                                                 {table.getAllLeafColumns().map((column) => {
                                                     if (column.id === "columnActions" || column.id === "title") return null;
                                                     return (
@@ -285,7 +302,7 @@ export default function ProjectsTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No projects found
+                                        {t("projects.empty")}
                                     </td>
                                 </tr>
                             ) : (
@@ -315,13 +332,13 @@ export default function ProjectsTable({
                                                             <div
                                                                 className="hover-underline"
                                                                 onClick={() => onView?.(item)}
-                                                                title="View Details"
+                                                                title={t("common.viewDetails")}
                                                                 style={{ cursor: "pointer" }}
                                                             >
-                                                                <div className="fw-500 fsz-13">{item.title}</div>
+                                                                <div className="fw-500 fsz-13">{text(item.i18nTitle, item.title)}</div>
                                                                 {(item.content_label || item.is_sample) && (
                                                                     <small className="text-muted fsz-11">
-                                                                        {item.content_label || "Sample"}
+                                                                        {item.content_label || t("common.sample")}
                                                                     </small>
                                                                 )}
                                                             </div>
@@ -337,7 +354,7 @@ export default function ProjectsTable({
                                                                     {company?.image ? (
                                                                         <img
                                                                             src={publicPath(company.image)}
-                                                                            alt={`${item.company_code} logo`}
+                                                                            alt={t("companies.logoAlt", { code: item.company_code })}
                                                                             className="img-contain h-100 w-100"
                                                                         />
                                                                     ) : (
@@ -350,11 +367,20 @@ export default function ProjectsTable({
                                                     );
                                                 }
 
+                                                if (colId === "industry") {
+                                                    const match = industries.find((row) => row.title === item.industry);
+                                                    return (
+                                                        <td key={colId} id={colId}>
+                                                            {item.industry ? text(match?.i18nTitle, item.industry) : "-"}
+                                                        </td>
+                                                    );
+                                                }
+
                                                 if (colId === "featured") {
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             {item.featured ? (
-                                                                <span className="badge bg-warning-subtle text-dark border fsz-11">Featured</span>
+                                                                <span className="badge bg-warning-subtle text-dark border fsz-11">{statusText("Featured")}</span>
                                                             ) : (
                                                                 <span className="text-muted fsz-12">—</span>
                                                             )}
@@ -366,7 +392,7 @@ export default function ProjectsTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className="badge bg-light text-dark border fsz-11">
-                                                                {item.status || "Draft"}
+                                                                {statusText(item.status || "Draft")}
                                                             </span>
                                                         </td>
                                                     );
@@ -382,17 +408,17 @@ export default function ProjectsTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item.id)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
-                                                                            <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                            <i className="fal fa-eye me-2 text-muted"></i> {t("common.view")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                            <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                            <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -418,12 +444,14 @@ export default function ProjectsTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", {
+                        from: filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+                        to: Math.min(
+                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                            filteredCount
+                        ),
+                        total: filteredCount,
+                    })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -433,7 +461,7 @@ export default function ProjectsTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", { page: table.getState().pagination.pageIndex + 1, pages: Math.max(table.getPageCount(), 1) })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

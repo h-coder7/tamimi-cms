@@ -10,6 +10,7 @@ import {
   postToFormData,
 } from "@/lib/mappers/posts";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export { POST_CATEGORIES, POST_STATUSES };
 
@@ -48,10 +49,10 @@ export function useAddPost() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Post added successfully!");
+      toast.success(t("toast.post.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add post"));
+      toast.error(getApiErrorMessage(error, t("toast.post.couldNotAdd")));
     },
   });
 }
@@ -66,10 +67,10 @@ export function useUpdatePost() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Post updated successfully!");
+      toast.success(t("toast.post.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update post"));
+      toast.error(getApiErrorMessage(error, t("toast.post.couldNotUpdate")));
     },
   });
 }
@@ -83,10 +84,10 @@ export function useDeletePost() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Post moved to trash!");
+      toast.success(t("toast.post.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete post"));
+      toast.error(getApiErrorMessage(error, t("toast.post.couldNotDelete")));
     },
   });
 }
@@ -100,10 +101,10 @@ export function useRestorePost() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Post restored successfully!");
+      toast.success(t("toast.post.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore post"));
+      toast.error(getApiErrorMessage(error, t("toast.post.couldNotRestore")));
     },
   });
 }
@@ -117,10 +118,10 @@ export function usePermanentDeletePost() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Post permanently deleted!");
+      toast.success(t("toast.post.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -134,10 +135,10 @@ export function useBulkDeletePosts() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "posts", "trash-posts");
-      toast.success("Selected posts moved to trash!");
+      toast.success(t("toast.post.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete posts"));
+      toast.error(getApiErrorMessage(error, t("toast.post.couldNotBulk")));
     },
   });
 }

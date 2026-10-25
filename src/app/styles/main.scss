@@ -4817,6 +4817,48 @@ html[dir="ltr"] {
     }
 }
 
+html[dir="rtl"] {
+    body {
+        direction: rtl;
+        font-family: var(--font-cairo), "Cairo", sans-serif;
+    }
+
+    .offcanvas.offcanvas-end {
+        right: auto;
+        left: 0;
+        border-left: 0;
+        border-right: var(--bs-offcanvas-border-width) solid var(--bs-offcanvas-border-color);
+        transform: translateX(-100%);
+    }
+
+    .offcanvas.offcanvas-end.show {
+        transform: none;
+    }
+
+    .react-select__control,
+    .react-select__menu,
+    .react-select__option {
+        text-align: right;
+    }
+
+    .custom-ui-confirm {
+        direction: rtl;
+        text-align: center;
+    }
+
+    .react-pagination .fa-angle-left,
+    .react-pagination .fa-angle-double-left,
+    .react-pagination .fa-angle-right,
+    .react-pagination .fa-angle-double-right {
+        transform: scaleX(-1);
+    }
+
+    .sky-dashboard .dashboard .sidemenu .search-wrapper .form-group .search-btn {
+        right: auto;
+        left: 10px;
+    }
+}
+
 /* --------------- settings nav pills --------------- */
 .settings-nav-pills {
     background-color: #fff;

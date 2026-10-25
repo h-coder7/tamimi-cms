@@ -7,6 +7,7 @@ import ClientsPartnersGrid from "./ClientsPartnersGrid";
 import ClientPartnerModal from "./ClientPartnerModal";
 import ClientsPartnersTrashModal from "./ClientsPartnersTrashModal";
 import { confirmAction } from "@/utils/confirm";
+import { useI18n } from "@/hooks/useI18n";
 import {
     useClientsPartners,
     useTrashClientsPartners,
@@ -18,6 +19,7 @@ import {
 } from "@/hooks/useClientsPartners";
 
 export default function ClientsPartnersClient() {
+    const { t } = useI18n();
     const { data: partners = [], isLoading } = useClientsPartners();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const { data: trashItems = [] } = useTrashClientsPartners({ enabled: showTrashModal });
@@ -66,9 +68,9 @@ export default function ClientsPartnersClient() {
 
     const handleDelete = (id) => {
         confirmAction({
-            title: "Move to Trash?",
-            message: "This logo will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("clients.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteMutation.mutateAsync(id);
             },
@@ -78,7 +80,7 @@ export default function ClientsPartnersClient() {
     return (
         <>
             <PageHeader
-                title="Clients & Partners"
+                title={t("clients.title")}
                 icon="fal fa-handshake"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
@@ -92,7 +94,7 @@ export default function ClientsPartnersClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add logo</span>
+                    <span className="txt ms-2">{t("clients.add")}</span>
                 </button>
 
                 <button
@@ -101,12 +103,12 @@ export default function ClientsPartnersClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashItems.length ? ` (${trashItems.length})` : ""}</span>
+                    <span className="txt ms-2">{trashItems.length ? t("common.viewTrashCount", { count: trashItems.length }) : t("common.viewTrash")}</span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading logos...</div>
+                <div className="text-center py-5 text-muted">{t("clients.loading")}</div>
             ) : (
                 <ClientsPartnersGrid
                     data={partners}

@@ -8,6 +8,7 @@ import {
   projectToFormData,
 } from "@/lib/mappers/projects";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export function useProjects() {
   return useQuery({
@@ -44,10 +45,10 @@ export function useAddProject() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Project added successfully!");
+      toast.success(t("toast.project.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add project"));
+      toast.error(getApiErrorMessage(error, t("toast.project.couldNotAdd")));
     },
   });
 }
@@ -62,10 +63,10 @@ export function useUpdateProject() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Project updated successfully!");
+      toast.success(t("toast.project.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update project"));
+      toast.error(getApiErrorMessage(error, t("toast.project.couldNotUpdate")));
     },
   });
 }
@@ -79,10 +80,10 @@ export function useDeleteProject() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Project moved to trash!");
+      toast.success(t("toast.project.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete project"));
+      toast.error(getApiErrorMessage(error, t("toast.project.couldNotDelete")));
     },
   });
 }
@@ -96,10 +97,10 @@ export function useRestoreProject() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Project restored successfully!");
+      toast.success(t("toast.project.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore project"));
+      toast.error(getApiErrorMessage(error, t("toast.project.couldNotRestore")));
     },
   });
 }
@@ -113,10 +114,10 @@ export function usePermanentDeleteProject() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Project permanently deleted!");
+      toast.success(t("toast.project.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -130,10 +131,10 @@ export function useBulkDeleteProjects() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "projects", "trash-projects");
-      toast.success("Selected projects moved to trash!");
+      toast.success(t("toast.project.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete projects"));
+      toast.error(getApiErrorMessage(error, t("toast.project.couldNotBulk")));
     },
   });
 }

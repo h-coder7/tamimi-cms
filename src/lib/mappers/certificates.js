@@ -64,6 +64,7 @@ export function certificateFromApi(cert) {
   return {
     id: cert.id,
     title: localized(cert.name),
+    i18nTitle: cert.name,
     type: TYPE_TO_UI[cert.type] || "ISO",
     issuing_body: localized(cert.issuingBody, ""),
     holder: cert.holder,

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api, { getApiErrorMessage } from "@/app/api/api";
 import { getDefaultPageContent } from "@/components/dashboard/pages/_shared/registry";
+import { t } from "@/lib/i18n";
 import {
   PAGE_SLUG_BY_ID,
   pageFromApi,
@@ -76,10 +77,10 @@ export function useUpdateCmsPage() {
       if (data?.id) {
         await queryClient.invalidateQueries({ queryKey: ["cms-pages", data.id] });
       }
-      toast.success("Page content saved!");
+      toast.success(t("toast.page.saved"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not save page"));
+      toast.error(getApiErrorMessage(error, t("toast.page.couldNotSave")));
     },
   });
 }

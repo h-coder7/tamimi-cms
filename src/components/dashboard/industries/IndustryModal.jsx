@@ -9,6 +9,7 @@ import {
     emptyValueChainMapping,
 } from "@/hooks/useIndustries";
 import { publicPath } from "@/utils/publicPath";
+import { useI18n } from "@/hooks/useI18n";
 
 const SHORT_DESC_MAX = 160;
 
@@ -32,16 +33,18 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
+    const { t, isRtl, statusText, text } = useI18n();
+    const textDir = isRtl ? "rtl" : "ltr";
     const { data: allCompanies = [] } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
 
     const statusOptions = useMemo(
         () => [
-            { value: "Draft", label: "Draft" },
-            { value: "Published", label: "Published" },
+            { value: "Draft", label: statusText("Draft") },
+            { value: "Published", label: statusText("Published") },
         ],
-        []
+        [statusText]
     );
 
     const companiesByCode = useMemo(() => {
@@ -157,37 +160,39 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">
-                                {industry ? "Edit Industry" : "Add New Industry"}
+                                {industry ? t("industries.edit") : t("industries.addTitle")}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="row">
-                                    <Section title="Content">
+                                    <Section title={t("industries.content")}>
                                         <div className="row">
                                             <div className="col-lg-4 mb-3">
                                                 <label className="form-label">
-                                                    Industry name <span className="text-danger">*</span>
+                                                    {t("industries.name")} <span className="text-danger">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
                                                     name="title"
                                                     required
+                                                    dir={textDir}
                                                     value={formData.title}
                                                     onChange={handleChange}
-                                                    placeholder="e.g. Oil & Gas"
+                                                    placeholder={t("industries.namePh")}
                                                 />
                                             </div>
                                             <div className="col-lg-4 mb-3">
-                                                <label className="form-label">Display order</label>
+                                                <label className="form-label">{t("companies.displayOrder")}</label>
                                                 <input
                                                     type="number"
                                                     min="1"
                                                     className="form-control"
                                                     name="order"
+                                                    dir="ltr"
                                                     value={formData.order}
                                                     onChange={handleChange}
                                                     placeholder="1"
@@ -195,9 +200,10 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                 />
                                             </div>
                                             <div className="col-lg-4 mb-3">
-                                                <label className="form-label">Status</label>
+                                                <label className="form-label">{t("common.status")}</label>
                                                 <Select
                                                     options={statusOptions}
+                                                    isRtl={isRtl}
                                                     value={statusOptions.find((o) => o.value === formData.status) || null}
                                                     onChange={(opt) =>
                                                         setFormData((prev) => ({
@@ -212,7 +218,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                             </div>
                                             <div className="col-12 mb-3">
                                                 <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">Short description</label>
+                                                    <label className="form-label mb-0">{t("industries.short")}</label>
                                                     <small className={`fsz-11 ${shortCount >= SHORT_DESC_MAX ? "text-danger" : "text-muted"}`}>
                                                         {shortCount}/{SHORT_DESC_MAX}
                                                     </small>
@@ -221,32 +227,34 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                     className="form-control"
                                                     name="short_description"
                                                     rows={3}
+                                                    dir={textDir}
                                                     value={formData.short_description}
                                                     onChange={handleChange}
-                                                    placeholder="Short industry summary"
+                                                    placeholder={t("industries.shortPh")}
                                                 />
                                                 <small className="text-muted fsz-11">
-                                                    Draft copy · awaiting client approval · max {SHORT_DESC_MAX} characters
+                                                    {t("industries.shortHint", { max: SHORT_DESC_MAX })}
                                                 </small>
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">Full description</label>
+                                                <label className="form-label">{t("industries.full")}</label>
                                                 <textarea
                                                     className="form-control"
                                                     name="full_description"
                                                     rows={4}
+                                                    dir={textDir}
                                                     value={formData.full_description}
                                                     onChange={handleChange}
-                                                    placeholder="[Pending: client marketing]"
+                                                    placeholder={t("industries.fullPh")}
                                                 />
-                                                <small className="text-muted fsz-11">Shown on the industry page</small>
+                                                <small className="text-muted fsz-11">{t("industries.fullHint")}</small>
                                             </div>
                                         </div>
                                     </Section>
 
                                     <Section
-                                        title="Companies in this industry"
-                                        hint="Draft mapping prepared by Inspire from each company's published activities. Awaiting approval from the client marketing team."
+                                        title={t("industries.companies")}
+                                        hint={t("companies.industriesHint")}
                                     >
                                         <div className="d-flex flex-wrap gap-2">
                                             {allCompanies.map((company) => {
@@ -261,7 +269,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                                 : "btn-light"
                                                         }`}
                                                         onClick={() => toggleCompany(company.code)}
-                                                        title={company.title}
+                                                        title={text(company.i18nTitle, company.title)}
                                                     >
                                                         {company.image && (
                                                             <img
@@ -278,14 +286,14 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                         </div>
                                         {formData.companies.length > 0 && (
                                             <div className="mt-3 text-muted fsz-12">
-                                                {formData.companies.length} companies selected
+                                                {t("industries.companiesSelected", { count: formData.companies.length })}
                                             </div>
                                         )}
                                     </Section>
 
                                     <Section
-                                        title="Value-chain stages (from company mapping)"
-                                        hint="Map selected companies into each value-chain stage shown on the industry page."
+                                        title={t("industries.valueChain")}
+                                        hint={t("industries.valueChainHint")}
                                     >
                                         <div className="d-flex flex-column gap-4">
                                             {VALUE_CHAIN_STAGES.map((stage) => {
@@ -293,9 +301,9 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                 return (
                                                     <div key={stage} className="border rounded-3 p-3 bg-light bg-opacity-50">
                                                         <div className="d-flex justify-content-between align-items-center mb-3">
-                                                            <h6 className="fsz-13 fw-600 mb-0">{stage}</h6>
+                                                            <h6 className="fsz-13 fw-600 mb-0">{t(`valueChain.${stage}`)}</h6>
                                                             <span className="badge bg-white text-dark border fsz-11">
-                                                                {stageCompanies.length} companies
+                                                                {t("industries.companiesCount", { count: stageCompanies.length })}
                                                             </span>
                                                         </div>
 
@@ -311,7 +319,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                                             {company?.image ? (
                                                                                 <img
                                                                                     src={publicPath(company.image)}
-                                                                                    alt={`${code} logo`}
+                                                                                    alt={t("companies.logoAlt", { code })}
                                                                                     style={{ width: 20, height: 20, objectFit: "contain" }}
                                                                                 />
                                                                             ) : (
@@ -322,7 +330,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                                                 type="button"
                                                                                 className="btn p-0 border-0 text-muted lh-1"
                                                                                 onClick={() => toggleStageCompany(stage, code)}
-                                                                                aria-label={`Remove ${code}`}
+                                                                                aria-label={t("companies.removeService", { name: code })}
                                                                             >
                                                                                 ✕
                                                                             </button>
@@ -344,7 +352,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                                             active ? "btn-dark" : "btn-white"
                                                                         }`}
                                                                         onClick={() => toggleStageCompany(stage, code)}
-                                                                        title={company?.title || code}
+                                                                        title={company ? text(company.i18nTitle, company.title) : code}
                                                                     >
                                                                         {company?.image && (
                                                                             <img
@@ -369,10 +377,10 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-light" onClick={onClose}>
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                                 <button type="submit" className="butn-st2">
-                                    {industry ? "Update Industry" : "Add Industry"}
+                                    {industry ? t("industries.update") : t("industries.add")}
                                 </button>
                             </div>
                         </form>

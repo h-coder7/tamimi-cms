@@ -68,6 +68,7 @@ export function jobFromApi(job) {
   return {
     id: job.id,
     title: localized(job.title),
+    i18nTitle: job.title,
     slug: job.slug || "",
     city: job.city || "",
     company: job.company || "group",

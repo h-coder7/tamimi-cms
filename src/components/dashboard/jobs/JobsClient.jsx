@@ -9,6 +9,7 @@ import JobsTrashModal from "./JobsTrashModal";
 import { confirmAction } from "@/utils/confirm";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompaniesByCode } from "@/lib/companyOptions";
+import { useI18n } from "@/hooks/useI18n";
 import {
     useJobs,
     useTrashJobs,
@@ -21,6 +22,7 @@ import {
 } from "@/hooks/useJobs";
 
 export default function JobsClient() {
+    const { t } = useI18n();
     const { data: jobs = [], isLoading } = useJobs();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const { data: trashItems = [] } = useTrashJobs({ enabled: showTrashModal });
@@ -77,9 +79,9 @@ export default function JobsClient() {
 
     const handleDelete = (id) => {
         confirmAction({
-            title: "Move to Trash?",
-            message: "This job will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("jobs.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteMutation.mutateAsync(id);
                 setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
@@ -91,9 +93,9 @@ export default function JobsClient() {
         if (selectedIds.length === 0) return;
 
         confirmAction({
-            title: "Delete Selected Items?",
-            message: `Are you sure you want to move ${selectedIds.length} items to trash?`,
-            confirmLabel: "Yes, Delete",
+            title: t("confirm.deleteSelectedTitle"),
+            message: t("confirm.deleteSelectedMessage", { count: selectedIds.length }),
+            confirmLabel: t("confirm.deleteYes"),
             onConfirm: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
                 setSelectedIds([]);
@@ -104,7 +106,7 @@ export default function JobsClient() {
     return (
         <>
             <PageHeader
-                title="Jobs"
+                title={t("jobs.title")}
                 icon="fal fa-briefcase"
                 titleCol="col-lg-4"
                 actionCol="col-lg-8"
@@ -118,7 +120,7 @@ export default function JobsClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add job</span>
+                    <span className="txt ms-2">{t("jobs.add")}</span>
                 </button>
 
                 <button
@@ -127,7 +129,7 @@ export default function JobsClient() {
                     onClick={handleBulkDelete}
                 >
                     <i className="fal fa-trash"></i>
-                    <span className="txt ms-2">Delete ({selectedIds.length})</span>
+                    <span className="txt ms-2">{t("common.deleteCount", { count: selectedIds.length })}</span>
                 </button>
 
                 <button
@@ -136,12 +138,16 @@ export default function JobsClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashItems.length ? ` (${trashItems.length})` : ""}</span>
+                    <span className="txt ms-2">
+                        {trashItems.length
+                            ? t("common.viewTrashCount", { count: trashItems.length })
+                            : t("common.viewTrash")}
+                    </span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading jobs...</div>
+                <div className="text-center py-5 text-muted">{t("jobs.loading")}</div>
             ) : (
                 <JobsTable
                     data={jobs}

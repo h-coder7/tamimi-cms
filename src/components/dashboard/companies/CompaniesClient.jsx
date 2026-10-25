@@ -9,6 +9,7 @@ import TrashModal from "./TrashModal";
 import { confirmAction } from "@/utils/confirm";
 import { toast } from "react-hot-toast";
 import CompanyDetailsOffcanvas from "./CompanyDetailsOffcanvas";
+import { useI18n } from "@/hooks/useI18n";
 import {
     useCompanies,
     useTrashCompanies,
@@ -21,6 +22,7 @@ import {
 } from "@/hooks/useCompanies";
 
 export default function CompaniesClient() {
+    const { t } = useI18n();
     const { data: companies = [], isLoading } = useCompanies();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const { data: trashCompanies = [] } = useTrashCompanies({ enabled: showTrashModal });
@@ -88,9 +90,9 @@ export default function CompaniesClient() {
 
     const handleDelete = (id) => {
         confirmAction({
-            title: "Move to Trash?",
-            message: "This company will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("companies.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteCompanyMutation.mutateAsync(id);
                 setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
@@ -110,9 +112,9 @@ export default function CompaniesClient() {
         if (selectedIds.length === 0) return;
 
         confirmAction({
-            title: "Delete Selected Items?",
-            message: `Are you sure you want to move ${selectedIds.length} items to trash?`,
-            confirmLabel: "Yes, Delete",
+            title: t("confirm.deleteSelectedTitle"),
+            message: t("confirm.deleteSelectedMessage", { count: selectedIds.length }),
+            confirmLabel: t("confirm.deleteYes"),
             onConfirm: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
                 setSelectedIds([]);
@@ -126,7 +128,7 @@ export default function CompaniesClient() {
     return (
         <>
             <PageHeader
-                title="Companies"
+                title={t("companies.title")}
                 icon="fal fa-building"
                 titleCol="col-lg-4"
                 actionCol="col-lg-8"
@@ -144,7 +146,7 @@ export default function CompaniesClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add Company</span>
+                    <span className="txt ms-2">{t("companies.add")}</span>
                 </button>
 
                 {/* Delete Button */}
@@ -154,7 +156,7 @@ export default function CompaniesClient() {
                     onClick={handleBulkDelete}
                 >
                     <i className="fal fa-trash"></i>
-                    <span className="txt ms-2">Delete ({selectedIds.length})</span>
+                    <span className="txt ms-2">{t("common.deleteCount", { count: selectedIds.length })}</span>
                 </button>
 
                 {/* View Trash Button */}
@@ -164,12 +166,12 @@ export default function CompaniesClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashCompanies.length ? ` (${trashCompanies.length})` : ""}</span>
+                    <span className="txt ms-2">{trashCompanies.length ? t("common.viewTrashCount", { count: trashCompanies.length }) : t("common.viewTrash")}</span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading companies...</div>
+                <div className="text-center py-5 text-muted">{t("companies.loading")}</div>
             ) : (
                 <CompaniesTable
                     data={companies}

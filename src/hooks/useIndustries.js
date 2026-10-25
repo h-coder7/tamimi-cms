@@ -10,6 +10,7 @@ import {
   emptyValueChainMapping,
 } from "@/lib/mappers/industries";
 import { refreshListAndTrash } from "@/lib/queryRefresh";
+import { t } from "@/lib/i18n";
 
 export { VALUE_CHAIN_STAGES, emptyValueChainMapping };
 
@@ -63,10 +64,10 @@ export function useAddIndustry() {
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
       queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Industry added successfully!");
+      toast.success(t("toast.industry.added"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not add industry"));
+      toast.error(getApiErrorMessage(error, t("toast.industry.couldNotAdd")));
     },
   });
 }
@@ -87,10 +88,10 @@ export function useUpdateIndustry() {
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
       queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Industry updated successfully!");
+      toast.success(t("toast.industry.updated"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not update industry"));
+      toast.error(getApiErrorMessage(error, t("toast.industry.couldNotUpdate")));
     },
   });
 }
@@ -104,10 +105,10 @@ export function useDeleteIndustry() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
-      toast.success("Industry moved to trash!");
+      toast.success(t("toast.industry.trashed"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete industry"));
+      toast.error(getApiErrorMessage(error, t("toast.industry.couldNotDelete")));
     },
   });
 }
@@ -121,10 +122,10 @@ export function useRestoreIndustry() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
-      toast.success("Industry restored successfully!");
+      toast.success(t("toast.industry.restored"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not restore industry"));
+      toast.error(getApiErrorMessage(error, t("toast.industry.couldNotRestore")));
     },
   });
 }
@@ -138,10 +139,10 @@ export function usePermanentDeleteIndustry() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
-      toast.success("Industry permanently deleted!");
+      toast.success(t("toast.industry.purged"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not permanently delete"));
+      toast.error(getApiErrorMessage(error, t("toast.company.couldNotPurge")));
     },
   });
 }
@@ -155,10 +156,10 @@ export function useBulkDeleteIndustries() {
     },
     onSuccess: async () => {
       await refreshListAndTrash(queryClient, "industries", "trash-industries");
-      toast.success("Selected industries moved to trash!");
+      toast.success(t("toast.industry.bulk"));
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Could not delete industries"));
+      toast.error(getApiErrorMessage(error, t("toast.industry.couldNotBulk")));
     },
   });
 }

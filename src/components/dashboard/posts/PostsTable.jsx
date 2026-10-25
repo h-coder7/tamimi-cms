@@ -13,6 +13,20 @@ import SortableTh from "../../shared/table/SortableTh";
 import SortableRow from "../../shared/table/SortableRow";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompanyFilterOptions } from "@/lib/companyOptions";
+import { useI18n } from "@/hooks/useI18n";
+
+const CATEGORY_STATUS = {
+    News: "news",
+    "Events & Exhibitions": "events_exhibitions",
+    Insights: "insights",
+    Article: "article",
+    Press: "press",
+};
+
+function categoryLabel(value, statusText) {
+    if (!value) return "—";
+    return statusText(CATEGORY_STATUS[value] || value);
+}
 
 export default function PostsTable({
     data = [],
@@ -22,6 +36,7 @@ export default function PostsTable({
     onDelete,
     onView,
 }) {
+    const { t, isRtl, statusText, text } = useI18n();
     const [sorting, setSorting] = useState([]);
     const [columnFilters, setColumnFilters] = useState([]);
     const [rowSelection, setRowSelection] = useState({});
@@ -49,44 +64,48 @@ export default function PostsTable({
     const filteredData = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch = !q || String(item.title || "").toLowerCase().includes(q);
+            const title = text(item.i18nTitle, item.title);
+            const matchesSearch =
+                !q ||
+                String(title || "").toLowerCase().includes(q) ||
+                String(item.title || "").toLowerCase().includes(q);
             const matchesStatus = !statusFilter || item.status === statusFilter;
             const matchesCompany = !companyFilter || item.company_code === companyFilter;
             return matchesSearch && matchesStatus && matchesCompany;
         });
-    }, [data, search, statusFilter, companyFilter]);
+    }, [data, search, statusFilter, companyFilter, text]);
 
     const columns = useMemo(() => [
         {
             id: "title",
             accessorKey: "title",
-            header: "Title",
+            header: t("common.title"),
             enableSorting: true,
         },
         {
             id: "category",
             accessorKey: "category",
-            header: "Category",
+            header: t("common.category"),
             enableSorting: true,
         },
         {
             id: "status",
             accessorKey: "status",
-            header: "Status",
+            header: t("common.status"),
             enableSorting: true,
         },
         {
             id: "publish_date",
             accessorKey: "publish_date",
-            header: "Publish date",
+            header: t("posts.publishDate"),
             enableSorting: true,
         },
         {
             id: "columnActions",
-            header: "Actions",
+            header: t("common.actions"),
             enableSorting: false,
         },
-    ], []);
+    ], [t]);
 
     const columnOrder = useMemo(() => columns.map((c) => c.id), [columns]);
 
@@ -128,6 +147,11 @@ export default function PostsTable({
     }, [columnOrder, columnVisibility, table]);
 
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const pageIndex = table.getState().pagination.pageIndex;
+    const pageSize = table.getState().pagination.pageSize;
+    const from = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
+    const to = Math.min((pageIndex + 1) * pageSize, filteredCount);
+    const pages = Math.max(table.getPageCount(), 1);
 
     const statusClass = (status) => {
         if (status === "Published") return "badge bg-success-subtle text-success border fsz-11";
@@ -165,17 +189,17 @@ export default function PostsTable({
                                             />
                                             <label className="form-check-label" htmlFor="select-all-posts"></label>
                                         </div>
-                                        <span>Title</span>
+                                        <span>{t("common.title")}</span>
                                         <div className="dropdown ms-auto" onClick={(e) => e.stopPropagation()}>
                                             <button className="btn bg-transparent border-0 p-0" data-bs-toggle="dropdown">
                                                 <i className="fat fa-sort fsz-12"></i>
                                             </button>
                                             <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(false)}>
-                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                    <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                 </li>
                                                 <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => table.getColumn("title").toggleSorting(true)}>
-                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                    <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                 </li>
                                             </ul>
                                         </div>
@@ -195,10 +219,10 @@ export default function PostsTable({
                                                     </button>
                                                     <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(false)}>
-                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> (A → Z)
+                                                            <i className="fal fa-sort-alpha-up me-2 text-muted"></i> {t("common.sortAz")}
                                                         </li>
                                                         <li className="dropdown-item cursor-pointer fsz-12 py-2" onClick={() => column.toggleSorting(true)}>
-                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> (Z → A)
+                                                            <i className="fal fa-sort-alpha-down me-2 text-muted"></i> {t("common.sortZa")}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -208,7 +232,7 @@ export default function PostsTable({
 
                                 {table.getColumn("columnActions")?.getIsVisible() && (
                                     <SortableTh id="columnActions" key="columnActions" disabled>
-                                        Actions
+                                        {t("common.actions")}
                                     </SortableTh>
                                 )}
                             </SortableRow>
@@ -218,12 +242,13 @@ export default function PostsTable({
                             {table.getRowModel().rows.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumnOrder.length} className="text-center py-4 text-muted fsz-12">
-                                        No posts found
+                                        {t("posts.empty")}
                                     </td>
                                 </tr>
                             ) : (
                                 table.getRowModel().rows.map((row) => {
                                     const item = row.original;
+                                    const title = text(item.i18nTitle, item.title);
 
                                     return (
                                         <SortableRow key={row.id} items={visibleColumnOrder}>
@@ -248,9 +273,18 @@ export default function PostsTable({
                                                                 className="hover-underline fw-500 fsz-13"
                                                                 onClick={() => onView?.(item)}
                                                                 style={{ cursor: "pointer" }}
+                                                                dir={isRtl ? "rtl" : "ltr"}
                                                             >
-                                                                {item.title}
+                                                                {title}
                                                             </div>
+                                                        </td>
+                                                    );
+                                                }
+
+                                                if (colId === "category") {
+                                                    return (
+                                                        <td key={colId} id={colId}>
+                                                            {categoryLabel(item.category, statusText)}
                                                         </td>
                                                     );
                                                 }
@@ -259,7 +293,7 @@ export default function PostsTable({
                                                     return (
                                                         <td key={colId} id={colId}>
                                                             <span className={statusClass(item.status)}>
-                                                                {item.status || "Draft"}
+                                                                {statusText(item.status || "Draft")}
                                                             </span>
                                                         </td>
                                                     );
@@ -267,7 +301,7 @@ export default function PostsTable({
 
                                                 if (colId === "publish_date") {
                                                     return (
-                                                        <td key={colId} id={colId}>
+                                                        <td key={colId} id={colId} dir="ltr">
                                                             <span className="fsz-12 text-muted">{item.publish_date || "—"}</span>
                                                         </td>
                                                     );
@@ -283,17 +317,17 @@ export default function PostsTable({
                                                                 <ul className="dropdown-menu shadow-sm border-0 rounded-3">
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onEdit?.(item.id)}>
-                                                                            <i className="fal fa-pen me-2 text-muted"></i> Edit
+                                                                            <i className="fal fa-pen me-2 text-muted"></i> {t("common.edit")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item fsz-12 py-2" onClick={() => onView?.(item)}>
-                                                                            <i className="fal fa-eye me-2 text-muted"></i> View
+                                                                            <i className="fal fa-eye me-2 text-muted"></i> {t("common.view")}
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button className="dropdown-item text-danger fsz-12 py-2" onClick={() => onDelete?.(item.id)}>
-                                                                            <i className="fal fa-trash me-2 text-muted"></i> Delete
+                                                                            <i className="fal fa-trash me-2 text-muted"></i> {t("common.delete")}
                                                                         </button>
                                                                     </li>
                                                                 </ul>
@@ -319,12 +353,7 @@ export default function PostsTable({
 
             <div className="d-flex justify-content-between align-items-center mt-3 react-pagination">
                 <div className="text-muted fsz-12">
-                    Showing {filteredCount === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                    {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        filteredCount
-                    )}{" "}
-                    of {filteredCount} entries
+                    {t("common.showing", { from, to, total: filteredCount })}
                 </div>
                 <div className="d-flex gap-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
@@ -334,7 +363,7 @@ export default function PostsTable({
                         <i className="fal fa-angle-left"></i>
                     </button>
                     <span className="d-flex align-items-center px-3 fsz-12 fw-500">
-                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+                        {t("common.pageOf", { page: pageIndex + 1, pages })}
                     </span>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                         <i className="fal fa-angle-right"></i>

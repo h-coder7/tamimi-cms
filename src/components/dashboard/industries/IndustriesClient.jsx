@@ -8,6 +8,7 @@ import IndustryModal from "./IndustryModal";
 import IndustriesTrashModal from "./IndustriesTrashModal";
 import IndustryDetailsOffcanvas from "./IndustryDetailsOffcanvas";
 import { confirmAction } from "@/utils/confirm";
+import { useI18n } from "@/hooks/useI18n";
 import {
     useIndustries,
     useTrashIndustries,
@@ -20,6 +21,7 @@ import {
 } from "@/hooks/useIndustries";
 
 export default function IndustriesClient() {
+    const { t } = useI18n();
     const { data: industries = [], isLoading } = useIndustries();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const { data: trashIndustries = [] } = useTrashIndustries({ enabled: showTrashModal });
@@ -77,9 +79,9 @@ export default function IndustriesClient() {
 
     const handleDelete = (id) => {
         confirmAction({
-            title: "Move to Trash?",
-            message: "This industry will be moved to the recycle bin.",
-            confirmLabel: "Yes, Move it",
+            title: t("confirm.moveTrashTitle"),
+            message: t("confirm.moveTrashMessage", { item: t("industries.item") }),
+            confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteIndustryMutation.mutateAsync(id);
                 setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
@@ -99,9 +101,9 @@ export default function IndustriesClient() {
         if (selectedIds.length === 0) return;
 
         confirmAction({
-            title: "Delete Selected Items?",
-            message: `Are you sure you want to move ${selectedIds.length} items to trash?`,
-            confirmLabel: "Yes, Delete",
+            title: t("confirm.deleteSelectedTitle"),
+            message: t("confirm.deleteSelectedMessage", { count: selectedIds.length }),
+            confirmLabel: t("confirm.deleteYes"),
             onConfirm: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
                 setSelectedIds([]);
@@ -112,7 +114,7 @@ export default function IndustriesClient() {
     return (
         <>
             <PageHeader
-                title="Industries We Power"
+                title={t("industries.title")}
                 icon="fal fa-industry"
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
@@ -126,7 +128,7 @@ export default function IndustriesClient() {
                     }}
                 >
                     <i className="fal fa-plus"></i>
-                    <span className="txt ms-2">Add Industry</span>
+                    <span className="txt ms-2">{t("industries.add")}</span>
                 </button>
 
                 <button
@@ -135,7 +137,7 @@ export default function IndustriesClient() {
                     onClick={handleBulkDelete}
                 >
                     <i className="fal fa-trash"></i>
-                    <span className="txt ms-2">Delete ({selectedIds.length})</span>
+                    <span className="txt ms-2">{t("common.deleteCount", { count: selectedIds.length })}</span>
                 </button>
 
                 <button
@@ -144,12 +146,12 @@ export default function IndustriesClient() {
                     onClick={() => setShowTrashModal(true)}
                 >
                     <i className="fal fa-trash-undo"></i>
-                    <span className="txt ms-2">View Trash{trashIndustries.length ? ` (${trashIndustries.length})` : ""}</span>
+                    <span className="txt ms-2">{trashIndustries.length ? t("common.viewTrashCount", { count: trashIndustries.length }) : t("common.viewTrash")}</span>
                 </button>
             </PageHeader>
 
             {isLoading ? (
-                <div className="text-center py-5 text-muted">Loading industries...</div>
+                <div className="text-center py-5 text-muted">{t("industries.loading")}</div>
             ) : (
                 <IndustriesTable
                     data={industries}

@@ -5,25 +5,42 @@ import SearchableSelect from "../../shared/SearchableSelect";
 import { publicPath } from "@/utils/publicPath";
 import { useIndustries } from "@/hooks/useIndustries";
 import { buildIndustryFilterOptions } from "@/lib/industryOptions";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function ClientsPartnersGrid({
     data = [],
     onEdit,
     onDelete,
 }) {
+    const { t, isRtl, statusText, text } = useI18n();
     const [search, setSearch] = useState("");
     const [industryFilter, setIndustryFilter] = useState("");
     const { data: industries = [] } = useIndustries();
 
     const industryOptions = useMemo(
-        () => buildIndustryFilterOptions(industries),
-        [industries]
+        () => buildIndustryFilterOptions(industries).map((opt) => {
+            const industry = industries.find((item) => item.title === opt.value || item.id === opt.value);
+            return {
+                ...opt,
+                label: industry ? text(industry.i18nTitle, opt.label) : opt.label,
+            };
+        }),
+        [industries, text]
     );
+
+    const industryLabel = (name) => {
+        const match = industries.find((item) => item.title === name);
+        return match ? text(match.i18nTitle, name) : name;
+    };
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
-            const matchesSearch = !q || String(item.title || "").toLowerCase().includes(q);
+            const titleBlob = [item.title, item.i18nTitle?.en, item.i18nTitle?.ar]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+            const matchesSearch = !q || titleBlob.includes(q);
             const matchesIndustry = !industryFilter || item.industry === industryFilter;
             return matchesSearch && matchesIndustry;
         });
@@ -39,21 +56,22 @@ export default function ClientsPartnersGrid({
             <div className="search mt-4 border mb-4 radius-15 p-4">
                 <div className="row g-3 align-items-end">
                     <div className="col-lg-5">
-                        <label className="form-label fsz-12 text-muted mb-1">Search</label>
+                        <label className="form-label fsz-12 text-muted mb-1">{t("common.search")}</label>
                         <input
                             className="form-control"
-                            placeholder="Name"
+                            placeholder={t("clients.name")}
                             value={search}
+                            dir={isRtl ? "rtl" : "ltr"}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <div className="col-lg-6">
-                        <label className="form-label fsz-12 text-muted mb-1">Industry</label>
+                        <label className="form-label fsz-12 text-muted mb-1">{t("common.industry")}</label>
                         <SearchableSelect
                             options={industryOptions}
                             value={industryFilter}
                             onChange={setIndustryFilter}
-                            placeholder="All industries"
+                            placeholder={t("companies.allIndustries")}
                             className="form-select-sm fsz-12"
                             instanceId="clients-partners-industry-filter"
                         />
@@ -62,7 +80,7 @@ export default function ClientsPartnersGrid({
                         <button
                             type="button"
                             className="btn bg-white icon-45 p-0 border-0 mb-1 w-100"
-                            title="Clear All Filters"
+                            title={t("common.clearFilters")}
                             onClick={resetFilters}
                         >
                             <i className="fal fa-filter-slash fsz-12 text-danger"></i>
@@ -73,11 +91,13 @@ export default function ClientsPartnersGrid({
 
             {filtered.length === 0 ? (
                 <div className="text-center py-5 text-muted fsz-13">
-                    No logos found
+                    {t("clients.empty")}
                 </div>
             ) : (
                 <div className="row g-3 partners-logo-grid">
-                    {filtered.map((item) => (
+                    {filtered.map((item) => {
+                        const name = text(item.i18nTitle, item.title);
+                        return (
                         <div className="col-12 col-sm-6 col-xl-3" key={item.id}>
                             <article className="partner-logo-card h-100">
                                 <div className="partner-logo-card__actions">
@@ -85,7 +105,7 @@ export default function ClientsPartnersGrid({
                                         type="button"
                                         className="partner-logo-card__btn"
                                         onClick={() => onEdit?.(item.id)}
-                                        title="Edit"
+                                        title={t("common.edit")}
                                     >
                                         <i className="fal fa-pen"></i>
                                     </button>
@@ -93,7 +113,7 @@ export default function ClientsPartnersGrid({
                                         type="button"
                                         className="partner-logo-card__btn partner-logo-card__btn--danger"
                                         onClick={() => onDelete?.(item.id)}
-                                        title="Delete"
+                                        title={t("common.delete")}
                                     >
                                         <i className="fal fa-trash"></i>
                                     </button>
@@ -103,24 +123,25 @@ export default function ClientsPartnersGrid({
                                     {item.logo ? (
                                         <img
                                             src={publicPath(item.logo)}
-                                            alt={`${item.title} logo`}
+                                            alt={t("clients.logoAlt", { name })}
                                         />
                                     ) : (
-                                        <span className="partner-logo-card__placeholder">Logo</span>
+                                        <span className="partner-logo-card__placeholder">{t("clients.logo")}</span>
                                     )}
                                 </div>
 
                                 <div className="partner-logo-card__meta">
-                                    <h6 className="partner-logo-card__title">{item.title}</h6>
+                                    <h6 className="partner-logo-card__title">{name}</h6>
                                     <p className="partner-logo-card__sub">
-                                        {item.industry || "—"}
+                                        {item.industry ? industryLabel(item.industry) : "—"}
                                         <span>·</span>
-                                        {item.type || "Client"}
+                                        {statusText(item.type || "Client")}
                                     </p>
                                 </div>
                             </article>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
