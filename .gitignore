@@ -43,3 +43,14 @@ tamimi-fe-deploy*.tar.gz
 *.tsbuildinfo
 next-env.d.ts
 config.bat
+
+# New tests and documentation artifacts
+.env.local
+.env.*.local
+/verification/
+/tests/
+*.test.js
+*.test.mjs
+*.spec.js
+*.spec.mjs
+/docs/

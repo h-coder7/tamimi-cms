@@ -4,34 +4,41 @@ import { useI18n } from "@/hooks/useI18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import FileUpload from "@/components/shared/FileUpload";
-import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
+import { useCmsPage, useUpdateCmsPage, uploadPageMedia } from "@/hooks/useCmsPages";
 import { useCompanies } from "@/hooks/useCompanies";
 import { publicPath } from "@/utils/publicPath";
+import { isValidUrlOrPath } from "@/utils/urlValidator";
+import SaudiManufacturingEditor from "./SaudiManufacturingEditor";
 import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
-    { id: "hero", number: "01", titleKey: "pages.section.heroVideo", fieldsCount: 8 },
+    { id: "hero", number: "01", titleKey: "pages.section.heroVideo", fieldsCount: 9 },
     { id: "key_message", number: "02", titleKey: "pages.section.keyMessage", fieldsCount: 8 },
-    { id: "key_figures", number: "03", titleKey: "pages.section.keyFigures", fieldsCount: 8 },
+    { id: "our_values", number: "03", titleKey: "pages.section.ourValues", fieldsCount: 10 },
     { id: "industries", number: "04", titleKey: "pages.section.industries", fieldsCount: 1, manageLink: { href: "/dashboard/industries", labelKey: "pages.manageIndustries" } },
     { id: "our_companies", number: "05", titleKey: "pages.section.companies", fieldsCount: 2 },
-    { id: "featured_projects", number: "06", titleKey: "pages.section.featuredProjects", fieldsCount: 1, manageLink: { href: "/dashboard/projects", labelKey: "pages.manageProjects" } },
-    { id: "clients_partners", number: "07", titleKey: "pages.section.clients", fieldsCount: 1, manageLink: { href: "/dashboard/clients-partners", labelKey: "pages.manageClients" } },
-    { id: "media_center", number: "08", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
-    { id: "cta", number: "09", titleKey: "pages.section.cta", fieldsCount: 5 },
+    { id: "saudi_manufacturing", number: "06", titleKey: "pages.section.saudiManufacturing", fieldsCount: 12 },
+    { id: "media_center", number: "07", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
 ];
 
 const VIDEO_ACCEPT = { "video/mp4": [".mp4"], "video/webm": [".webm"] };
-const IMAGE_ACCEPT = { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] };
+const IMAGE_ACCEPT = {
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "image/webp": [".webp"],
+    "image/svg+xml": [".svg"],
+};
 
 function filesFromValue(value, type) {
     if (!value) return [];
     return [{
-        preview: value,
+        preview: publicPath(value),
         type: type === "video" ? "video/mp4" : "image/jpeg",
-        name: type === "video" ? "video.mp4" : "image.jpg",
+        name: type === "video" ? "video.mp4" : (String(value).split("/").pop() || "image.jpg"),
+        url: publicPath(value),
     }];
 }
 
@@ -45,10 +52,92 @@ export default function HomeEditor() {
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
     const [content, setContent] = useState(defaultContent);
+    const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (!page?.content) return;
         const next = { ...defaultContent, ...page.content };
+
+        // Normalize hero
+        next.hero = {
+            ...defaultContent.hero,
+            ...(next.hero || {}),
+            introductory_heading:
+                next.hero?.introductory_heading ||
+                next.hero?.introductoryHeading ||
+                defaultContent.hero.introductory_heading,
+            introductoryHeading:
+                next.hero?.introductoryHeading ||
+                next.hero?.introductory_heading ||
+                defaultContent.hero.introductory_heading,
+        };
+
+        // Normalize our_values (exactly 4 cards)
+        const defaultCards = defaultContent.our_values.cards;
+        const existingCards = Array.isArray(next.our_values?.cards) ? next.our_values.cards : [];
+        const mergedCards = defaultCards.map((dc, i) => {
+            const match = existingCards.find((c) => c.id === dc.id) || existingCards[i] || {};
+            return {
+                id: dc.id,
+                title: {
+                    en: match.title?.en ?? (typeof match.title === "string" ? match.title : dc.title.en),
+                    ar: match.title?.ar ?? dc.title.ar,
+                },
+                description: {
+                    en: match.description?.en ?? (typeof match.description === "string" ? match.description : dc.description.en),
+                    ar: match.description?.ar ?? dc.description.ar,
+                },
+                icon: match.icon ?? dc.icon ?? "",
+            };
+        });
+        next.our_values = {
+            ...defaultContent.our_values,
+            ...(next.our_values || {}),
+            title: {
+                en: next.our_values?.title?.en ?? (typeof next.our_values?.title === "string" ? next.our_values.title : defaultContent.our_values.title.en),
+                ar: next.our_values?.title?.ar ?? defaultContent.our_values.title.ar,
+            },
+            cards: mergedCards.slice(0, 4),
+        };
+
+        // Normalize saudi_manufacturing (exactly 4 features)
+        const defaultFeatures = defaultContent.saudi_manufacturing.features;
+        const existingFeatures = Array.isArray(next.saudi_manufacturing?.features) ? next.saudi_manufacturing.features : [];
+        const mergedFeatures = defaultFeatures.map((df, i) => {
+            const match = existingFeatures.find((f) => f.id === df.id) || existingFeatures[i] || {};
+            return {
+                id: df.id,
+                title: {
+                    en: match.title?.en ?? (typeof match.title === "string" ? match.title : df.title?.en ?? ""),
+                    ar: match.title?.ar ?? df.title?.ar ?? "",
+                },
+                icon: match.icon || df.icon || "factory",
+            };
+        });
+        next.saudi_manufacturing = {
+            ...defaultContent.saudi_manufacturing,
+            ...(next.saudi_manufacturing || {}),
+            title: {
+                en: next.saudi_manufacturing?.title?.en ?? (typeof next.saudi_manufacturing?.title === "string" ? next.saudi_manufacturing.title : defaultContent.saudi_manufacturing.title.en),
+                ar: next.saudi_manufacturing?.title?.ar ?? defaultContent.saudi_manufacturing.title.ar,
+            },
+            description: {
+                en: next.saudi_manufacturing?.description?.en ?? (typeof next.saudi_manufacturing?.description === "string" ? next.saudi_manufacturing.description : defaultContent.saudi_manufacturing.description.en),
+                ar: next.saudi_manufacturing?.description?.ar ?? defaultContent.saudi_manufacturing.description.ar,
+            },
+            image: next.saudi_manufacturing?.image ?? defaultContent.saudi_manufacturing.image,
+            features: mergedFeatures.slice(0, 4),
+            cta: {
+                text: {
+                    en: next.saudi_manufacturing?.cta?.text?.en ?? (typeof next.saudi_manufacturing?.cta?.text === "string" ? next.saudi_manufacturing.cta.text : defaultContent.saudi_manufacturing.cta.text.en),
+                    ar: next.saudi_manufacturing?.cta?.text?.ar ?? defaultContent.saudi_manufacturing.cta.text.ar,
+                },
+                url: next.saudi_manufacturing?.cta?.url ?? defaultContent.saudi_manufacturing.cta.url,
+            },
+        };
+
+        // Normalize companies
         const selected = next.our_companies?.selected_companies;
         if (Array.isArray(selected) && companies.length > 0) {
             const validCodes = new Set(companies.map((c) => c.code).filter(Boolean));
@@ -57,13 +146,14 @@ export default function HomeEditor() {
                 selected_companies: selected.filter((code) => validCodes.has(code)),
             };
         }
+
         setContent(next);
     }, [page, companies]);
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
     const prevSection = activeIndex > 0 ? SECTIONS[activeIndex - 1] : null;
-    const nextSection = SECTIONS[activeIndex + 1] || null;
+    const nextSection = activeIndex < SECTIONS.length - 1 ? SECTIONS[activeIndex + 1] : null;
     const section = content[activeSection.id] || {};
 
     const setField = (key, value) => {
@@ -71,6 +161,128 @@ export default function HomeEditor() {
             ...prev,
             [activeSection.id]: { ...(prev[activeSection.id] || {}), [key]: value },
         }));
+    };
+
+    // Hero introductory heading helper
+    const handleIntroHeadingChange = (value) => {
+        setErrors((prev) => ({ ...prev, introductoryHeading: null }));
+        setContent((prev) => ({
+            ...prev,
+            hero: {
+                ...(prev.hero || {}),
+                introductory_heading: value,
+                introductoryHeading: value,
+            },
+        }));
+    };
+
+    // Our values helpers
+    const updateOurValuesTitle = (lang, val) => {
+        setContent((prev) => {
+            const curr = prev.our_values || {};
+            const titleObj = typeof curr.title === "object" ? curr.title : { en: "", ar: "" };
+            return {
+                ...prev,
+                our_values: {
+                    ...curr,
+                    title: { ...titleObj, [lang]: val },
+                },
+            };
+        });
+    };
+
+    const updateCard = (index, field, lang, val) => {
+        setContent((prev) => {
+            const curr = prev.our_values || {};
+            const cards = Array.isArray(curr.cards) ? [...curr.cards] : [];
+            const target = cards[index] || { id: index + 1, title: {}, description: {}, icon: "" };
+            const fieldObj = typeof target[field] === "object" ? target[field] : { en: "", ar: "" };
+            cards[index] = {
+                ...target,
+                [field]: { ...fieldObj, [lang]: val },
+            };
+            return {
+                ...prev,
+                our_values: { ...curr, cards },
+            };
+        });
+    };
+
+    const updateCardIcon = (index, iconValue) => {
+        setContent((prev) => {
+            const curr = prev.our_values || {};
+            const cards = Array.isArray(curr.cards) ? [...curr.cards] : [];
+            const target = cards[index] || { id: index + 1, title: {}, description: {}, icon: "" };
+            cards[index] = { ...target, icon: iconValue };
+            return {
+                ...prev,
+                our_values: { ...curr, cards },
+            };
+        });
+    };
+
+    // Saudi manufacturing helpers
+    const updateSaudiField = (field, lang, val) => {
+        setContent((prev) => {
+            const curr = prev.saudi_manufacturing || {};
+            const obj = typeof curr[field] === "object" ? curr[field] : { en: "", ar: "" };
+            return {
+                ...prev,
+                saudi_manufacturing: {
+                    ...curr,
+                    [field]: { ...obj, [lang]: val },
+                },
+            };
+        });
+    };
+
+    const updateFeature = (index, field, lang, val) => {
+        setContent((prev) => {
+            const curr = prev.saudi_manufacturing || {};
+            const features = Array.isArray(curr.features) ? [...curr.features] : [];
+            const target = features[index] || { id: index + 1, title: {}, description: {} };
+            const fieldObj = typeof target[field] === "object" ? target[field] : { en: "", ar: "" };
+            features[index] = {
+                ...target,
+                [field]: { ...fieldObj, [lang]: val },
+            };
+            return {
+                ...prev,
+                saudi_manufacturing: { ...curr, features },
+            };
+        });
+    };
+
+    const updateSaudiCtaText = (lang, val) => {
+        setContent((prev) => {
+            const curr = prev.saudi_manufacturing || {};
+            const cta = curr.cta || {};
+            const textObj = typeof cta.text === "object" ? cta.text : { en: "", ar: "" };
+            return {
+                ...prev,
+                saudi_manufacturing: {
+                    ...curr,
+                    cta: {
+                        ...cta,
+                        text: { ...textObj, [lang]: val },
+                    },
+                },
+            };
+        });
+    };
+
+    const updateSaudiCtaUrl = (val) => {
+        setContent((prev) => {
+            const curr = prev.saudi_manufacturing || {};
+            const cta = curr.cta || {};
+            return {
+                ...prev,
+                saudi_manufacturing: {
+                    ...curr,
+                    cta: { ...cta, url: val },
+                },
+            };
+        });
     };
 
     const toggleCompany = (code) => {
@@ -84,12 +296,50 @@ export default function HomeEditor() {
     const handlePreview = () => window.open(page?.url || "/", "_blank", "noopener,noreferrer");
 
     const handleSavePublish = async () => {
-        await updateMutation.mutateAsync({
-            ...page,
-            content,
-            status: "Published",
-        });
-        router.push("/dashboard/pages");
+        if (saving || updateMutation.isPending) return;
+
+        const newErrors = {};
+
+        // TT-16: Required Introductory Heading validation
+        const intro = content.hero?.introductory_heading ?? content.hero?.introductoryHeading ?? "";
+        const introStr = typeof intro === "object" ? (intro.en || intro.ar || "") : String(intro || "");
+        if (!introStr.trim()) {
+            newErrors.introductoryHeading = t("errors.page.introductory_heading_required") || "Introductory heading is required";
+        }
+
+        // TT-19: Saudi Manufacturing CTA URL validation
+        const ctaUrl = content.saudi_manufacturing?.cta?.url;
+        if (ctaUrl && !isValidUrlOrPath(ctaUrl)) {
+            newErrors.ctaUrl = t("errors.url.invalid") || "Please enter a valid URL or path";
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            if (newErrors.introductoryHeading) {
+                toast.error(newErrors.introductoryHeading);
+                setActiveSectionId("hero");
+            } else if (newErrors.ctaUrl) {
+                toast.error(newErrors.ctaUrl);
+                setActiveSectionId("saudi_manufacturing");
+            }
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await updateMutation.mutateAsync({
+                ...page,
+                content,
+                status: "Published",
+            });
+            toast.success(t("common.saveSuccess") || "Saved successfully");
+            router.push("/dashboard/pages");
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.message || t("common.saveError") || "Error saving page";
+            toast.error(msg);
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (isLoading) {
@@ -124,12 +374,21 @@ export default function HomeEditor() {
                 </button>
                 <button
                     type="button"
-                    className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
+                    className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0 d-inline-flex align-items-center"
                     onClick={handleSavePublish}
-                    disabled={updateMutation.isPending}
+                    disabled={saving || updateMutation.isPending}
                 >
-                    <i className="fal fa-check"></i>
-                    <span className="txt ms-2">{t("pages.savePublish")}</span>
+                    {saving || updateMutation.isPending ? (
+                        <>
+                            <i className="fal fa-spinner-third fa-spin me-2"></i>
+                            <span className="txt">{t("common.saving")}</span>
+                        </>
+                    ) : (
+                        <>
+                            <i className="fal fa-check me-2"></i>
+                            <span className="txt">{t("pages.savePublish")}</span>
+                        </>
+                    )}
                 </button>
             </PageHeader>
 
@@ -169,10 +428,29 @@ export default function HomeEditor() {
 
                     <div className="page-editor__fields">
                         <div className="row g-3">
+                            {/* SECTION 01: HERO */}
                             {activeSection.id === "hero" && (
                                 <>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.headline")} <span className="text-danger">*</span></label>
+                                        <label className="form-label fsz-12 text-muted">
+                                            {t("pages.fields.introductoryHeading")} <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            dir={dir}
+                                            type="text"
+                                            className={`form-control ${errors.introductoryHeading ? "is-invalid" : ""}`}
+                                            placeholder={t("pages.fields.introductoryHeadingPh")}
+                                            value={section.introductory_heading ?? section.introductoryHeading ?? ""}
+                                            onChange={(e) => handleIntroHeadingChange(e.target.value)}
+                                        />
+                                        {errors.introductoryHeading && (
+                                            <div className="invalid-feedback d-block">{errors.introductoryHeading}</div>
+                                        )}
+                                    </div>
+                                    <div className="col-12">
+                                        <label className="form-label fsz-12 text-muted">
+                                            {t("pages.fields.headline")} <span className="text-danger">*</span>
+                                        </label>
                                         <input dir={dir} type="text" className="form-control" maxLength={90} value={section.headline || ""} onChange={(e) => setField("headline", e.target.value)} />
                                     </div>
                                     <div className="col-12">
@@ -228,6 +506,7 @@ export default function HomeEditor() {
                                 </>
                             )}
 
+                            {/* SECTION 02: KEY MESSAGE */}
                             {activeSection.id === "key_message" && (
                                 <>
                                     <div className="col-12">
@@ -253,16 +532,127 @@ export default function HomeEditor() {
                                 </>
                             )}
 
-                            {activeSection.id === "key_figures" &&
-                                [1, 2, 3, 4].map((n) => (
-                                    <div className="col-md-6" key={n}>
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.figureValue", { n })}</label>
-                                        <input dir={dir} type="text" className="form-control mb-2" value={section[`figure_${n}_value`] || ""} onChange={(e) => setField(`figure_${n}_value`, e.target.value)} />
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.figureLabel", { n })}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section[`figure_${n}_label`] || ""} onChange={(e) => setField(`figure_${n}_label`, e.target.value)} />
+                            {/* SECTION 03: OUR VALUES (TT-18) */}
+                            {activeSection.id === "our_values" && (
+                                <>
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted">
+                                            {t("pages.fields.sectionTitle")} ({t("pages.fields.en")})
+                                        </label>
+                                        <input
+                                            dir="ltr"
+                                            type="text"
+                                            className="form-control"
+                                            value={section.title?.en || ""}
+                                            onChange={(e) => updateOurValuesTitle("en", e.target.value)}
+                                        />
                                     </div>
-                                ))}
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted">
+                                            {t("pages.fields.sectionTitle")} ({t("pages.fields.ar")})
+                                        </label>
+                                        <input
+                                            dir="rtl"
+                                            type="text"
+                                            className="form-control"
+                                            value={section.title?.ar || ""}
+                                            onChange={(e) => updateOurValuesTitle("ar", e.target.value)}
+                                        />
+                                    </div>
 
+                                    {(section.cards || []).slice(0, 4).map((card, idx) => (
+                                        <div className="col-12 border rounded p-3 mb-2 bg-light-subtle" key={card.id || idx}>
+                                            <div className="d-flex align-items-center justify-content-between mb-2">
+                                                <h6 className="fsz-13 fw-600 mb-0">
+                                                    {t("pages.fields.cardTitle")} #{idx + 1}
+                                                </h6>
+                                                <span className="badge bg-secondary-subtle text-secondary fsz-11">
+                                                    Card {idx + 1} / 4
+                                                </span>
+                                            </div>
+                                            <div className="row g-2">
+                                                <div className="col-md-6">
+                                                    <label className="form-label fsz-11 text-muted">
+                                                        {t("pages.fields.cardTitle")} ({t("pages.fields.en")})
+                                                    </label>
+                                                    <input
+                                                        dir="ltr"
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={card.title?.en || ""}
+                                                        onChange={(e) => updateCard(idx, "title", "en", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label fsz-11 text-muted">
+                                                        {t("pages.fields.cardTitle")} ({t("pages.fields.ar")})
+                                                    </label>
+                                                    <input
+                                                        dir="rtl"
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={card.title?.ar || ""}
+                                                        onChange={(e) => updateCard(idx, "title", "ar", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label fsz-11 text-muted">
+                                                        {t("pages.fields.cardDesc")} ({t("pages.fields.en")})
+                                                    </label>
+                                                    <textarea
+                                                        dir="ltr"
+                                                        rows={2}
+                                                        className="form-control form-control-sm"
+                                                        value={card.description?.en || ""}
+                                                        onChange={(e) => updateCard(idx, "description", "en", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label fsz-11 text-muted">
+                                                        {t("pages.fields.cardDesc")} ({t("pages.fields.ar")})
+                                                    </label>
+                                                    <textarea
+                                                        dir="rtl"
+                                                        rows={2}
+                                                        className="form-control form-control-sm"
+                                                        value={card.description?.ar || ""}
+                                                        onChange={(e) => updateCard(idx, "description", "ar", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-12 mt-2">
+                                                    <label className="form-label fsz-11 text-muted">{t("pages.fields.cardIcon")}</label>
+                                                    <FileUpload
+                                                        files={filesFromValue(card.icon, "image")}
+                                                        onFilesChange={async (uploadedFiles) => {
+                                                            if (!uploadedFiles || uploadedFiles.length === 0) {
+                                                                updateCardIcon(idx, "");
+                                                                return;
+                                                            }
+                                                            const f = uploadedFiles[0];
+                                                            if (f.file) {
+                                                                try {
+                                                                    const res = await uploadPageMedia("home", f.file, "icon");
+                                                                    updateCardIcon(idx, res.path || res.url);
+                                                                } catch (err) {
+                                                                    toast.error(err?.message || "Failed to upload icon");
+                                                                }
+                                                            } else if (f.preview) {
+                                                                updateCardIcon(idx, f.preview);
+                                                            }
+                                                        }}
+                                                        maxFiles={1}
+                                                        accept={IMAGE_ACCEPT}
+                                                        title={`${t("pages.fields.cardIcon")} #${idx + 1}`}
+                                                        hint={t("pages.videoHint")}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* SECTION 04: INDUSTRIES */}
                             {activeSection.id === "industries" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
@@ -271,6 +661,7 @@ export default function HomeEditor() {
                                 </div>
                             )}
 
+                            {/* SECTION 05: OUR COMPANIES */}
                             {activeSection.id === "our_companies" && (
                                 <>
                                     <div className="col-12">
@@ -320,53 +711,35 @@ export default function HomeEditor() {
                                 </>
                             )}
 
-                            {activeSection.id === "featured_projects" && (
-                                <div className="col-12">
-                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
-                                    <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
-                                    <p className="fsz-12 text-muted mt-3 mb-0">{t("pages.projectsManaged")}</p>
+                            {/* SECTION 06: SAUDI MANUFACTURING & LOCALISATION (TT-19) */}
+                            {activeSection.id === "saudi_manufacturing" && (
+                                <div className="col-12 p-0">
+                                    <SaudiManufacturingEditor
+                                        initialData={content.saudi_manufacturing}
+                                        onSave={async (saudiData) => {
+                                            const nextContent = {
+                                                ...content,
+                                                saudi_manufacturing: saudiData,
+                                            };
+                                            setContent(nextContent);
+                                            await updateMutation.mutateAsync({
+                                                ...page,
+                                                content: nextContent,
+                                                status: "Published",
+                                            });
+                                        }}
+                                        isSaving={updateMutation.isPending}
+                                    />
                                 </div>
                             )}
 
-                            {activeSection.id === "clients_partners" && (
-                                <div className="col-12">
-                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
-                                    <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
-                                    <p className="fsz-12 text-muted mt-3 mb-0">{t("pages.logosManaged")}</p>
-                                </div>
-                            )}
-
+                            {/* SECTION 07: MEDIA CENTER */}
                             {activeSection.id === "media_center" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
                                     <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
                                     <p className="fsz-12 text-muted mt-3 mb-0">{t("pages.postsManaged")}</p>
                                 </div>
-                            )}
-
-                            {activeSection.id === "cta" && (
-                                <>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.title")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.title || ""} onChange={(e) => setField("title", e.target.value)} />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.button1Label")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.button_1_label || ""} onChange={(e) => setField("button_1_label", e.target.value)} />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.button1Link")}</label>
-                                        <input dir="ltr" type="text" className="form-control" value={section.button_1_link || ""} onChange={(e) => setField("button_1_link", e.target.value)} />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.button2Label")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.button_2_label || ""} onChange={(e) => setField("button_2_label", e.target.value)} />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.button2Link")}</label>
-                                        <input dir="ltr" type="text" className="form-control" value={section.button_2_link || ""} onChange={(e) => setField("button_2_link", e.target.value)} />
-                                    </div>
-                                </>
                             )}
                         </div>
 

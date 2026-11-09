@@ -13,6 +13,16 @@ import {
 
 export const PAGE_STATUSES = ["Draft", "Published"];
 
+const HOME_REMOVED_KEYS = new Set([
+  "key_figures",
+  "cta",
+  "cta_banner",
+  "clients_partners",
+  "featured_projects",
+]);
+
+export const HOME_REMOVED_SECTIONS = HOME_REMOVED_KEYS;
+
 function mergeSectionContent(defaults, stored) {
   const base = { ...(defaults || {}) };
   for (const [key, value] of Object.entries(stored || {})) {
@@ -55,6 +65,14 @@ export function useCmsPage(id) {
   });
 }
 
+export async function uploadPageMedia(slug, file, purpose = "image") {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (purpose) formData.append("purpose", purpose);
+  const res = await api.post(`/pages/${slug}/media`, formData);
+  return res.data?.data;
+}
+
 export function useUpdateCmsPage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -66,8 +84,15 @@ export function useUpdateCmsPage() {
         pageStatusToApi(updated.status) === "published" ||
         updated.status === "Published";
 
+      let sections = updated.content || {};
+      if (slug === "home") {
+        sections = Object.fromEntries(
+          Object.entries(sections).filter(([k]) => !HOME_REMOVED_KEYS.has(k))
+        );
+      }
+
       const res = await api.put(`/pages/${slug}/content`, {
-        sections: updated.content || {},
+        sections,
         publish,
       });
       return withDefaults(pageFromApi(res.data?.data));

@@ -7,6 +7,7 @@ import IndustriesTable from "./IndustriesTable";
 import IndustryModal from "./IndustryModal";
 import IndustriesTrashModal from "./IndustriesTrashModal";
 import IndustryDetailsOffcanvas from "./IndustryDetailsOffcanvas";
+import ReorderModal from "@/components/shared/ReorderModal";
 import { confirmAction } from "@/utils/confirm";
 import { useI18n } from "@/hooks/useI18n";
 import {
@@ -18,12 +19,14 @@ import {
     useRestoreIndustry,
     usePermanentDeleteIndustry,
     useBulkDeleteIndustries,
+    useReorderIndustries,
 } from "@/hooks/useIndustries";
 
 export default function IndustriesClient() {
     const { t } = useI18n();
     const { data: industries = [], isLoading } = useIndustries();
     const [showTrashModal, setShowTrashModal] = useState(false);
+    const [showReorderModal, setShowReorderModal] = useState(false);
     const { data: trashIndustries = [] } = useTrashIndustries({ enabled: showTrashModal });
 
     const addIndustryMutation = useAddIndustry();
@@ -32,6 +35,7 @@ export default function IndustriesClient() {
     const restoreIndustryMutation = useRestoreIndustry();
     const permanentDeleteMutation = usePermanentDeleteIndustry();
     const bulkDeleteMutation = useBulkDeleteIndustries();
+    const reorderMutation = useReorderIndustries();
 
     const [selectedIndustry, setSelectedIndustry] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,6 +137,15 @@ export default function IndustriesClient() {
 
                 <button
                     type="button"
+                    className="alert alert-primary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
+                    onClick={() => setShowReorderModal(true)}
+                >
+                    <i className="fal fa-sort"></i>
+                    <span className="txt ms-2">{t("common.reorder")}</span>
+                </button>
+
+                <button
+                    type="button"
                     className="alert alert-danger rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={handleBulkDelete}
                 >
@@ -176,6 +189,22 @@ export default function IndustriesClient() {
                 trashIndustries={trashIndustries}
                 onRestore={handleRestore}
                 onPermanentDelete={handlePermanentDelete}
+            />
+
+            <ReorderModal
+                isOpen={showReorderModal}
+                onClose={() => setShowReorderModal(false)}
+                title={t("common.reorder") || "Reorder Industries"}
+                items={industries.map((ind) => ({
+                    id: ind.id,
+                    title: ind.title,
+                    image: ind.icon,
+                    subtitle: ind.companies_label,
+                }))}
+                onSaveOrder={async (ids) => {
+                    await reorderMutation.mutateAsync(ids);
+                }}
+                isSaving={reorderMutation.isPending}
             />
 
             <IndustryDetailsOffcanvas

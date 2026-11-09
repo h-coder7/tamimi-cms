@@ -38,6 +38,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
     const { data: allCompanies = [] } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const statusOptions = useMemo(
         () => [
@@ -130,19 +131,25 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (saving) return;
 
-        onSave({
-            title: formData.title.trim(),
-            order: formData.order === "" ? null : Number(formData.order),
-            status: formData.status,
-            short_description: formData.short_description.trim(),
-            full_description: formData.full_description.trim(),
-            description: formData.short_description.trim(),
-            companies: formData.companies,
-            value_chain_mapping: formData.value_chain_mapping,
-        });
+        setSaving(true);
+        try {
+            await onSave({
+                title: formData.title.trim(),
+                order: formData.order === "" ? null : Number(formData.order),
+                status: formData.status,
+                short_description: formData.short_description.trim(),
+                full_description: formData.full_description.trim(),
+                description: formData.short_description.trim(),
+                companies: formData.companies,
+                value_chain_mapping: formData.value_chain_mapping,
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen || !isMounted) return null;
@@ -376,11 +383,20 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-light" onClick={onClose}>
+                                <button type="button" className="btn btn-light" onClick={onClose} disabled={saving}>
                                     {t("common.cancel")}
                                 </button>
-                                <button type="submit" className="butn-st2">
-                                    {industry ? t("industries.update") : t("industries.add")}
+                                <button type="submit" className="butn-st2" disabled={saving}>
+                                    {saving ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            {t("common.saving")}
+                                        </>
+                                    ) : industry ? (
+                                        t("industries.update")
+                                    ) : (
+                                        t("industries.add")
+                                    )}
                                 </button>
                             </div>
                         </form>

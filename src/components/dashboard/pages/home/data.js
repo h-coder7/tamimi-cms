@@ -3,13 +3,14 @@ export const pageMeta = {
     page: "Home",
     url: "/",
     editable_fields: 36,
-    sections: 9,
+    sections: 7,
     status: "Draft",
     last_updated: "",
 };
 
 export const defaultContent = {
     hero: {
+        introductory_heading: "One integrated ecosystem powering Saudi Arabia's energy future",
         headline: "One integrated ecosystem powering Saudi Arabia's energy future",
         supporting_text:
             "End-to-end solutions across Oil & Gas, Power, Water, Industrial Manufacturing, Automation, Engineering Services and Renewable Energy, delivered through a diversified portfolio of specialized companies.",
@@ -35,15 +36,37 @@ export const defaultContent = {
         point_3_text:
             "Local manufacturing, innovation and strategic international partnerships for Vision 2030.",
     },
-    key_figures: {
-        figure_1_value: "50+",
-        figure_1_label: "Years of leadership in the energy sector",
-        figure_2_value: "18",
-        figure_2_label: "Specialized companies and joint ventures",
-        figure_3_value: "9",
-        figure_3_label: "Industries served across the energy value chain",
-        figure_4_value: "",
-        figure_4_label: "Major industrial projects delivered",
+    our_values: {
+        title: {
+            en: "Our Core Values",
+            ar: "قيمنا الجوهرية",
+        },
+        cards: [
+            {
+                id: 1,
+                title: { en: "Integrity", ar: "النزاهة" },
+                description: { en: "Operating with honesty, transparency and high ethical standards.", ar: "العمل بنزاهة وشفافية وبأعلى المعايير الأخلاقية." },
+                icon: "",
+            },
+            {
+                id: 2,
+                title: { en: "Excellence", ar: "التميز" },
+                description: { en: "Delivering world-class quality and continuous improvement.", ar: "تقديم جودة عالمية المستوى والتحسين المستمر." },
+                icon: "",
+            },
+            {
+                id: 3,
+                title: { en: "Innovation", ar: "الابتكار" },
+                description: { en: "Pioneering sustainable and forward-looking energy solutions.", ar: "ريادة حلول طاقة مستدامة ومستقبلية." },
+                icon: "",
+            },
+            {
+                id: 4,
+                title: { en: "Safety", ar: "السلامة" },
+                description: { en: "Prioritizing the health and well-being of people and communities.", ar: "وضع صحة وسلامة الأفراد والمجتمعات في مقدمة أولوياتنا." },
+                icon: "",
+            },
+        ],
     },
     industries: {
         section_title: "Serving every stage of the energy value chain",
@@ -52,21 +75,57 @@ export const defaultContent = {
         section_title: "18 specialized companies and joint ventures",
         selected_companies: [],
     },
-    featured_projects: {
-        section_title: "Delivering major industrial projects",
-    },
-    clients_partners: {
-        section_title: "Trusted by leading organizations",
+    saudi_manufacturing: {
+        small_heading: {
+            en: "Saudi Manufacturing & Localisation",
+            ar: "التصنيع والتوطين السعودي",
+        },
+        main_heading: {
+            en: "Building in the Kingdom, for the Kingdom",
+            ar: "نبني في المملكة، لأجل المملكة",
+        },
+        title: {
+            en: "Building in the Kingdom, for the Kingdom",
+            ar: "نبني في المملكة، لأجل المملكة",
+        },
+        description: {
+            en: "We design, build and localise industrial products and services inside Saudi Arabia, keeping engineering, manufacturing and know-how close to the projects they serve. Our approach supports Vision 2030 by growing local content, creating skilled Saudi jobs and strengthening supply chains.",
+            ar: "نصمم ونصنّع ونوطّن المنتجات والخدمات الصناعية داخل المملكة العربية السعودية، مع الحفاظ على القرب من المشاريع التي تخدمها. يدعم نهجنا رؤية 2030 من خلال تنمية المحتوى المحلي وخلق وظائف نوعية وتعزيز سلاسل الإمداد.",
+        },
+        image: "",
+        features: [
+            {
+                id: 1,
+                title: { en: "Local Manufacturing Capacity", ar: "قدرات التصنيع المحلي" },
+                icon: "factory",
+            },
+            {
+                id: 2,
+                title: { en: "Technology Transfer", ar: "نقل التقنية" },
+                icon: "cpu",
+            },
+            {
+                id: 3,
+                title: { en: "Saudi Workforce Development", ar: "تطوير الكوادر السعودية" },
+                icon: "users",
+            },
+            {
+                id: 4,
+                title: { en: "Resilient Local Supply Chains", ar: "سلاسل إمداد محلية مرنة" },
+                icon: "truck",
+            },
+        ],
+        cta: {
+            description: {
+                en: "Looking for a local manufacturing partner? Talk to our team about localising your next industrial project in the Kingdom.",
+                ar: "هل تبحث عن شريك تصنيع محلي؟ تواصل مع فريقنا لتوطين مشروعك الصناعي القادم في المملكة.",
+            },
+            text: { en: "Explore Manufacturing Capabilities", ar: "استكشف قدرات التصنيع" },
+            url: "/companies",
+        },
     },
     media_center: {
         section_title: "Latest from the Group",
-    },
-    cta: {
-        title: "Looking for an integrated energy partner?",
-        button_1_label: "Send an Inquiry",
-        button_1_link: "/contact/inquiry",
-        button_2_label: "Download Group Profile",
-        button_2_link: "/downloads",
     },
 };
 
