@@ -32,6 +32,36 @@ const IMAGE_ACCEPT = {
     "image/svg+xml": [".svg"],
 };
 
+const KEY_MESSAGE_IMAGE_ACCEPT = {
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "image/webp": [".webp"],
+    "image/gif": [".gif"],
+    "image/bmp": [".bmp"],
+};
+
+export function isValidStatNumber(val) {
+    if (val === undefined || val === null) return false;
+    const s = String(val).trim();
+    if (!s || s.length > 30) return false;
+    if (/[a-zA-Z\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(s)) return false;
+    if (!/^[0-9+\-%,. /]+$/.test(s)) return false;
+    return /\d/.test(s);
+}
+
+export function isValidStatLabel(val) {
+    if (val === undefined || val === null) return false;
+    if (typeof val === "object") {
+        const en = String(val?.en || "").trim();
+        const ar = String(val?.ar || "").trim();
+        const enValid = !en || (en.length >= 2 && en.length <= 30);
+        const arValid = !ar || (ar.length >= 2 && ar.length <= 30);
+        return (Boolean(en) || Boolean(ar)) && enValid && arValid;
+    }
+    const s = String(val).trim();
+    return s.length >= 2 && s.length <= 30;
+}
+
 function filesFromValue(value, type) {
     if (!value) return [];
     return [{
@@ -71,6 +101,51 @@ export default function HomeEditor() {
                 next.hero?.introductoryHeading ||
                 next.hero?.introductory_heading ||
                 defaultContent.hero.introductory_heading,
+        };
+
+        // Normalize key_message (TT-20)
+        const defaultKm = defaultContent.key_message;
+        const rawKm = next.key_message || {};
+        const defaultSlides = defaultKm.slides || [
+            {
+                id: "main-slide",
+                title: "Our Integrated Energy Vision",
+                description: "Delivering sustainable, innovative solutions across the entire energy value chain.",
+                isMain: true,
+            },
+        ];
+
+        let mergedSlides = Array.isArray(rawKm.slides) && rawKm.slides.length > 0
+            ? [...rawKm.slides]
+            : defaultSlides;
+
+        const hasMain = mergedSlides.some((s) => s && (s.isMain === true || s.id === "main" || s.id === "main-slide"));
+        if (!hasMain) {
+            mergedSlides.unshift({ ...defaultSlides[0], isMain: true });
+        } else {
+            mergedSlides = mergedSlides.map((s, idx) => {
+                if (idx === 0 || s.id === "main" || s.id === "main-slide") {
+                    return { ...s, isMain: true };
+                }
+                return s;
+            });
+        }
+
+        next.key_message = {
+            ...defaultKm,
+            ...rawKm,
+            statistic_number_1: rawKm.statistic_number_1 ?? rawKm.point_1_title ?? defaultKm.point_1_title,
+            point_1_title: rawKm.point_1_title ?? rawKm.statistic_number_1 ?? defaultKm.point_1_title,
+            statistic_label_1: rawKm.statistic_label_1 ?? rawKm.point_1_text ?? defaultKm.point_1_text,
+            point_1_text: rawKm.point_1_text ?? rawKm.statistic_label_1 ?? defaultKm.point_1_text,
+            statistic_number_2: rawKm.statistic_number_2 ?? rawKm.point_2_title ?? defaultKm.point_2_title,
+            point_2_title: rawKm.point_2_title ?? rawKm.statistic_number_2 ?? defaultKm.point_2_title,
+            statistic_label_2: rawKm.statistic_label_2 ?? rawKm.point_2_text ?? defaultKm.point_2_text,
+            point_2_text: rawKm.point_2_text ?? rawKm.statistic_label_2 ?? defaultKm.point_2_text,
+            point_3_title: rawKm.point_3_title ?? defaultKm.point_3_title,
+            point_3_text: rawKm.point_3_text ?? defaultKm.point_3_text,
+            photo: rawKm.photo ?? rawKm.image ?? defaultKm.photo ?? "",
+            slides: mergedSlides,
         };
 
         // Normalize our_values (exactly 4 cards)
@@ -285,6 +360,53 @@ export default function HomeEditor() {
         });
     };
 
+    // Key message slider helpers (TT-20)
+    const updateSlideField = (index, field, value) => {
+        setContent((prev) => {
+            const currKm = prev.key_message || {};
+            const slides = Array.isArray(currKm.slides) ? [...currKm.slides] : [];
+            if (!slides[index]) return prev;
+            slides[index] = { ...slides[index], [field]: value };
+            return {
+                ...prev,
+                key_message: { ...currKm, slides },
+            };
+        });
+    };
+
+    const addSlide = () => {
+        setContent((prev) => {
+            const currKm = prev.key_message || {};
+            const slides = Array.isArray(currKm.slides) ? [...currKm.slides] : [];
+            const newId = `slide-${Date.now()}`;
+            slides.push({
+                id: newId,
+                title: "",
+                description: "",
+                isMain: false,
+            });
+            return {
+                ...prev,
+                key_message: { ...currKm, slides },
+            };
+        });
+    };
+
+    const removeSlide = (index) => {
+        setContent((prev) => {
+            const currKm = prev.key_message || {};
+            const slides = Array.isArray(currKm.slides) ? [...currKm.slides] : [];
+            if (index === 0 || slides[index]?.isMain) {
+                return prev;
+            }
+            slides.splice(index, 1);
+            return {
+                ...prev,
+                key_message: { ...currKm, slides },
+            };
+        });
+    };
+
     const toggleCompany = (code) => {
         const current = Array.isArray(section.selected_companies) ? section.selected_companies : [];
         const exists = current.includes(code);
@@ -307,6 +429,31 @@ export default function HomeEditor() {
             newErrors.introductoryHeading = t("errors.page.introductory_heading_required") || "Introductory heading is required";
         }
 
+        // TT-20: Key Message statistic numbers & labels validation
+        const km = content.key_message || {};
+        const statNum1 = km.statistic_number_1 ?? km.point_1_title ?? "";
+        if (!isValidStatNumber(statNum1)) {
+            newErrors.statNum1 = t("errors.page.statistic_number_invalid") || "Statistic number 1 is invalid. Digits and special characters only.";
+        }
+        const statLabel1 = km.statistic_label_1 ?? km.point_1_text ?? "";
+        if (!isValidStatLabel(statLabel1)) {
+            newErrors.statLabel1 = t("errors.page.statistic_label_invalid") || "Statistic label 1 must be between 2 and 30 characters.";
+        }
+        const statNum2 = km.statistic_number_2 ?? km.point_2_title ?? "";
+        if (!isValidStatNumber(statNum2)) {
+            newErrors.statNum2 = t("errors.page.statistic_number_invalid") || "Statistic number 2 is invalid. Digits and special characters only.";
+        }
+        const statLabel2 = km.statistic_label_2 ?? km.point_2_text ?? "";
+        if (!isValidStatLabel(statLabel2)) {
+            newErrors.statLabel2 = t("errors.page.statistic_label_invalid") || "Statistic label 2 must be between 2 and 30 characters.";
+        }
+        // Main slide check
+        const slides = Array.isArray(km.slides) ? km.slides : [];
+        const hasMainSlide = slides.some((s) => s && (s.isMain === true || s.id === "main" || s.id === "main-slide")) || slides[0]?.isMain !== false;
+        if (!hasMainSlide || slides.length === 0) {
+            newErrors.mainSlide = t("errors.page.main_slide_required") || "Main slide is required.";
+        }
+
         // TT-19: Saudi Manufacturing CTA URL validation
         const ctaUrl = content.saudi_manufacturing?.cta?.url;
         if (ctaUrl && !isValidUrlOrPath(ctaUrl)) {
@@ -318,6 +465,9 @@ export default function HomeEditor() {
             if (newErrors.introductoryHeading) {
                 toast.error(newErrors.introductoryHeading);
                 setActiveSectionId("hero");
+            } else if (newErrors.statNum1 || newErrors.statLabel1 || newErrors.statNum2 || newErrors.statLabel2 || newErrors.mainSlide) {
+                toast.error(newErrors.statNum1 || newErrors.statLabel1 || newErrors.statNum2 || newErrors.statLabel2 || newErrors.mainSlide);
+                setActiveSectionId("key_message");
             } else if (newErrors.ctaUrl) {
                 toast.error(newErrors.ctaUrl);
                 setActiveSectionId("saudi_manufacturing");
@@ -506,7 +656,7 @@ export default function HomeEditor() {
                                 </>
                             )}
 
-                            {/* SECTION 02: KEY MESSAGE */}
+                            {/* SECTION 02: KEY MESSAGE (TT-20) */}
                             {activeSection.id === "key_message" && (
                                 <>
                                     <div className="col-12">
@@ -521,14 +671,235 @@ export default function HomeEditor() {
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.paragraph")}</label>
                                         <textarea dir={dir} className="form-control" rows={4} value={section.paragraph || ""} onChange={(e) => setField("paragraph", e.target.value)} />
                                     </div>
-                                    {[1, 2, 3].map((n) => (
-                                        <div className="col-12" key={n}>
-                                            <label className="form-label fsz-12 text-muted">{t("pages.fields.pointTitle", { n })}</label>
-                                            <input dir={dir} type="text" className="form-control mb-2" value={section[`point_${n}_title`] || ""} onChange={(e) => setField(`point_${n}_title`, e.target.value)} />
-                                            <label className="form-label fsz-12 text-muted">{t("pages.fields.pointText", { n })}</label>
-                                            <textarea dir={dir} className="form-control" rows={3} value={section[`point_${n}_text`] || ""} onChange={(e) => setField(`point_${n}_text`, e.target.value)} />
+
+                                    {/* Upload Photo */}
+                                    <div className="col-12">
+                                        <label className="form-label fsz-12 text-muted fw-600">
+                                            {t("pages.fields.uploadPhoto") || "Upload Photo"}
+                                        </label>
+                                        <FileUpload
+                                            files={filesFromValue(section.photo, "image")}
+                                            onFilesChange={(files) => {
+                                                const newPhoto = files?.[0]?.preview || files?.[0]?.url || "";
+                                                setField("photo", newPhoto);
+                                            }}
+                                            maxFiles={1}
+                                            accept={KEY_MESSAGE_IMAGE_ACCEPT}
+                                            title={t("pages.fields.uploadPhoto") || "Upload Photo"}
+                                            hint="JPG, JPEG, PNG, WEBP, GIF, BMP (Max 10MB)"
+                                        />
+                                    </div>
+
+                                    {/* Statistic 1 */}
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
+                                            <span>{t("pages.fields.statisticNumber1") || "Statistic Number 1"}</span>
+                                            <span className="fsz-11 text-muted">{t("pages.fields.statNumberHint") || "Digits & symbols only"}</span>
+                                        </label>
+                                        <input
+                                            dir="ltr"
+                                            type="text"
+                                            className={`form-control ${errors.statNum1 ? "is-invalid" : ""}`}
+                                            value={section.statistic_number_1 ?? section.point_1_title ?? ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setField("statistic_number_1", val);
+                                                setField("point_1_title", val);
+                                                if (errors.statNum1 && isValidStatNumber(val)) {
+                                                    setErrors((prev) => ({ ...prev, statNum1: "" }));
+                                                }
+                                            }}
+                                            placeholder="e.g. 50+"
+                                        />
+                                        {errors.statNum1 && <div className="invalid-feedback d-block fsz-11">{errors.statNum1}</div>}
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
+                                            <span>{t("pages.fields.statisticLabel1") || "Statistic Label 1"}</span>
+                                            <span className="fsz-11 text-muted">
+                                                {String(section.statistic_label_1 ?? section.point_1_text ?? "").length}/30
+                                            </span>
+                                        </label>
+                                        <input
+                                            dir={dir}
+                                            type="text"
+                                            className={`form-control ${errors.statLabel1 ? "is-invalid" : ""}`}
+                                            value={section.statistic_label_1 ?? section.point_1_text ?? ""}
+                                            maxLength={30}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setField("statistic_label_1", val);
+                                                setField("point_1_text", val);
+                                                if (errors.statLabel1 && isValidStatLabel(val)) {
+                                                    setErrors((prev) => ({ ...prev, statLabel1: "" }));
+                                                }
+                                            }}
+                                            placeholder="e.g. Over 50 years of leadership"
+                                        />
+                                        {errors.statLabel1 && <div className="invalid-feedback d-block fsz-11">{errors.statLabel1}</div>}
+                                    </div>
+
+                                    {/* Statistic 2 */}
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
+                                            <span>{t("pages.fields.statisticNumber2") || "Statistic Number 2"}</span>
+                                            <span className="fsz-11 text-muted">{t("pages.fields.statNumberHint") || "Digits & symbols only"}</span>
+                                        </label>
+                                        <input
+                                            dir="ltr"
+                                            type="text"
+                                            className={`form-control ${errors.statNum2 ? "is-invalid" : ""}`}
+                                            value={section.statistic_number_2 ?? section.point_2_title ?? ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setField("statistic_number_2", val);
+                                                setField("point_2_title", val);
+                                                if (errors.statNum2 && isValidStatNumber(val)) {
+                                                    setErrors((prev) => ({ ...prev, statNum2: "" }));
+                                                }
+                                            }}
+                                            placeholder="e.g. 18"
+                                        />
+                                        {errors.statNum2 && <div className="invalid-feedback d-block fsz-11">{errors.statNum2}</div>}
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
+                                            <span>{t("pages.fields.statisticLabel2") || "Statistic Label 2"}</span>
+                                            <span className="fsz-11 text-muted">
+                                                {String(section.statistic_label_2 ?? section.point_2_text ?? "").length}/30
+                                            </span>
+                                        </label>
+                                        <input
+                                            dir={dir}
+                                            type="text"
+                                            className={`form-control ${errors.statLabel2 ? "is-invalid" : ""}`}
+                                            value={section.statistic_label_2 ?? section.point_2_text ?? ""}
+                                            maxLength={30}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setField("statistic_label_2", val);
+                                                setField("point_2_text", val);
+                                                if (errors.statLabel2 && isValidStatLabel(val)) {
+                                                    setErrors((prev) => ({ ...prev, statLabel2: "" }));
+                                                }
+                                            }}
+                                            placeholder="e.g. Specialized companies"
+                                        />
+                                        {errors.statLabel2 && <div className="invalid-feedback d-block fsz-11">{errors.statLabel2}</div>}
+                                    </div>
+
+                                    {/* Content Slider Section */}
+                                    <div className="col-12 mt-4 pt-2 border-top">
+                                        <div className="d-flex align-items-center justify-content-between mb-3">
+                                            <div>
+                                                <h6 className="fsz-14 fw-600 mb-0">
+                                                    <i className="fal fa-sliders-h me-2 text-primary"></i>
+                                                    {t("pages.fields.contentSlider") || "Content Slider"}
+                                                </h6>
+                                                <span className="fsz-12 text-muted">
+                                                    Manage main slide and additional interactive slides
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-primary rounded-pill px-3 fsz-12"
+                                                onClick={addSlide}
+                                            >
+                                                <i className="fal fa-plus me-1"></i>
+                                                {t("pages.fields.addNewSlide") || "+ Add New Slide"}
+                                            </button>
                                         </div>
-                                    ))}
+
+                                        {errors.mainSlide && (
+                                            <div className="alert alert-danger py-2 px-3 fsz-12 mb-3">
+                                                {errors.mainSlide}
+                                            </div>
+                                        )}
+
+                                        <div className="d-flex flex-column gap-3">
+                                            {(Array.isArray(section.slides) && section.slides.length > 0
+                                                ? section.slides
+                                                : [{ id: "main-slide", title: "Our Integrated Energy Vision", description: "Delivering sustainable, innovative solutions across the entire energy value chain.", isMain: true }]
+                                            ).map((slide, idx) => {
+                                                const isMain = idx === 0 || slide.isMain;
+                                                return (
+                                                    <div
+                                                        key={slide.id || idx}
+                                                        className={`border rounded p-3 ${isMain ? "bg-white border-primary-subtle shadow-sm" : "bg-light-subtle"}`}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-between mb-2">
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <span className={`badge ${isMain ? "bg-primary text-white" : "bg-secondary-subtle text-secondary"} fsz-11`}>
+                                                                    {isMain
+                                                                        ? (t("pages.fields.mainSlide") || "Main Slide")
+                                                                        : `${t("pages.fields.additionalSlide", { n: idx }) || `Additional Slide ${idx}`}`
+                                                                    }
+                                                                </span>
+                                                                {isMain && (
+                                                                    <span className="fsz-11 text-muted">
+                                                                        (Default / Non-removable)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {!isMain && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-outline-danger btn-sm py-1 px-2 fsz-11 rounded"
+                                                                    onClick={() => removeSlide(idx)}
+                                                                    title={t("pages.fields.removeSlide") || "Remove Slide"}
+                                                                >
+                                                                    <i className="fal fa-trash-alt me-1"></i>
+                                                                    {t("pages.fields.removeSlide") || "Delete"}
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="row g-2">
+                                                            <div className="col-12">
+                                                                <label className="form-label fsz-11 text-muted mb-1">
+                                                                    {t("pages.fields.slideTitle") || "Slide Title"}
+                                                                </label>
+                                                                <input
+                                                                    dir={dir}
+                                                                    type="text"
+                                                                    className="form-control form-control-sm"
+                                                                    value={slide.title || ""}
+                                                                    onChange={(e) => updateSlideField(idx, "title", e.target.value)}
+                                                                    placeholder="e.g. Our Integrated Energy Vision"
+                                                                />
+                                                            </div>
+                                                            <div className="col-12">
+                                                                <label className="form-label fsz-11 text-muted mb-1">
+                                                                    {t("pages.fields.slideDescription") || "Slide Description"}
+                                                                </label>
+                                                                <textarea
+                                                                    dir={dir}
+                                                                    className="form-control form-control-sm"
+                                                                    rows={2}
+                                                                    value={slide.description || ""}
+                                                                    onChange={(e) => updateSlideField(idx, "description", e.target.value)}
+                                                                    placeholder="Enter slide description..."
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="mt-3 text-end">
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-primary rounded-pill px-3 fsz-12"
+                                                onClick={addSlide}
+                                            >
+                                                <i className="fal fa-plus me-1"></i>
+                                                {t("pages.fields.addNewSlide") || "+ Add New Slide"}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </>
                             )}
 

@@ -26,15 +26,22 @@ export const defaultContent = {
         title: "Not a single company. An integrated energy group.",
         paragraph:
             "A member of Tamimi Holding, Tamimi Energy brings together specialized companies that build, supply, manufacture and maintain energy solutions, supporting Saudi Vision 2030, localization and sustainability.",
-        point_1_title: "Over 50 years of leadership",
-        point_1_text:
-            "Founded in 1953 by the late Sheikh Ali bin Abdullah Al Tamimi to execute pipelines and general contracting, the Group has worked in the Saudi energy sector ever since.",
-        point_2_title: "The entire energy value chain",
-        point_2_text:
-            "An integrated group of specialized companies, from supply and manufacturing to services, training and digital solutions.",
+        photo: "",
+        point_1_title: "50+",
+        point_1_text: "Over 50 years of leadership",
+        point_2_title: "18",
+        point_2_text: "Specialized companies",
         point_3_title: "Made in Saudi Arabia",
         point_3_text:
             "Local manufacturing, innovation and strategic international partnerships for Vision 2030.",
+        slides: [
+            {
+                id: "main-slide",
+                title: "Our Integrated Energy Vision",
+                description: "Delivering sustainable, innovative solutions across the entire energy value chain.",
+                isMain: true,
+            },
+        ],
     },
     our_values: {
         title: {
