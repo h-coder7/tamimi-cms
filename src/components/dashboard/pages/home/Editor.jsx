@@ -13,6 +13,7 @@ import { publicPath } from "@/utils/publicPath";
 import { isValidUrlOrPath } from "@/utils/urlValidator";
 import SaudiManufacturingEditor from "./SaudiManufacturingEditor";
 import OurHistoryEditor from "./OurHistoryEditor";
+import CareersEditor from "./CareersEditor";
 import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
@@ -24,6 +25,7 @@ const SECTIONS = [
     { id: "our_companies", number: "06", titleKey: "pages.section.companies", fieldsCount: 2 },
     { id: "saudi_manufacturing", number: "07", titleKey: "pages.section.saudiManufacturing", fieldsCount: 12 },
     { id: "media_center", number: "08", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
+    { id: "careers", number: "09", titleKey: "pages.section.careers", fieldsCount: 16 },
 ];
 
 const VIDEO_ACCEPT = { "video/mp4": [".mp4"], "video/webm": [".webm"] };
@@ -85,6 +87,7 @@ export default function HomeEditor() {
     const [activeSectionId, setActiveSectionId] = useState("hero");
     const [content, setContent] = useState(defaultContent);
     const [saving, setSaving] = useState(false);
+    const [careersUploading, setCareersUploading] = useState(false);
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
@@ -442,7 +445,7 @@ export default function HomeEditor() {
     const handlePreview = () => window.open(page?.url || "/", "_blank", "noopener,noreferrer");
 
     const handleSavePublish = async () => {
-        if (saving || updateMutation.isPending) return;
+        if (saving || updateMutation.isPending || careersUploading) return;
 
         const newErrors = {};
 
@@ -582,7 +585,7 @@ export default function HomeEditor() {
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0 d-inline-flex align-items-center"
                     onClick={handleSavePublish}
-                    disabled={saving || updateMutation.isPending}
+                    disabled={saving || updateMutation.isPending || careersUploading}
                 >
                     {saving || updateMutation.isPending ? (
                         <>
@@ -637,7 +640,9 @@ export default function HomeEditor() {
                         <span className="fsz-12 text-muted">
                             {t("pages.editableFields", {
                                 count:
-                                    activeSection.id === "our_history"
+                                    activeSection.id === "careers"
+                                        ? 8 + (content.careers?.focus_areas?.length || 0) * 2
+                                        : activeSection.id === "our_history"
                                         ? 2 +
                                           (content.our_history?.eras?.length || 0) * 5 +
                                           (content.our_history?.timeline_years?.length || 0) * 3
@@ -1190,6 +1195,10 @@ export default function HomeEditor() {
                             )}
 
                             {/* SECTION 08: MEDIA CENTER */}
+                            {activeSection.id === "careers" && (
+                                <CareersEditor value={content.careers || defaultContent.careers} onChange={(next) => setContent((prev) => ({ ...prev, careers: next }))} onUploading={setCareersUploading} />
+                            )}
+
                             {activeSection.id === "media_center" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>

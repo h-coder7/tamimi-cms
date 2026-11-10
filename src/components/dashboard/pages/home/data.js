@@ -2,8 +2,8 @@ export const pageMeta = {
     id: 1,
     page: "Home",
     url: "/",
-    editable_fields: 40,
-    sections: 8,
+    editable_fields: 56,
+    sections: 9,
     status: "Draft",
     last_updated: "",
 };
@@ -277,6 +277,14 @@ export const defaultContent = {
     },
     media_center: {
         section_title: "Latest from the Group",
+    },
+    careers: {
+        section_name: "Careers at Tamimi Energy",
+        section_title: "Build what powers the Kingdom.",
+        description: "Engineers, technicians and manufacturing specialists building the future of energy.",
+        image: "",
+        focus_areas: [1, 2, 3, 4].map((id) => ({ id: `focus-${id}`, title: "", description: "" })),
+        statistics: [{ value: "18", label: "Group companies" }, { value: "", label: "" }],
     },
 };
 

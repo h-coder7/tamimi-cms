@@ -822,6 +822,7 @@ export const en = {
   "pages.history.previewSection": "Preview Section",
   "pages.section.featuredProjects": "Featured Projects",
   "pages.section.clients": "Clients & Partners",
+  "pages.section.careers": "Careers",
   "pages.section.media": "Media Center",
   "pages.section.cta": "CTA Banner",
   "pages.section.hero": "Hero",

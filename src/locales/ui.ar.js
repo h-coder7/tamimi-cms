@@ -822,6 +822,7 @@ export const ar = {
   "pages.history.previewSection": "معاينة القسم",
   "pages.section.featuredProjects": "المشاريع المميزة",
   "pages.section.clients": "العملاء والشركاء",
+  "pages.section.careers": "الوظائف",
   "pages.section.media": "المركز الإعلامي",
   "pages.section.cta": "شريط الدعوة",
   "pages.section.hero": "البانر",
