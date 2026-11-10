@@ -72,6 +72,36 @@ export default function IndustryDetailsOffcanvas({ show, industry, onClose }) {
                             </div>
 
                             <div className="details-list mb-4 d-flex flex-wrap gap-4">
+                                {(industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover || industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon) && (
+                                    <div className="detail-item w-100">
+                                        <label className="text-muted fsz-11 text-uppercase d-block mb-2">{t("industries.images")}</label>
+                                        <div className="row g-3">
+                                            {(industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover) && (
+                                                <div className="col-6">
+                                                    <span className="fsz-11 text-muted d-block mb-1">{t("industries.homepageBanner")}</span>
+                                                    <img
+                                                        src={publicPath(industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover)}
+                                                        alt={t("industries.homepageBanner")}
+                                                        className="img-fluid rounded border"
+                                                        style={{ maxHeight: 120, width: "100%", objectFit: "cover" }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {(industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon) && (
+                                                <div className="col-6">
+                                                    <span className="fsz-11 text-muted d-block mb-1">{t("industries.industryCard")}</span>
+                                                    <img
+                                                        src={publicPath(industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon)}
+                                                        alt={t("industries.industryCard")}
+                                                        className="img-fluid rounded border"
+                                                        style={{ maxHeight: 120, width: "100%", objectFit: "cover" }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="detail-item w-100">
                                     <label className="text-muted fsz-11 text-uppercase d-block mb-1">{t("industries.short")}</label>
                                     <div className="fsz-13">

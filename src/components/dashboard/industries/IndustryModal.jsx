@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
+import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
 import {
     VALUE_CHAIN_STAGES,
@@ -13,6 +14,14 @@ import { useI18n } from "@/hooks/useI18n";
 
 const SHORT_DESC_MAX = 160;
 
+const INDUSTRY_IMAGE_ACCEPT = {
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "image/webp": [".webp"],
+    "image/gif": [".gif"],
+    "image/bmp": [".bmp"],
+};
+
 const emptyForm = () => ({
     title: "",
     order: "",
@@ -21,6 +30,10 @@ const emptyForm = () => ({
     full_description: "",
     companies: [],
     value_chain_mapping: emptyValueChainMapping(),
+    homepageBannerFiles: [],
+    industryCardFiles: [],
+    homepageBannerPath: null,
+    industryCardPath: null,
 });
 
 const Section = ({ title, hint, children }) => (
@@ -37,6 +50,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
     const textDir = isRtl ? "rtl" : "ltr";
     const { data: allCompanies = [] } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
+    const [errors, setErrors] = useState({});
     const [isMounted, setIsMounted] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -62,8 +76,14 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
 
     useEffect(() => {
         if (!isOpen) return;
+        setErrors({});
 
         if (industry) {
+            const bannerUrl = industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover || "";
+            const bannerPath = industry.homepageBannerPath || industry.coverPath || null;
+            const cardUrl = industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon || "";
+            const cardPath = industry.industryCardPath || industry.iconPath || null;
+
             setFormData({
                 title: industry.title || "",
                 order: industry.order ?? "",
@@ -75,11 +95,19 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                     ...emptyValueChainMapping(),
                     ...(industry.value_chain_mapping || {}),
                 },
+                homepageBannerFiles: bannerUrl
+                    ? [{ preview: bannerUrl, path: bannerPath, type: "image/jpeg", name: t("industries.homepageBanner") }]
+                    : [],
+                industryCardFiles: cardUrl
+                    ? [{ preview: cardUrl, path: cardPath, type: "image/jpeg", name: t("industries.industryCard") }]
+                    : [],
+                homepageBannerPath: bannerPath,
+                industryCardPath: cardPath,
             });
         } else {
             setFormData(emptyForm());
         }
-    }, [isOpen, industry]);
+    }, [isOpen, industry, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -135,6 +163,22 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
         e.preventDefault();
         if (saving) return;
 
+        const bannerHasFile = formData.homepageBannerFiles?.length > 0;
+        const cardHasFile = formData.industryCardFiles?.length > 0;
+
+        const newErrors = {};
+        if (!bannerHasFile) {
+            newErrors.homepageBanner = t("industries.homepageBannerRequired") || "Homepage Banner Image is required";
+        }
+        if (!cardHasFile) {
+            newErrors.industryCard = t("industries.industryCardRequired") || "Industry Card Image is required";
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
         setSaving(true);
         try {
             await onSave({
@@ -146,6 +190,12 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                 description: formData.short_description.trim(),
                 companies: formData.companies,
                 value_chain_mapping: formData.value_chain_mapping,
+                homepageBannerFiles: formData.homepageBannerFiles,
+                industryCardFiles: formData.industryCardFiles,
+                homepageBannerPath: formData.homepageBannerFiles?.[0]?.file ? null : (formData.homepageBannerPath || industry?.homepageBannerPath || industry?.coverPath || null),
+                industryCardPath: formData.industryCardFiles?.[0]?.file ? null : (formData.industryCardPath || industry?.industryCardPath || industry?.iconPath || null),
+                coverFiles: formData.homepageBannerFiles,
+                iconFiles: formData.industryCardFiles,
             });
         } finally {
             setSaving(false);
@@ -255,6 +305,56 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                     placeholder={t("industries.fullPh")}
                                                 />
                                                 <small className="text-muted fsz-11">{t("industries.fullHint")}</small>
+                                            </div>
+                                        </div>
+                                    </Section>
+
+                                    <Section
+                                        title={t("industries.images")}
+                                        hint={t("industries.imagesHint")}
+                                    >
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">
+                                                    {t("industries.homepageBanner")} <span className="text-danger">*</span>
+                                                </label>
+                                                <FileUpload
+                                                    files={formData.homepageBannerFiles}
+                                                    onFilesChange={(files) => {
+                                                        setFormData((prev) => ({ ...prev, homepageBannerFiles: files }));
+                                                        if (errors.homepageBanner) {
+                                                            setErrors((prev) => ({ ...prev, homepageBanner: null }));
+                                                        }
+                                                    }}
+                                                    maxFiles={1}
+                                                    accept={INDUSTRY_IMAGE_ACCEPT}
+                                                    title={t("industries.uploadHomepageBanner")}
+                                                    hint={t("industries.homepageBannerHint")}
+                                                />
+                                                {errors.homepageBanner && (
+                                                    <div className="text-danger fsz-12 mt-1">{errors.homepageBanner}</div>
+                                                )}
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">
+                                                    {t("industries.industryCard")} <span className="text-danger">*</span>
+                                                </label>
+                                                <FileUpload
+                                                    files={formData.industryCardFiles}
+                                                    onFilesChange={(files) => {
+                                                        setFormData((prev) => ({ ...prev, industryCardFiles: files }));
+                                                        if (errors.industryCard) {
+                                                            setErrors((prev) => ({ ...prev, industryCard: null }));
+                                                        }
+                                                    }}
+                                                    maxFiles={1}
+                                                    accept={INDUSTRY_IMAGE_ACCEPT}
+                                                    title={t("industries.uploadIndustryCard")}
+                                                    hint={t("industries.industryCardHint")}
+                                                />
+                                                {errors.industryCard && (
+                                                    <div className="text-danger fsz-12 mt-1">{errors.industryCard}</div>
+                                                )}
                                             </div>
                                         </div>
                                     </Section>
