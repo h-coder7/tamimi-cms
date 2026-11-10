@@ -55,6 +55,13 @@ const en = {
   "errors.seo.url_slug_format": "URL slug must start with /",
   "errors.payload.invalid_settings": "Invalid settings payload",
   "errors.html.not_allowed": "HTML tags are not allowed in this field",
+  "errors.history.invalid_from_year": "From year must be a valid 4-digit year",
+  "errors.history.invalid_to_year": "To year must be a valid 4-digit year",
+  "errors.history.invalid_year_range": "From year cannot be greater than To year",
+  "errors.history.invalid_year": "Timeline year must be a valid 4-digit year",
+  "errors.history.duplicate_years": "Duplicate timeline years are not allowed",
+  "errors.history.eras_required": "At least one era is required",
+  "errors.history.timeline_years_required": "At least one timeline year is required",
 };
 
 const ar = {
@@ -112,6 +119,13 @@ const ar = {
   "errors.seo.url_slug_format": "مسار الرابط يجب أن يبدأ بـ /",
   "errors.payload.invalid_settings": "بيانات الإعدادات غير صالحة",
   "errors.html.not_allowed": "وسوم HTML غير مسموح بها في هذا الحقل",
+  "errors.history.invalid_from_year": "سنة البداية يجب أن تكون سنة صالحة من 4 أرقام",
+  "errors.history.invalid_to_year": "سنة النهاية يجب أن تكون سنة صالحة من 4 أرقام",
+  "errors.history.invalid_year_range": "سنة البداية لا يمكن أن تكون أكبر من سنة النهاية",
+  "errors.history.invalid_year": "سنة الخط الزمني يجب أن تكون سنة صالحة من 4 أرقام",
+  "errors.history.duplicate_years": "لا يُسمح بتكرار السنوات في الخط الزمني",
+  "errors.history.eras_required": "مطلوب عصر زمني واحد على الأقل",
+  "errors.history.timeline_years_required": "مطلوب سنة زمنية واحدة على الأقل",
 };
 
 const catalogs = { en, ar };

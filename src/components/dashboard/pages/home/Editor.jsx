@@ -12,6 +12,7 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { publicPath } from "@/utils/publicPath";
 import { isValidUrlOrPath } from "@/utils/urlValidator";
 import SaudiManufacturingEditor from "./SaudiManufacturingEditor";
+import OurHistoryEditor from "./OurHistoryEditor";
 import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
@@ -19,9 +20,10 @@ const SECTIONS = [
     { id: "key_message", number: "02", titleKey: "pages.section.keyMessage", fieldsCount: 8 },
     { id: "our_values", number: "03", titleKey: "pages.section.ourValues", fieldsCount: 10 },
     { id: "industries", number: "04", titleKey: "pages.section.industries", fieldsCount: 1, manageLink: { href: "/dashboard/industries", labelKey: "pages.manageIndustries" } },
-    { id: "our_companies", number: "05", titleKey: "pages.section.companies", fieldsCount: 2 },
-    { id: "saudi_manufacturing", number: "06", titleKey: "pages.section.saudiManufacturing", fieldsCount: 12 },
-    { id: "media_center", number: "07", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
+    { id: "our_history", number: "05", titleKey: "pages.section.ourHistory", fieldsCount: 40, isNew: true },
+    { id: "our_companies", number: "06", titleKey: "pages.section.companies", fieldsCount: 2 },
+    { id: "saudi_manufacturing", number: "07", titleKey: "pages.section.saudiManufacturing", fieldsCount: 12 },
+    { id: "media_center", number: "08", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
 ];
 
 const VIDEO_ACCEPT = { "video/mp4": [".mp4"], "video/webm": [".webm"] };
@@ -210,6 +212,28 @@ export default function HomeEditor() {
                 },
                 url: next.saudi_manufacturing?.cta?.url ?? defaultContent.saudi_manufacturing.cta.url,
             },
+        };
+
+        // Normalize our_history (TT-22)
+        const defaultOh = defaultContent.our_history;
+        const rawOh = next.our_history || {};
+        next.our_history = {
+            ...defaultOh,
+            ...rawOh,
+            heading: {
+                ...defaultOh.heading,
+                ...(rawOh.heading || {}),
+                small_label: {
+                    en: rawOh.heading?.small_label?.en ?? (typeof rawOh.heading?.small_label === "string" ? rawOh.heading.small_label : defaultOh.heading.small_label.en),
+                    ar: rawOh.heading?.small_label?.ar ?? defaultOh.heading.small_label.ar,
+                },
+                main_title: {
+                    en: rawOh.heading?.main_title?.en ?? (typeof rawOh.heading?.main_title === "string" ? rawOh.heading.main_title : defaultOh.heading.main_title.en),
+                    ar: rawOh.heading?.main_title?.ar ?? defaultOh.heading.main_title.ar,
+                },
+            },
+            eras: Array.isArray(rawOh.eras) && rawOh.eras.length > 0 ? rawOh.eras : defaultOh.eras,
+            timeline_years: Array.isArray(rawOh.timeline_years) && rawOh.timeline_years.length > 0 ? rawOh.timeline_years : defaultOh.timeline_years,
         };
 
         // Normalize companies
@@ -460,6 +484,35 @@ export default function HomeEditor() {
             newErrors.ctaUrl = t("errors.url.invalid") || "Please enter a valid URL or path";
         }
 
+        // TT-22: Our History validation
+        const oh = content.our_history || {};
+        if (Array.isArray(oh.eras)) {
+            for (let i = 0; i < oh.eras.length; i++) {
+                const era = oh.eras[i];
+                if (era.from_year !== undefined && era.to_year !== undefined && era.from_year !== "" && era.to_year !== "") {
+                    if (Number(era.from_year) > Number(era.to_year)) {
+                        newErrors.historyEraRange = t("errors.history.invalid_year_range") || "From year cannot be greater than To year";
+                        break;
+                    }
+                }
+            }
+        }
+        if (Array.isArray(oh.timeline_years)) {
+            const seenYears = new Set();
+            for (let i = 0; i < oh.timeline_years.length; i++) {
+                const yr = Number(oh.timeline_years[i].year);
+                if (isNaN(yr) || yr < 1000 || yr > 9999) {
+                    newErrors.historyTimelineYear = t("errors.history.invalid_year") || "Timeline year must be a valid 4-digit year";
+                    break;
+                }
+                if (seenYears.has(yr)) {
+                    newErrors.historyDuplicateYear = t("errors.history.duplicate_years") || "Duplicate timeline years are not allowed";
+                    break;
+                }
+                seenYears.add(yr);
+            }
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             if (newErrors.introductoryHeading) {
@@ -471,6 +524,9 @@ export default function HomeEditor() {
             } else if (newErrors.ctaUrl) {
                 toast.error(newErrors.ctaUrl);
                 setActiveSectionId("saudi_manufacturing");
+            } else if (newErrors.historyEraRange || newErrors.historyTimelineYear || newErrors.historyDuplicateYear) {
+                toast.error(newErrors.historyEraRange || newErrors.historyTimelineYear || newErrors.historyDuplicateYear);
+                setActiveSectionId("our_history");
             }
             return;
         }
@@ -558,6 +614,11 @@ export default function HomeEditor() {
                                 <span className="page-editor__section-main">
                                     <span className="page-editor__section-num">{s.number}</span>
                                     <span className="page-editor__section-title">{t(s.titleKey)}</span>
+                                    {s.isNew && (
+                                        <span className="badge bg-success-subtle text-success ms-2 px-2 py-0.5 rounded-pill fsz-11 fw-600">
+                                            New
+                                        </span>
+                                    )}
                                 </span>
                                 <i className="fal fa-angle-right text-muted"></i>
                             </button>
@@ -573,7 +634,16 @@ export default function HomeEditor() {
                         <h6 className="mb-0 fsz-14 fw-600">
                             {activeSection.number} — {t(activeSection.titleKey)}
                         </h6>
-                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.fieldsCount })}</span>
+                        <span className="fsz-12 text-muted">
+                            {t("pages.editableFields", {
+                                count:
+                                    activeSection.id === "our_history"
+                                        ? 2 +
+                                          (content.our_history?.eras?.length || 0) * 5 +
+                                          (content.our_history?.timeline_years?.length || 0) * 3
+                                        : activeSection.fieldsCount,
+                            })}
+                        </span>
                     </div>
 
                     <div className="page-editor__fields">
@@ -1032,7 +1102,22 @@ export default function HomeEditor() {
                                 </div>
                             )}
 
-                            {/* SECTION 05: OUR COMPANIES */}
+                            {/* SECTION 05: OUR HISTORY (TT-22) */}
+                            {activeSection.id === "our_history" && (
+                                <div className="col-12 p-0">
+                                    <OurHistoryEditor
+                                        value={content.our_history}
+                                        onChange={(nextOh) => {
+                                            setContent((prev) => ({
+                                                ...prev,
+                                                our_history: nextOh,
+                                            }));
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* SECTION 06: OUR COMPANIES */}
                             {activeSection.id === "our_companies" && (
                                 <>
                                     <div className="col-12">
@@ -1082,7 +1167,7 @@ export default function HomeEditor() {
                                 </>
                             )}
 
-                            {/* SECTION 06: SAUDI MANUFACTURING & LOCALISATION (TT-19) */}
+                            {/* SECTION 07: SAUDI MANUFACTURING & LOCALISATION (TT-19) */}
                             {activeSection.id === "saudi_manufacturing" && (
                                 <div className="col-12 p-0">
                                     <SaudiManufacturingEditor
@@ -1104,7 +1189,7 @@ export default function HomeEditor() {
                                 </div>
                             )}
 
-                            {/* SECTION 07: MEDIA CENTER */}
+                            {/* SECTION 08: MEDIA CENTER */}
                             {activeSection.id === "media_center" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
