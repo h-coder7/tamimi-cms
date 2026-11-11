@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
@@ -28,37 +28,34 @@ export default function GroupHistoryEditor() {
     const updateMutation = useUpdateCmsPage();
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
-    const [content, setContent] = useState(defaultContent);
+    const [draft, setDraft] = useState(null);
     const [teamDirty, setTeamDirty] = useState(false);
     const [teamUploading, setTeamUploading] = useState(false);
 
-    useEffect(() => {
-        if (!page?.content) return;
-        setContent({
-            ...defaultContent,
-            ...page.content,
-            our_journey: {
-                ...defaultContent.our_journey,
-                ...(page.content.our_journey || {}),
-                milestones:
-                    page.content.our_journey?.milestones?.length
-                        ? page.content.our_journey.milestones
-                        : JOURNEY_MILESTONES.map((item) => ({ ...item })),
-            },
-            values: {
-                ...defaultContent.values,
-                ...(page.content.values || {}),
-                items:
-                    Array.isArray(page.content.values?.items)
-                        ? page.content.values.items
-                        : GROUP_VALUES.map((item) => ({ ...item })),
-            },
-            group_structure: {
-                ...defaultContent.group_structure,
-                ...(page.content.group_structure || {}),
-            },
-        });
-    }, [page]);
+    const savedContent = page?.content || {};
+    const content = draft || {
+        ...defaultContent,
+        ...savedContent,
+        our_journey: {
+            ...defaultContent.our_journey,
+            ...(savedContent.our_journey || {}),
+            milestones: Array.isArray(savedContent.our_journey?.milestones)
+                ? savedContent.our_journey.milestones
+                : JOURNEY_MILESTONES.map((item) => ({ ...item })),
+        },
+        values: {
+            ...defaultContent.values,
+            ...(savedContent.values || {}),
+            items: Array.isArray(savedContent.values?.items)
+                ? savedContent.values.items
+                : GROUP_VALUES.map((item) => ({ ...item })),
+        },
+        group_structure: { ...defaultContent.group_structure, ...(savedContent.group_structure || {}) },
+    };
+    const setContent = (change) => setDraft((current) => {
+        const previous = current || content;
+        return typeof change === "function" ? change(previous) : change;
+    });
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
@@ -270,7 +267,7 @@ export default function GroupHistoryEditor() {
                             )}
 
                             {activeSection.id === "team" && (
-                                <div className="col-12"><TeamEditor value={content.team || {}} onUploading={setTeamUploading} onChange={(team) => { setTeamDirty(true); setContent(prev => ({ ...prev, team })); }} /></div>
+                                <div className="col-12"><TeamEditor value={content.team || {}} onUploading={setTeamUploading} onChange={(change) => { setTeamDirty(true); setContent(prev => ({ ...prev, team: typeof change === "function" ? change(prev.team || {}) : change })); }} /></div>
                             )}
 
                             {activeSection.id === "group_structure" && (
