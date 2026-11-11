@@ -480,7 +480,7 @@ export default function OurHistoryEditor({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        accept="image/png,image/jpeg,image/webp"
         style={{ display: "none" }}
         onChange={handleFileChange}
       />

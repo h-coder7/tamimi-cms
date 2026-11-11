@@ -7,14 +7,17 @@ import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, GROUP_VALUES, JOURNEY_MILESTONES, pageMeta } from "./data";
+import TeamEditor, { validateTeam } from "./TeamEditor";
+import toast from "react-hot-toast";
 
 const SECTIONS = [
     { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
     { id: "our_journey", number: "02", titleKey: "pages.section.journey", fieldsCount: 31 },
     { id: "vision_mission", number: "03", titleKey: "pages.section.visionMission", fieldsCount: 2 },
-    { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 12 },
+    { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 0 },
     { id: "group_structure", number: "05", titleKey: "pages.section.structure", fieldsCount: 1 },
     { id: "vision_2030", number: "06", titleKey: "pages.section.vision2030", fieldsCount: 3 },
+    { id: "team", number: "07", titleKey: "pages.section.team", fieldsCount: 8 },
 ];
 
 export default function GroupHistoryEditor() {
@@ -26,6 +29,8 @@ export default function GroupHistoryEditor() {
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
     const [content, setContent] = useState(defaultContent);
+    const [teamDirty, setTeamDirty] = useState(false);
+    const [teamUploading, setTeamUploading] = useState(false);
 
     useEffect(() => {
         if (!page?.content) return;
@@ -48,7 +53,7 @@ export default function GroupHistoryEditor() {
                 ...defaultContent.values,
                 ...(page.content.values || {}),
                 items:
-                    page.content.values?.items?.length
+                    Array.isArray(page.content.values?.items)
                         ? page.content.values.items
                         : GROUP_VALUES.map((item) => ({ ...item })),
             },
@@ -69,7 +74,6 @@ export default function GroupHistoryEditor() {
     const nextSection = SECTIONS[activeIndex + 1] || null;
     const section = content[activeSection.id] || {};
     const milestones = section.milestones || [];
-    const valueItems = section.items || [];
 
     const setField = (key, value) => {
         setContent((prev) => ({
@@ -90,22 +94,15 @@ export default function GroupHistoryEditor() {
         });
     };
 
-    const setValueItem = (index, key, value) => {
-        setContent((prev) => {
-            const current = prev.values || {};
-            const list = [...(current.items || [])];
-            list[index] = { ...(list[index] || {}), [key]: value };
-            return {
-                ...prev,
-                values: { ...current, items: list },
-            };
-        });
-    };
-
     const handleCancel = () => router.push("/dashboard/pages");
     const handlePreview = () => window.open(page?.url || "/group-history", "_blank", "noopener,noreferrer");
 
     const handleSavePublish = async () => {
+        if (teamDirty && !validateTeam(content.team)) {
+            setActiveSectionId("team");
+            toast.error(t("pages.team.validation"));
+            return;
+        }
         await updateMutation.mutateAsync({
             ...page,
             content,
@@ -148,7 +145,7 @@ export default function GroupHistoryEditor() {
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={handleSavePublish}
-                    disabled={updateMutation.isPending}
+                    disabled={updateMutation.isPending || teamUploading}
                 >
                     <i className="fal fa-check"></i>
                     <span className="txt ms-2">{t("pages.savePublish")}</span>
@@ -166,6 +163,7 @@ export default function GroupHistoryEditor() {
                                 key={s.id}
                                 type="button"
                                 className={`page-editor__section-item ${s.id === activeSection.id ? "active" : ""}`}
+                                disabled={teamUploading}
                                 onClick={() => setActiveSectionId(s.id)}
                             >
                                 <span className="page-editor__section-main">
@@ -186,7 +184,7 @@ export default function GroupHistoryEditor() {
                         <h6 className="mb-0 fsz-14 fw-600">
                             {activeSection.number} · {t(activeSection.titleKey)}
                         </h6>
-                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.fieldsCount })}</span>
+                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.id === "team" ? 8 + (content.team?.members?.length || 0) * 6 : activeSection.fieldsCount })}</span>
                     </div>
 
                     <div className="page-editor__fields">
@@ -287,32 +285,16 @@ export default function GroupHistoryEditor() {
                             )}
 
                             {activeSection.id === "values" && (
-                                <>
-                                    {valueItems.map((item, index) => (
-                                        <div className="col-12" key={`value-${index}`}>
-                                            <div className="row g-3">
-                                                <div className="col-md-4">
-                                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.value")}</label>
-                                                    <input dir={dir}
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.value || ""}
-                                                        onChange={(e) => setValueItem(index, "value", e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="col-md-8">
-                                                    <label className="form-label fsz-12 text-muted">{t("common.description")}</label>
-                                                    <textarea dir={dir}
-                                                        className="form-control"
-                                                        rows={2}
-                                                        value={item.description || ""}
-                                                        onChange={(e) => setValueItem(index, "description", e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </>
+                                <div className="col-12">
+                                    <p className="fsz-12 text-muted mb-0">{t("pages.valuesManaged")}</p>
+                                    <Link href="/dashboard/pages/1/edit/#our_values" className="btn btn-outline-primary fsz-12 mt-3">
+                                        {t("pages.manageValues")} <i className="fal fa-arrow-right ms-2"></i>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {activeSection.id === "team" && (
+                                <div className="col-12"><TeamEditor value={content.team || {}} onUploading={setTeamUploading} onChange={(team) => { setTeamDirty(true); setContent(prev => ({ ...prev, team })); }} /></div>
                             )}
 
                             {activeSection.id === "group_structure" && (
@@ -375,7 +357,7 @@ export default function GroupHistoryEditor() {
                     {(prevSection || nextSection) && (
                         <div className="page-editor__next">
                             {prevSection ? (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(prevSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
                                     {t(prevSection.titleKey)}
                                 </button>
@@ -383,7 +365,7 @@ export default function GroupHistoryEditor() {
                                 <span />
                             )}
                             {nextSection && (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(nextSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(nextSection.id)}>
                                     {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>

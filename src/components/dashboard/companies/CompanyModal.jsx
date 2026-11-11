@@ -9,7 +9,6 @@ import { useIndustries } from "@/hooks/useIndustries";
 import { useI18n } from "@/hooks/useI18n";
 
 const LOGO_ACCEPT = {
-    "image/svg+xml": [".svg"],
     "image/png": [".png"],
     "image/jpeg": [".jpg", ".jpeg"],
     "image/webp": [".webp"],

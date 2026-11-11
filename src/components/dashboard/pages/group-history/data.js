@@ -2,8 +2,8 @@ export const pageMeta = {
     id: 2,
     page: "Group History",
     url: "/group-history",
-    editable_fields: 51,
-    sections: 6,
+    editable_fields: 47,
+    sections: 7,
     status: "Draft",
     last_updated: "",
 };

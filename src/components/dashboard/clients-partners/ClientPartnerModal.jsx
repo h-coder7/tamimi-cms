@@ -10,7 +10,6 @@ import { PARTNER_TYPES } from "@/hooks/useClientsPartners";
 import { useI18n } from "@/hooks/useI18n";
 
 const LOGO_ACCEPT = {
-    "image/svg+xml": [".svg"],
     "image/png": [".png"],
 };
 
