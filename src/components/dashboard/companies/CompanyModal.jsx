@@ -97,6 +97,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
     const [productInput, setProductInput] = useState("");
     const [dragServiceIndex, setDragServiceIndex] = useState(null);
     const [isMounted, setIsMounted] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -266,7 +267,8 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
+        if (saving) return;
         e.preventDefault();
 
         const website = formData.website.trim();
@@ -319,7 +321,12 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
             location: company?.location || "",
         };
 
-        onSave(submissionData);
+        setSaving(true);
+        try {
+            await onSave(submissionData);
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen || !isMounted) return null;
@@ -847,11 +854,20 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="butn-st2 butn-md line-butn" onClick={onClose}>
+                                <button type="button" className="butn-st2 butn-md line-butn" onClick={onClose} disabled={saving}>
                                     {t("common.close")}
                                 </button>
-                                <button type="submit" className="butn-st2 butn-md">
-                                    {company ? t("companies.update") : t("common.save")}
+                                <button type="submit" className="butn-st2 butn-md" disabled={saving}>
+                                    {saving ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            {t("common.saving")}
+                                        </>
+                                    ) : company ? (
+                                        t("companies.update")
+                                    ) : (
+                                        t("common.save")
+                                    )}
                                 </button>
                             </div>
                         </form>

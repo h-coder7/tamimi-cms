@@ -92,9 +92,15 @@ export function industryFromApi(industry) {
     stages_label: `${stagesWithCompanies.length} of ${TOTAL_STAGES} stages`,
     icon: industry.iconUrl || "",
     cover: industry.coverUrl || "",
+    homepageBanner: industry.homepageBannerUrl || industry.coverUrl || "",
+    industryCard: industry.industryCardUrl || industry.iconUrl || "",
+    homepageBannerUrl: industry.homepageBannerUrl || industry.coverUrl || "",
+    industryCardUrl: industry.industryCardUrl || industry.iconUrl || "",
     cover_video_url: industry.coverVideoUrl || "",
     iconPath: industry.iconPath || null,
     coverPath: industry.coverPath || null,
+    homepageBannerPath: industry.homepageBannerPath || industry.coverPath || null,
+    industryCardPath: industry.industryCardPath || industry.iconPath || null,
     created_at: industry.createdAt
       ? String(industry.createdAt).slice(0, 10)
       : "",
@@ -146,6 +152,15 @@ export function industryToApiPayload(form, companiesList = []) {
     payload.coverVideoUrl = (form.cover_video_url || "").trim() || null;
   }
 
+  if (form.homepageBannerPath !== undefined) {
+    payload.homepageBannerPath = form.homepageBannerPath;
+    payload.coverPath = form.homepageBannerPath;
+  }
+  if (form.industryCardPath !== undefined) {
+    payload.industryCardPath = form.industryCardPath;
+    payload.iconPath = form.industryCardPath;
+  }
+
   return payload;
 }
 
@@ -153,11 +168,25 @@ export function industryToFormData(form, companiesList = []) {
   const fd = new FormData();
   fd.append("payload", JSON.stringify(industryToApiPayload(form, companiesList)));
 
-  const iconFile = form.iconFiles?.[0]?.file;
-  if (iconFile instanceof File) fd.append("icon", iconFile);
+  const bannerFile =
+    form.homepageBannerFiles?.[0]?.file ||
+    form.homepageBannerFile ||
+    form.coverFiles?.[0]?.file;
+  if (bannerFile instanceof File) {
+    fd.append("homepageBanner", bannerFile);
+    fd.append("homepageBannerImage", bannerFile);
+    fd.append("cover", bannerFile);
+  }
 
-  const coverFile = form.coverFiles?.[0]?.file;
-  if (coverFile instanceof File) fd.append("cover", coverFile);
+  const cardFile =
+    form.industryCardFiles?.[0]?.file ||
+    form.industryCardFile ||
+    form.iconFiles?.[0]?.file;
+  if (cardFile instanceof File) {
+    fd.append("industryCard", cardFile);
+    fd.append("industryCardImage", cardFile);
+    fd.append("icon", cardFile);
+  }
 
   return fd;
 }

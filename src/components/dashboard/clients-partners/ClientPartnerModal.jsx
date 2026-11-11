@@ -41,6 +41,7 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
     const { data: industries = [] } = useIndustries();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const industryOptions = useMemo(
         () => buildIndustryFormOptions(industries).map((opt) => {
@@ -102,26 +103,31 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (saving) return;
 
         const website = formData.website.trim();
-
         const selectedIndustry = industries.find((i) => i.id === formData.industryId);
 
-        onSave({
-            title: formData.title.trim(),
-            type: formData.type,
-            industryId: formData.industryId || null,
-            industry: selectedIndustry?.title || "",
-            website,
-            status: formData.status,
-            display_order: formData.display_order === "" ? 1 : Number(formData.display_order),
-            logo: formData.logoFiles?.[0]?.preview || partner?.logo || "",
-            logoFiles: formData.logoFiles,
-            logoPath: formData.logoPath || partner?.logoPath || null,
-            is_sample: Boolean(formData.is_sample),
-        });
+        setSaving(true);
+        try {
+            await onSave({
+                title: formData.title.trim(),
+                type: formData.type,
+                industryId: formData.industryId || null,
+                industry: selectedIndustry?.title || "",
+                website,
+                status: formData.status,
+                display_order: formData.display_order === "" ? 1 : Number(formData.display_order),
+                logo: formData.logoFiles?.[0]?.preview || partner?.logo || "",
+                logoFiles: formData.logoFiles,
+                logoPath: formData.logoPath || partner?.logoPath || null,
+                is_sample: Boolean(formData.is_sample),
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen || !isMounted) return null;
@@ -271,11 +277,20 @@ export default function ClientPartnerModal({ isOpen, onClose, onSave, partner, n
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-light" onClick={onClose}>
+                                <button type="button" className="btn btn-light" onClick={onClose} disabled={saving}>
                                     {t("common.cancel")}
                                 </button>
-                                <button type="submit" className="butn-st2" disabled={!formData.type}>
-                                    {partner ? t("clients.update") : t("clients.add")}
+                                <button type="submit" className="butn-st2" disabled={saving || !formData.type}>
+                                    {saving ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            {t("common.saving")}
+                                        </>
+                                    ) : partner ? (
+                                        t("clients.update")
+                                    ) : (
+                                        t("clients.add")
+                                    )}
                                 </button>
                             </div>
                         </form>

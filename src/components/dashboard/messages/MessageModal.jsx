@@ -9,6 +9,7 @@ import { buildCompanyFormOptions, GROUP_VALUE } from "@/lib/companyOptions";
 import { MESSAGE_TYPES } from "@/hooks/useMessages";
 import { toast } from "react-hot-toast";
 import { useI18n } from "@/hooks/useI18n";
+import { isValidMobilePhone } from "@/utils/mobileValidator";
 
 const PDF_ACCEPT = {
   "application/pdf": [".pdf"],
@@ -39,6 +40,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState(emptyForm);
   const [isMounted, setIsMounted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mobileError, setMobileError] = useState("");
 
   const companyOptions = useMemo(() => {
     return buildCompanyFormOptions(companies, { includeGroup: true }).map((opt) => {
@@ -68,15 +70,25 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
     if (!isOpen) return;
     refetchCompanies();
     setFormData(emptyForm());
+    setMobileError("");
   }, [isOpen, refetchCompanies]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "mobile") {
+      if (value && !isValidMobilePhone(value)) {
+        setMobileError(t("errors.mobile.invalid"));
+      } else {
+        setMobileError("");
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+
     if (!formData.target_company) {
       toast.error(t("validation.selectCompany"));
       return;
@@ -98,13 +110,21 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
       return;
     }
 
+    const trimmedMobile = formData.mobile ? formData.mobile.trim() : "";
+    if (trimmedMobile && !isValidMobilePhone(trimmedMobile)) {
+      const err = t("errors.mobile.invalid");
+      setMobileError(err);
+      toast.error(err);
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave({
         ...formData,
         name: formData.name.trim(),
         email: formData.email.trim(),
-        mobile: formData.mobile.trim(),
+        mobile: trimmedMobile || null,
         city: formData.city.trim(),
         company: formData.company.trim(),
         subject: formData.subject.trim(),
@@ -130,7 +150,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
           <div className="modal-content company-modal-content">
             <div className="modal-header">
               <h5 className="modal-title">{t("messages.add")}</h5>
-              <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
+              <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")} disabled={saving}></button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -149,6 +169,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                           type: opt?.value || "Inquiry",
                         }))
                       }
+                      isDisabled={saving}
                       isRtl={isRtl}
                       classNamePrefix="react-select"
                     />
@@ -171,6 +192,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                           target_company: opt?.value || GROUP_VALUE,
                         }))
                       }
+                      isDisabled={saving}
                       isRtl={isRtl}
                       classNamePrefix="react-select"
                     />
@@ -188,6 +210,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       value={formData.name}
                       onChange={handleChange}
                       required
+                      disabled={saving}
                     />
                   </div>
 
@@ -203,6 +226,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       value={formData.email}
                       onChange={handleChange}
                       required
+                      disabled={saving}
                     />
                   </div>
 
@@ -211,11 +235,16 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                     <input
                       type="text"
                       name="mobile"
-                      className="form-control"
+                      className={`form-control ${mobileError ? "is-invalid" : ""}`}
                       dir="ltr"
                       value={formData.mobile}
                       onChange={handleChange}
+                      placeholder="0501234567"
+                      disabled={saving}
                     />
+                    {mobileError && (
+                      <div className="invalid-feedback d-block fsz-11">{mobileError}</div>
+                    )}
                   </div>
 
                   <div className="col-md-6 mb-3">
@@ -227,6 +256,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       dir={proseDir}
                       value={formData.city}
                       onChange={handleChange}
+                      disabled={saving}
                     />
                   </div>
 
@@ -240,6 +270,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       value={formData.company}
                       onChange={handleChange}
                       placeholder={t("messages.senderPh")}
+                      disabled={saving}
                     />
                   </div>
 
@@ -255,6 +286,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       value={formData.subject}
                       onChange={handleChange}
                       required
+                      disabled={saving}
                     />
                   </div>
 
@@ -270,6 +302,7 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                       value={formData.body}
                       onChange={handleChange}
                       required
+                      disabled={saving}
                     />
                   </div>
 
@@ -300,8 +333,15 @@ export default function MessageModal({ isOpen, onClose, onSave }) {
                 >
                   {t("common.cancel")}
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? t("common.saving") : t("common.save")}
+                <button type="submit" className="btn btn-primary" disabled={saving || Boolean(mobileError)}>
+                  {saving ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      {t("common.saving")}
+                    </>
+                  ) : (
+                    t("common.save")
+                  )}
                 </button>
               </div>
             </form>

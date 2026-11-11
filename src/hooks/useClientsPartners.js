@@ -149,3 +149,25 @@ export function usePermanentDeleteClientPartner() {
     },
   });
 }
+
+
+export function useReorderClientsPartners() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids) => {
+      const res = await api.put("/clients/order", { ids });
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(
+        queryClient,
+        "clients-partners",
+        "trash-clients-partners"
+      );
+      toast.success(t("toast.logo.reordered"));
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t("common.reorderFailed")));
+    },
+  });
+}

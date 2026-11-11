@@ -18,6 +18,9 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
     const { t, isRtl, statusText } = useI18n();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const statusOptions = useMemo(
         () => USER_STATUSES.map((status) => ({ value: status, label: statusText(status) })),
@@ -30,6 +33,8 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
 
     useEffect(() => {
         if (!isOpen) return;
+        setShowPassword(false);
+        setShowConfirmPassword(false);
 
         if (user) {
             setFormData({
@@ -53,21 +58,27 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
         Boolean(formData.password || formData.passwordConfirmation) &&
         formData.password !== formData.passwordConfirmation;
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user && !formData.password) return;
         if (passwordsMismatch) return;
+        if (saving) return;
 
-        onSave({
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            status: user ? formData.status : "Active",
-            password: formData.password || undefined,
-            passwordConfirmation: formData.passwordConfirmation || undefined,
-            is_sample: Boolean(user?.is_sample),
-            locked: false,
-            last_sign_in: user?.last_sign_in || "",
-        });
+        setSaving(true);
+        try {
+            await onSave({
+                name: formData.name.trim(),
+                email: formData.email.trim(),
+                status: user ? formData.status : "Active",
+                password: formData.password || undefined,
+                passwordConfirmation: formData.passwordConfirmation || undefined,
+                is_sample: Boolean(user?.is_sample),
+                locked: false,
+                last_sign_in: user?.last_sign_in || "",
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (!isOpen || !isMounted) return null;
@@ -83,7 +94,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                     <div className="modal-content company-modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">{user ? t("admins.edit") : t("admins.addTitle")}</h5>
-                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
+                            <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")} disabled={saving}></button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
@@ -101,6 +112,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         value={formData.name}
                                         onChange={handleChange}
                                         placeholder={t("admins.namePh")}
+                                        disabled={saving}
                                     />
                                 </div>
 
@@ -117,7 +129,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         value={formData.email}
                                         onChange={handleChange}
                                         placeholder={t("admins.emailPh")}
-                                        disabled={Boolean(user)}
+                                        disabled={Boolean(user) || saving}
                                     />
                                 </div>
 
@@ -131,18 +143,31 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                             </span>
                                         )}
                                     </label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        name="password"
-                                        required={!user}
-                                        minLength={user ? undefined : 8}
-                                        dir="ltr"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder={t("admins.passwordPh")}
-                                        autoComplete="new-password"
-                                    />
+                                    <div className="input-group">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            className="form-control"
+                                            name="password"
+                                            required={!user}
+                                            minLength={user ? undefined : 8}
+                                            dir="ltr"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder={t("admins.passwordPh")}
+                                            autoComplete="new-password"
+                                            disabled={saving}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-secondary"
+                                            onClick={() => setShowPassword((prev) => !prev)}
+                                            title={showPassword ? t("admins.hidePassword") : t("admins.showPassword")}
+                                            aria-label={showPassword ? t("admins.hidePassword") : t("admins.showPassword")}
+                                            disabled={saving}
+                                        >
+                                            <i className={`fal ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="mb-3">
@@ -150,17 +175,30 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                         {t("admins.confirmPassword")}{" "}
                                         {!user && <span className="text-danger">*</span>}
                                     </label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        name="passwordConfirmation"
-                                        required={!user || Boolean(formData.password)}
-                                        minLength={user && !formData.password ? undefined : 8}
-                                        dir="ltr"
-                                        value={formData.passwordConfirmation}
-                                        onChange={handleChange}
-                                        autoComplete="new-password"
-                                    />
+                                    <div className="input-group">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            className="form-control"
+                                            name="passwordConfirmation"
+                                            required={!user || Boolean(formData.password)}
+                                            minLength={user && !formData.password ? undefined : 8}
+                                            dir="ltr"
+                                            value={formData.passwordConfirmation}
+                                            onChange={handleChange}
+                                            autoComplete="new-password"
+                                            disabled={saving}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-secondary"
+                                            onClick={() => setShowConfirmPassword((prev) => !prev)}
+                                            title={showConfirmPassword ? t("admins.hideConfirmPassword") : t("admins.showConfirmPassword")}
+                                            aria-label={showConfirmPassword ? t("admins.hideConfirmPassword") : t("admins.showConfirmPassword")}
+                                            disabled={saving}
+                                        >
+                                            <i className={`fal ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                                        </button>
+                                    </div>
                                     {passwordsMismatch && (
                                         <div className="form-text text-danger fsz-11">
                                             {t("admins.passwordMismatch")}
@@ -183,6 +221,7 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                                                     status: opt?.value || "Active",
                                                 }))
                                             }
+                                            isDisabled={saving}
                                             isRtl={isRtl}
                                             classNamePrefix="react-select"
                                             menuPortalTarget={
@@ -195,15 +234,24 @@ export default function UserModal({ isOpen, onClose, onSave, user }) {
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-light" onClick={onClose}>
+                                <button type="button" className="btn btn-light" onClick={onClose} disabled={saving}>
                                     {t("common.cancel")}
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
-                                    disabled={passwordsMismatch}
+                                    disabled={passwordsMismatch || saving}
                                 >
-                                    {user ? t("common.save") : t("admins.create")}
+                                    {saving ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            {t("common.saving") || "Saving..."}
+                                        </>
+                                    ) : user ? (
+                                        t("common.save")
+                                    ) : (
+                                        t("admins.create")
+                                    )}
                                 </button>
                             </div>
                         </form>
