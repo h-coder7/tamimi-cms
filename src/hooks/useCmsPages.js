@@ -91,6 +91,10 @@ export function useUpdateCmsPage() {
         );
       }
 
+      if (slug === "group-history") {
+        sections = Object.fromEntries(Object.entries(sections).filter(([key]) => !["vision_mission", "vision_2030"].includes(key)));
+      }
+
       const res = await api.put(`/pages/${slug}/content`, {
         sections,
         publish,
