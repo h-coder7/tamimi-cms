@@ -1163,4 +1163,11 @@ export const en = {
   "companies.secondaryImage": "Secondary Image",
   "companies.thirdImage": "Third Image",
   "companies.imageOnlyHint": "JPG, PNG or WEBP image, up to 10 MB",
+  "pages.howToJoin": "How to Join",
+  "pages.howJoinRequired": "Complete all four How to Join card titles and descriptions in English or Arabic.",
+  "pages.graduatesTraining": "Graduates & Training",
+  "industries.overview": "Overview",
+  "industries.overview.title": "Title",
+  "industries.overview.firstDescription": "First Description",
+  "industries.overview.secondDescription": "Second Description",
 };

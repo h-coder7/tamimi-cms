@@ -176,12 +176,12 @@ export default function IndustriesClient() {
                 />
             )}
 
-            <IndustryModal
+            {isModalOpen && <IndustryModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSave}
                 industry={selectedIndustry}
-            />
+            />}
 
             <IndustriesTrashModal
                 isOpen={showTrashModal}
