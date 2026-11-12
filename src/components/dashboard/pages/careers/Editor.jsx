@@ -11,6 +11,8 @@ import { defaultContent, pageMeta } from "./data";
 const SECTIONS = [
     { id: "section_1", number: "01", titleKey: "pages.section.careersIntro", fieldsCount: 2 },
     { id: "why_join_us", number: "02", titleKey: "pages.whyJoinUs", fieldsCount: 12 },
+    { id: "how_to_join", number: "03", titleKey: "pages.howToJoin", fieldsCount: 12 },
+    { id: "graduates_training", number: "04", titleKey: "pages.graduatesTraining", fieldsCount: 2 },
 ];
 
 export default function CareersEditor() {
@@ -22,6 +24,7 @@ export default function CareersEditor() {
 
     const [activeSectionId, setActiveSectionId] = useState(SECTIONS[0].id);
     const [draft, setContent] = useState(null);
+    const [howTouched, setHowTouched] = useState(false);
     const content = draft || { ...defaultContent, ...page?.content };
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
@@ -45,9 +48,16 @@ export default function CareersEditor() {
         if (cards.length !== 4 || cards.some(card => [card.title, card.description].some(value => !value?.en?.trim() && !value?.ar?.trim()))) {
             toast.error(t("pages.whyJoinRequired")); setActiveSectionId("why_join_us"); return;
         }
+        const howCards = content.how_to_join?.cards || [];
+        const howEmpty = howCards.every(card => [card.title, card.description].every(value => !value?.en?.trim() && !value?.ar?.trim()));
+        if ((!howEmpty || howTouched) && (howCards.length !== 4 || howCards.some(card => [card.title, card.description].some(value => !value?.en?.trim() && !value?.ar?.trim())))) {
+            toast.error(t("pages.howJoinRequired")); setActiveSectionId("how_to_join"); return;
+        }
+        const nextContent = { ...content };
+        if (howEmpty && !howTouched) delete nextContent.how_to_join;
         await updateMutation.mutateAsync({
             ...page,
-            content,
+            content: nextContent,
             status: "Published",
         });
         router.push("/dashboard/pages");
@@ -156,8 +166,8 @@ export default function CareersEditor() {
                                 </>
                             )}
 
-                            {activeSection.id === "why_join_us" && (section.cards || []).map((card, index) => {
-                                const setCard = (key, value) => setField("cards", section.cards.map((item, i) => i === index ? { ...item, [key]: value } : item));
+                            {["why_join_us", "how_to_join"].includes(activeSection.id) && (section.cards || []).map((card, index) => {
+                                const setCard = (key, value) => { if (activeSection.id === "how_to_join") setHowTouched(true); setField("cards", section.cards.map((item, i) => i === index ? { ...item, [key]: value } : item)); };
                                 return <div className="col-12" key={card.id}>
                                     <div className="border rounded-3 p-3 bg-light">
                                         <h6 className="fsz-13 fw-600 mb-3">{t("pages.card")} {index + 1}</h6>
@@ -175,6 +185,13 @@ export default function CareersEditor() {
                                     </div>
                                 </div>;
                             })}
+                            {activeSection.id === "graduates_training" && ["title", "description"].map(key => <div className="col-12" key={key}>
+                                <label className="form-label fsz-12 text-muted">{key === "title" ? t("pages.fields.title") : t("pages.careerDescription")}</label>
+                                <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}>
+                                    <span className="fsz-10 text-muted">{lang.toUpperCase()}</span>
+                                    {key === "title" ? <input aria-label={`${t("pages.graduatesTraining")} ${t("pages.fields.title")} ${lang.toUpperCase()}`} className="form-control" dir={lang === "ar" ? "rtl" : "ltr"} maxLength={120} value={section[key]?.[lang] || ""} onChange={e => setField(key, { ...section[key], [lang]: e.target.value })} /> : <textarea aria-label={`${t("pages.graduatesTraining")} ${t("pages.careerDescription")} ${lang.toUpperCase()}`} className="form-control" dir={lang === "ar" ? "rtl" : "ltr"} maxLength={1000} rows={4} value={section[key]?.[lang] || ""} onChange={e => setField(key, { ...section[key], [lang]: e.target.value })} />}
+                                </div>)}</div>
+                            </div>)}
                         </div>
                     </div>
 

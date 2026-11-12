@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
@@ -27,7 +27,7 @@ const emptyForm = () => ({
     order: "",
     status: "Draft",
     short_description: "",
-    full_description: "",
+    overview: { title: { en: "", ar: "" }, firstDescription: { en: "", ar: "" }, secondDescription: { en: "", ar: "" } },
     companies: [],
     value_chain_mapping: emptyValueChainMapping(),
     homepageBannerFiles: [],
@@ -45,13 +45,34 @@ const Section = ({ title, hint, children }) => (
     </div>
 );
 
+function initialIndustryForm(industry, t) {
+    if (!industry) return emptyForm();
+    const bannerUrl = industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover || "";
+    const bannerPath = industry.homepageBannerPath || industry.coverPath || null;
+    const cardUrl = industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon || "";
+    const cardPath = industry.industryCardPath || industry.iconPath || null;
+
+    return {
+        title: industry.title || "",
+        order: industry.order ?? "",
+        status: industry.status || "Draft",
+        short_description: industry.short_description || industry.description || "",
+        overview: industry.overview || { title: { en: "", ar: "" }, firstDescription: { en: "", ar: "" }, secondDescription: { en: "", ar: "" } },
+        companies: Array.isArray(industry.companies) ? [...industry.companies] : [],
+        value_chain_mapping: { ...emptyValueChainMapping(), ...(industry.value_chain_mapping || {}) },
+        homepageBannerFiles: bannerUrl ? [{ preview: bannerUrl, path: bannerPath, type: "image/jpeg", name: t("industries.homepageBanner") }] : [],
+        industryCardFiles: cardUrl ? [{ preview: cardUrl, path: cardPath, type: "image/jpeg", name: t("industries.industryCard") }] : [],
+        homepageBannerPath: bannerPath,
+        industryCardPath: cardPath,
+    };
+}
+
 export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
     const { t, isRtl, statusText, text } = useI18n();
     const textDir = isRtl ? "rtl" : "ltr";
     const { data: allCompanies = [] } = useCompanies();
-    const [formData, setFormData] = useState(emptyForm);
+    const [formData, setFormData] = useState(() => initialIndustryForm(industry, t));
     const [errors, setErrors] = useState({});
-    const [isMounted, setIsMounted] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const statusOptions = useMemo(
@@ -69,45 +90,6 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
         });
         return map;
     }, [allCompanies]);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!isOpen) return;
-        setErrors({});
-
-        if (industry) {
-            const bannerUrl = industry.homepageBannerUrl || industry.homepageBanner || industry.coverUrl || industry.cover || "";
-            const bannerPath = industry.homepageBannerPath || industry.coverPath || null;
-            const cardUrl = industry.industryCardUrl || industry.industryCard || industry.iconUrl || industry.icon || "";
-            const cardPath = industry.industryCardPath || industry.iconPath || null;
-
-            setFormData({
-                title: industry.title || "",
-                order: industry.order ?? "",
-                status: industry.status || "Draft",
-                short_description: industry.short_description || industry.description || "",
-                full_description: industry.full_description || "",
-                companies: Array.isArray(industry.companies) ? [...industry.companies] : [],
-                value_chain_mapping: {
-                    ...emptyValueChainMapping(),
-                    ...(industry.value_chain_mapping || {}),
-                },
-                homepageBannerFiles: bannerUrl
-                    ? [{ preview: bannerUrl, path: bannerPath, type: "image/jpeg", name: t("industries.homepageBanner") }]
-                    : [],
-                industryCardFiles: cardUrl
-                    ? [{ preview: cardUrl, path: cardPath, type: "image/jpeg", name: t("industries.industryCard") }]
-                    : [],
-                homepageBannerPath: bannerPath,
-                industryCardPath: cardPath,
-            });
-        } else {
-            setFormData(emptyForm());
-        }
-    }, [isOpen, industry, t]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -186,7 +168,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                 order: formData.order === "" ? null : Number(formData.order),
                 status: formData.status,
                 short_description: formData.short_description.trim(),
-                full_description: formData.full_description.trim(),
+                overview: formData.overview,
                 description: formData.short_description.trim(),
                 companies: formData.companies,
                 value_chain_mapping: formData.value_chain_mapping,
@@ -202,7 +184,7 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
         }
     };
 
-    if (!isOpen || !isMounted) return null;
+    if (!isOpen) return null;
 
     const shortCount = formData.short_description.length;
 
@@ -294,17 +276,14 @@ export default function IndustryModal({ isOpen, onClose, onSave, industry }) {
                                                 </small>
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">{t("industries.full")}</label>
-                                                <textarea
-                                                    className="form-control"
-                                                    name="full_description"
-                                                    rows={4}
-                                                    dir={textDir}
-                                                    value={formData.full_description}
-                                                    onChange={handleChange}
-                                                    placeholder={t("industries.fullPh")}
-                                                />
-                                                <small className="text-muted fsz-11">{t("industries.fullHint")}</small>
+                                                <h6 className="fsz-13 fw-600">{t("industries.overview")}</h6>
+                                                {["title", "firstDescription", "secondDescription"].map(key => <div className="mb-3" key={key}>
+                                                    <label className="form-label">{t(`industries.overview.${key}`)}</label>
+                                                    <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}>
+                                                        <label className="fsz-11 text-muted" htmlFor={`industry-overview-${key}-${lang}`}>{lang.toUpperCase()}</label>
+                                                        {key === "title" ? <input id={`industry-overview-${key}-${lang}`} className="form-control" maxLength={2000} dir={lang === "ar" ? "rtl" : "ltr"} value={formData.overview?.[key]?.[lang] || ""} onChange={e => setFormData(prev => ({ ...prev, overview: { ...prev.overview, [key]: { ...prev.overview[key], [lang]: e.target.value } } }))} /> : <textarea id={`industry-overview-${key}-${lang}`} className="form-control" rows={3} maxLength={2000} dir={lang === "ar" ? "rtl" : "ltr"} value={formData.overview?.[key]?.[lang] || ""} onChange={e => setFormData(prev => ({ ...prev, overview: { ...prev.overview, [key]: { ...prev.overview[key], [lang]: e.target.value } } }))} />}
+                                                    </div>)}</div>
+                                                </div>)}
                                             </div>
                                         </div>
                                     </Section>

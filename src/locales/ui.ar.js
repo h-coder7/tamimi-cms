@@ -1163,4 +1163,11 @@ export const ar = {
   "companies.secondaryImage": "الصورة الثانية",
   "companies.thirdImage": "الصورة الثالثة",
   "companies.imageOnlyHint": "صورة JPG أو PNG أو WEBP حتى 10 ميجابايت",
+  "pages.howToJoin": "كيفية الانضمام",
+  "pages.howJoinRequired": "أكمل عناوين وأوصاف بطاقات كيفية الانضمام الأربع بالعربية أو الإنجليزية.",
+  "pages.graduatesTraining": "الخريجون والتدريب",
+  "industries.overview": "نظرة عامة",
+  "industries.overview.title": "العنوان",
+  "industries.overview.firstDescription": "الوصف الأول",
+  "industries.overview.secondDescription": "الوصف الثاني",
 };
