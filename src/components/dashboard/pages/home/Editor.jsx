@@ -33,7 +33,6 @@ const IMAGE_ACCEPT = {
     "image/jpeg": [".jpg", ".jpeg"],
     "image/png": [".png"],
     "image/webp": [".webp"],
-    "image/svg+xml": [".svg"],
 };
 
 const KEY_MESSAGE_IMAGE_ACCEPT = {
@@ -85,6 +84,11 @@ export default function HomeEditor() {
     const updateMutation = useUpdateCmsPage();
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
+    useEffect(() => {
+        // Initialize from the browser URL after hydration.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (window.location.hash === "#our_values") setActiveSectionId("our_values");
+    }, []);
     const [content, setContent] = useState(defaultContent);
     const [saving, setSaving] = useState(false);
     const [careersUploading, setCareersUploading] = useState(false);

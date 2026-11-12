@@ -13,6 +13,8 @@ import MediaCenterEditor from "./media-center/Editor";
 import CareersEditor from "./careers/Editor";
 import DownloadsEditor from "./downloads/Editor";
 import ContactEditor from "./contact/Editor";
+import CapabilitiesEditor from "./capabilities/Editor";
+import CallToActionEditor from "./call-to-action/Editor";
 import { useI18n } from "@/hooks/useI18n";
 
 const EDITORS = {
@@ -27,6 +29,8 @@ const EDITORS = {
     9: CareersEditor,
     10: DownloadsEditor,
     11: ContactEditor,
+    12: CallToActionEditor,
+    13: CapabilitiesEditor,
 };
 
 export default function PageEditorClient() {
