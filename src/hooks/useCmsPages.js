@@ -95,6 +95,11 @@ export function useUpdateCmsPage() {
         sections = Object.fromEntries(Object.entries(sections).filter(([key]) => !["vision_mission", "vision_2030"].includes(key)));
       }
 
+      if (slug === "industries" || slug === "careers") {
+        const removed = slug === "industries" ? ["value_chain"] : ["section_2", "section_3"];
+        sections = Object.fromEntries(Object.entries(sections).filter(([key]) => !removed.includes(key)));
+      }
+
       const res = await api.put(`/pages/${slug}/content`, {
         sections,
         publish,
