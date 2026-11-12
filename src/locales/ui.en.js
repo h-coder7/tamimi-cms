@@ -303,7 +303,7 @@ export const en = {
   "companies.shortCodePh": "e.g. SESCO",
   "companies.tagline": "Tagline",
   "companies.taglinePh": "Short company tagline",
-  "companies.year": "Year established",
+  "companies.year": "Joined the Group",
   "companies.yearPh": "4-digit year",
   "companies.overviewPh": "Company overview",
   "companies.services": "Core services",
@@ -1158,4 +1158,9 @@ export const en = {
   "pages.careerIcon.chart-line": "Growth",
   "pages.careerIcon.shield": "Safety",
   "pages.careerIcon.star": "Recognition",
+  "companies.secondaryOverview": "Secondary Overview",
+  "companies.primaryImage": "Primary Image",
+  "companies.secondaryImage": "Secondary Image",
+  "companies.thirdImage": "Third Image",
+  "companies.imageOnlyHint": "JPG, PNG or WEBP image, up to 10 MB",
 };

@@ -15,7 +15,9 @@ const LOGO_ACCEPT = {
 };
 
 const COVER_ACCEPT = {
-    "image/*": [".jpeg", ".jpg", ".png", ".webp"],
+    "image/jpeg": [".jpeg", ".jpg"],
+    "image/png": [".png"],
+    "image/webp": [".webp"],
 };
 
 const GALLERY_ACCEPT = {
@@ -46,6 +48,7 @@ const emptyForm = () => ({
     tagline: "",
     year_established: "",
     overview: "",
+    secondaryOverview: { en: "", ar: "" },
     services: [],
     products: [],
     industries: [],
@@ -58,6 +61,8 @@ const emptyForm = () => ({
     display_order: "",
     logoFiles: [],
     coverFiles: [],
+    secondaryImageFiles: [],
+    thirdImageFiles: [],
     phone: "",
     email: "",
     website: "",
@@ -123,6 +128,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                         ? String(company.year_established)
                         : "",
                 overview: company.overview || company.field || company.description || "",
+                secondaryOverview: { en: company.secondaryOverview?.en || "", ar: company.secondaryOverview?.ar || "" },
                 services: Array.isArray(company.services)
                     ? company.services
                           .map((s) => (typeof s === "string" ? s : s?.en || s?.ar || ""))
@@ -142,6 +148,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                     ? company.galleryItems.map((item, idx) => ({
                         preview: item.url || item.videoUrl || "",
                         path: item.path || null,
+                        videoUrl: item.videoUrl || null,
                         name: t("companies.galleryItem", { n: idx + 1 }),
                         type: String(item.url || item.path || "").toLowerCase().includes(".mp4")
                             ? "video/mp4"
@@ -164,6 +171,8 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                 coverFiles: company.cover
                     ? [{ preview: company.cover, type: "image/jpeg", name: t("common.cover") }]
                     : [],
+                secondaryImageFiles: company.secondaryImage ? [{ preview: company.secondaryImage, type: "image/jpeg", name: t("companies.secondaryImage") }] : [],
+                thirdImageFiles: company.thirdImage ? [{ preview: company.thirdImage, type: "image/jpeg", name: t("companies.thirdImage") }] : [],
                 phone: company.phone || "",
                 email: company.email || "",
                 website: company.website || company.domain || "",
@@ -280,7 +289,9 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
             tagline: formData.tagline.trim(),
             year_established: String(formData.year_established ?? "").trim(),
             overview: formData.overview.trim(),
-            field: formData.overview.trim(),
+            secondaryOverview: { en: formData.secondaryOverview.en.trim(), ar: formData.secondaryOverview.ar.trim() },
+            field: company && formData.overview.trim() === String(company.overview || "").trim()
+                ? company.field : formData.overview.trim(),
             description: formData.overview.trim(),
             services: formData.services,
             products: formData.products,
@@ -296,6 +307,8 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                 : formData.certifications,
             gallery: formData.gallery,
             video_url: formData.video_url.trim(),
+            extraVideoUrls: company?.extraVideoUrls || [],
+            gallerySequence: company?.gallerySequence || [],
             status: formData.status,
             type: formData.type,
             display_order: formData.display_order === "" ? null : Number(formData.display_order),
@@ -303,6 +316,10 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
             cover: formData.coverFiles?.[0]?.preview || company?.cover || "",
             logoFiles: formData.logoFiles,
             coverFiles: formData.coverFiles,
+            secondaryImageFiles: formData.secondaryImageFiles,
+            thirdImageFiles: formData.thirdImageFiles,
+            secondaryImagePath: company?.secondaryImagePath || null,
+            thirdImagePath: company?.thirdImagePath || null,
             brochureFiles: formData.brochureFiles,
             logoPath: company?.logoPath || null,
             coverPath: company?.coverPath || null,
@@ -435,6 +452,13 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                 <small className="text-muted fsz-11">
                                                     {t("companies.overviewHint", { count: overviewCount })}
                                                 </small>
+                                            </div>
+                                            <div className="col-12 mb-3">
+                                                <label className="form-label">{t("companies.secondaryOverview")}</label>
+                                                <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}>
+                                                    <label className="fsz-11 text-muted" htmlFor={`secondary-overview-${lang}`}>{lang.toUpperCase()}</label>
+                                                    <textarea id={`secondary-overview-${lang}`} className="form-control" rows="4" maxLength={600} dir={lang === "ar" ? "rtl" : "ltr"} value={formData.secondaryOverview[lang]} onChange={e => setFormData(prev => ({ ...prev, secondaryOverview: { ...prev.secondaryOverview, [lang]: e.target.value } }))} />
+                                                </div>)}</div>
                                             </div>
                                         </div>
                                     </Section>
@@ -672,6 +696,9 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                         title={t("companies.galleryVideo")}
                                         hint={t("companies.galleryHint")}
                                     >
+                                        {[ ["coverFiles", "companies.primaryImage"], ["secondaryImageFiles", "companies.secondaryImage"], ["thirdImageFiles", "companies.thirdImage"] ].map(([key, label]) => <div className="mb-3" key={key}>
+                                            <FileUpload files={formData[key]} onFilesChange={files => setFormData(prev => ({ ...prev, [key]: files }))} maxFiles={1} accept={COVER_ACCEPT} title={t(label)} hint={t("companies.imageOnlyHint")} />
+                                        </div>)}
                                         <FileUpload
                                             files={formData.gallery}
                                             onFilesChange={(files) => setFormData((prev) => ({ ...prev, gallery: files }))}

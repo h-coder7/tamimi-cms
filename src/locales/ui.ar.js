@@ -303,7 +303,7 @@ export const ar = {
   "companies.shortCodePh": "مثال: SESCO",
   "companies.tagline": "الشعار النصي",
   "companies.taglinePh": "وصف قصير للشركة",
-  "companies.year": "سنة التأسيس",
+  "companies.year": "الانضمام إلى المجموعة",
   "companies.yearPh": "سنة من 4 أرقام",
   "companies.overviewPh": "نبذة عن الشركة",
   "companies.services": "الخدمات الأساسية",
@@ -1158,4 +1158,9 @@ export const ar = {
   "pages.careerIcon.chart-line": "النمو",
   "pages.careerIcon.shield": "السلامة",
   "pages.careerIcon.star": "التقدير",
+  "companies.secondaryOverview": "نظرة عامة إضافية",
+  "companies.primaryImage": "الصورة الرئيسية",
+  "companies.secondaryImage": "الصورة الثانية",
+  "companies.thirdImage": "الصورة الثالثة",
+  "companies.imageOnlyHint": "صورة JPG أو PNG أو WEBP حتى 10 ميجابايت",
 };
