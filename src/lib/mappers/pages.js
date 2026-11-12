@@ -12,6 +12,7 @@ export const PAGE_ID_BY_SLUG = {
   downloads: 10,
   contact: 11,
   "call-to-action": 12,
+  capabilities: 13,
 };
 
 export const PAGE_SLUG_BY_ID = Object.fromEntries(
