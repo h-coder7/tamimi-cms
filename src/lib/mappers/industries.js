@@ -80,7 +80,9 @@ export function industryFromApi(industry) {
     order: industry.displayOrder ?? 0,
     status: STATUS_TO_UI[industry.status] || "Draft",
     short_description: shortDescription,
+    i18nShortDescription: industry.shortDescription,
     full_description: fullDescription,
+    overview: industry.overview || { title: { en: "", ar: "" }, firstDescription: { en: "", ar: "" }, secondDescription: { en: "", ar: "" } },
     description: shortDescription,
     companies,
     companyIds,
@@ -131,10 +133,10 @@ export function industryToApiPayload(form, companiesList = []) {
   ).map((stage) => VALUE_CHAIN_TO_API[stage] || stage);
 
   const payload = {
-    name: toLocalized(form.title),
+    name: form.i18nTitle && localized(form.i18nTitle).trim() === String(form.title || "").trim() ? form.i18nTitle : toLocalized(form.title),
     status: STATUS_TO_API[form.status] || "draft",
-    shortDescription: toLocalized(form.short_description || form.description),
-    fullDescription: toLocalized(form.full_description),
+    shortDescription: form.i18nShortDescription && localized(form.i18nShortDescription).trim() === String(form.short_description || form.description || "").trim() ? form.i18nShortDescription : toLocalized(form.short_description || form.description),
+    overview: form.overview,
     companyIds,
     valueChainStages,
     valueChainMapping: mapping,
@@ -174,8 +176,6 @@ export function industryToFormData(form, companiesList = []) {
     form.coverFiles?.[0]?.file;
   if (bannerFile instanceof File) {
     fd.append("homepageBanner", bannerFile);
-    fd.append("homepageBannerImage", bannerFile);
-    fd.append("cover", bannerFile);
   }
 
   const cardFile =
@@ -184,8 +184,6 @@ export function industryToFormData(form, companiesList = []) {
     form.iconFiles?.[0]?.file;
   if (cardFile instanceof File) {
     fd.append("industryCard", cardFile);
-    fd.append("industryCardImage", cardFile);
-    fd.append("icon", cardFile);
   }
 
   return fd;
