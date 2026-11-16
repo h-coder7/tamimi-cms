@@ -6,6 +6,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import CompaniesTable from "./CompaniesTable";
 import CompanyModal from "./CompanyModal";
 import TrashModal from "./TrashModal";
+import ReorderModal from "@/components/shared/ReorderModal";
 import { confirmAction } from "@/utils/confirm";
 import { toast } from "react-hot-toast";
 import CompanyDetailsOffcanvas from "./CompanyDetailsOffcanvas";
@@ -18,13 +19,15 @@ import {
     useDeleteCompany,
     useRestoreCompany,
     usePermanentDeleteCompany,
-    useBulkDeleteCompanies
+    useBulkDeleteCompanies,
+    useReorderCompanies,
 } from "@/hooks/useCompanies";
 
 export default function CompaniesClient() {
     const { t } = useI18n();
     const { data: companies = [], isLoading } = useCompanies();
     const [showTrashModal, setShowTrashModal] = useState(false);
+    const [showReorderModal, setShowReorderModal] = useState(false);
     const { data: trashCompanies = [] } = useTrashCompanies({ enabled: showTrashModal });
 
     const addCompanyMutation = useAddCompany();
@@ -33,6 +36,7 @@ export default function CompaniesClient() {
     const restoreCompanyMutation = useRestoreCompany();
     const permanentDeleteMutation = usePermanentDeleteCompany();
     const bulkDeleteMutation = useBulkDeleteCompanies();
+    const reorderMutation = useReorderCompanies();
 
     const [selectedCompany, setSelectedCompany] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,7 +46,6 @@ export default function CompaniesClient() {
     const [viewCompany, setViewCompany] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
 
-    
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -51,7 +54,6 @@ export default function CompaniesClient() {
         if (searchParams.get("action") === "add") {
             setSelectedCompany(null);
             setIsModalOpen(true);
-            // Clean URL
             const params = new URLSearchParams(searchParams);
             params.delete("action");
             const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
@@ -59,9 +61,6 @@ export default function CompaniesClient() {
         }
     }, [searchParams, pathname, router]);
 
-    /* ======================================================================
-       1. Handlers
-       ====================================================================== */
     const handleSave = async (companyData) => {
         if (selectedCompany) {
             await updateCompanyMutation.mutateAsync({ ...selectedCompany, ...companyData });
@@ -73,16 +72,13 @@ export default function CompaniesClient() {
     };
 
     const handleEdit = (id) => {
-        const company = companies.find(c => c.id === id);
+        const company = companies.find((c) => c.id === id);
         if (company) {
             setSelectedCompany(company);
             setIsModalOpen(true);
         }
     };
 
-    /**
-     * Open details offcanvas
-     */
     const handleView = (company) => {
         setViewCompany(company);
         setShowOffcanvas(true);
@@ -95,8 +91,8 @@ export default function CompaniesClient() {
             confirmLabel: t("confirm.moveTrashYes"),
             onConfirm: async () => {
                 await deleteCompanyMutation.mutateAsync(id);
-                setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-            }
+                setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
+            },
         });
     };
 
@@ -118,13 +114,10 @@ export default function CompaniesClient() {
             onConfirm: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
                 setSelectedIds([]);
-            }
+            },
         });
     };
 
-    /* ======================================================================
-       2. JSX
-       ====================================================================== */
     return (
         <>
             <PageHeader
@@ -147,6 +140,16 @@ export default function CompaniesClient() {
                 >
                     <i className="fal fa-plus"></i>
                     <span className="txt ms-2">{t("companies.add")}</span>
+                </button>
+
+                {/* Reorder Button */}
+                <button
+                    type="button"
+                    className="alert alert-primary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
+                    onClick={() => setShowReorderModal(true)}
+                >
+                    <i className="fal fa-sort"></i>
+                    <span className="txt ms-2">{t("common.reorder")}</span>
                 </button>
 
                 {/* Delete Button */}
@@ -197,6 +200,23 @@ export default function CompaniesClient() {
                 trashCompanies={trashCompanies}
                 onRestore={handleRestore}
                 onPermanentDelete={handlePermanentDelete}
+            />
+
+            <ReorderModal
+                isOpen={showReorderModal}
+                onClose={() => setShowReorderModal(false)}
+                title={t("companies.displayOrder") || t("common.reorder")}
+                items={companies.map((c) => ({
+                    id: c.id,
+                    title: c.title,
+                    code: c.code,
+                    image: c.image,
+                    subtitle: c.field,
+                }))}
+                onSaveOrder={async (ids) => {
+                    await reorderMutation.mutateAsync(ids);
+                }}
+                isSaving={reorderMutation.isPending}
             />
 
             {/* Details Offcanvas */}

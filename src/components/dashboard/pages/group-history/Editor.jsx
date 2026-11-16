@@ -1,20 +1,23 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, GROUP_VALUES, JOURNEY_MILESTONES, pageMeta } from "./data";
+import TeamEditor, { validateTeam } from "./TeamEditor";
+import toast from "react-hot-toast";
+import OurStoryEditor, { isValidStory } from "./OurStoryEditor";
 
 const SECTIONS = [
     { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
-    { id: "our_journey", number: "02", titleKey: "pages.section.journey", fieldsCount: 31 },
-    { id: "vision_mission", number: "03", titleKey: "pages.section.visionMission", fieldsCount: 2 },
-    { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 12 },
-    { id: "group_structure", number: "05", titleKey: "pages.section.structure", fieldsCount: 1 },
-    { id: "vision_2030", number: "06", titleKey: "pages.section.vision2030", fieldsCount: 3 },
+    { id: "our_story", number: "02", titleKey: "pages.section.ourStory", fieldsCount: 9 },
+    { id: "our_journey", number: "03", titleKey: "pages.section.journey", fieldsCount: 31 },
+    { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 0 },
+    { id: "group_structure", number: "05", titleKey: "pages.section.structure", fieldsCount: 2 },
+    { id: "team", number: "06", titleKey: "pages.section.team", fieldsCount: 8 },
 ];
 
 export default function GroupHistoryEditor() {
@@ -25,43 +28,34 @@ export default function GroupHistoryEditor() {
     const updateMutation = useUpdateCmsPage();
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
-    const [content, setContent] = useState(defaultContent);
+    const [draft, setDraft] = useState(null);
+    const [teamDirty, setTeamDirty] = useState(false);
+    const [teamUploading, setTeamUploading] = useState(false);
 
-    useEffect(() => {
-        if (!page?.content) return;
-        setContent({
-            ...defaultContent,
-            ...page.content,
-            our_journey: {
-                ...defaultContent.our_journey,
-                ...(page.content.our_journey || {}),
-                milestones:
-                    page.content.our_journey?.milestones?.length
-                        ? page.content.our_journey.milestones
-                        : JOURNEY_MILESTONES.map((item) => ({ ...item })),
-            },
-            vision_mission: {
-                ...defaultContent.vision_mission,
-                ...(page.content.vision_mission || {}),
-            },
-            values: {
-                ...defaultContent.values,
-                ...(page.content.values || {}),
-                items:
-                    page.content.values?.items?.length
-                        ? page.content.values.items
-                        : GROUP_VALUES.map((item) => ({ ...item })),
-            },
-            group_structure: {
-                ...defaultContent.group_structure,
-                ...(page.content.group_structure || {}),
-            },
-            vision_2030: {
-                ...defaultContent.vision_2030,
-                ...(page.content.vision_2030 || {}),
-            },
-        });
-    }, [page]);
+    const savedContent = page?.content || {};
+    const content = draft || {
+        ...defaultContent,
+        ...savedContent,
+        our_journey: {
+            ...defaultContent.our_journey,
+            ...(savedContent.our_journey || {}),
+            milestones: Array.isArray(savedContent.our_journey?.milestones)
+                ? savedContent.our_journey.milestones
+                : JOURNEY_MILESTONES.map((item) => ({ ...item })),
+        },
+        values: {
+            ...defaultContent.values,
+            ...(savedContent.values || {}),
+            items: Array.isArray(savedContent.values?.items)
+                ? savedContent.values.items
+                : GROUP_VALUES.map((item) => ({ ...item })),
+        },
+        group_structure: { ...defaultContent.group_structure, ...(savedContent.group_structure || {}) },
+    };
+    const setContent = (change) => setDraft((current) => {
+        const previous = current || content;
+        return typeof change === "function" ? change(previous) : change;
+    });
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
@@ -69,7 +63,6 @@ export default function GroupHistoryEditor() {
     const nextSection = SECTIONS[activeIndex + 1] || null;
     const section = content[activeSection.id] || {};
     const milestones = section.milestones || [];
-    const valueItems = section.items || [];
 
     const setField = (key, value) => {
         setContent((prev) => ({
@@ -90,22 +83,22 @@ export default function GroupHistoryEditor() {
         });
     };
 
-    const setValueItem = (index, key, value) => {
-        setContent((prev) => {
-            const current = prev.values || {};
-            const list = [...(current.items || [])];
-            list[index] = { ...(list[index] || {}), [key]: value };
-            return {
-                ...prev,
-                values: { ...current, items: list },
-            };
-        });
-    };
-
     const handleCancel = () => router.push("/dashboard/pages");
     const handlePreview = () => window.open(page?.url || "/group-history", "_blank", "noopener,noreferrer");
 
     const handleSavePublish = async () => {
+        const desc = content.group_structure?.description;
+        if (!(typeof desc === "string" ? desc.trim() : (desc?.en?.trim() || desc?.ar?.trim()))) {
+            setActiveSectionId("group_structure"); toast.error(t("pages.structureDescriptionRequired")); return;
+        }
+        if (content.our_story && !isValidStory(content.our_story)) {
+            setActiveSectionId("our_story"); toast.error(t("pages.storyRequired")); return;
+        }
+        if (teamDirty && !validateTeam(content.team)) {
+            setActiveSectionId("team");
+            toast.error(t("pages.team.validation"));
+            return;
+        }
         await updateMutation.mutateAsync({
             ...page,
             content,
@@ -148,7 +141,7 @@ export default function GroupHistoryEditor() {
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={handleSavePublish}
-                    disabled={updateMutation.isPending}
+                    disabled={updateMutation.isPending || teamUploading}
                 >
                     <i className="fal fa-check"></i>
                     <span className="txt ms-2">{t("pages.savePublish")}</span>
@@ -166,6 +159,7 @@ export default function GroupHistoryEditor() {
                                 key={s.id}
                                 type="button"
                                 className={`page-editor__section-item ${s.id === activeSection.id ? "active" : ""}`}
+                                disabled={teamUploading}
                                 onClick={() => setActiveSectionId(s.id)}
                             >
                                 <span className="page-editor__section-main">
@@ -186,7 +180,7 @@ export default function GroupHistoryEditor() {
                         <h6 className="mb-0 fsz-14 fw-600">
                             {activeSection.number} · {t(activeSection.titleKey)}
                         </h6>
-                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.fieldsCount })}</span>
+                        <span className="fsz-12 text-muted">{t("pages.editableFields", { count: activeSection.id === "team" ? 8 + (content.team?.members?.length || 0) * 6 : activeSection.fieldsCount })}</span>
                     </div>
 
                     <div className="page-editor__fields">
@@ -259,60 +253,21 @@ export default function GroupHistoryEditor() {
                                 </>
                             )}
 
-                            {activeSection.id === "vision_mission" && (
-                                <>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.fields.vision")} <span className="text-danger">*</span>
-                                        </label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            value={section.vision || ""}
-                                            onChange={(e) => setField("vision", e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.fields.mission")} <span className="text-danger">*</span>
-                                        </label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            value={section.mission || ""}
-                                            onChange={(e) => setField("mission", e.target.value)}
-                                        />
-                                    </div>
-                                </>
+                            {activeSection.id === "our_story" && (
+                                <div className="col-12"><OurStoryEditor value={content.our_story} onChange={(our_story) => setContent(prev => ({ ...prev, our_story }))} /></div>
                             )}
 
                             {activeSection.id === "values" && (
-                                <>
-                                    {valueItems.map((item, index) => (
-                                        <div className="col-12" key={`value-${index}`}>
-                                            <div className="row g-3">
-                                                <div className="col-md-4">
-                                                    <label className="form-label fsz-12 text-muted">{t("pages.fields.value")}</label>
-                                                    <input dir={dir}
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.value || ""}
-                                                        onChange={(e) => setValueItem(index, "value", e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="col-md-8">
-                                                    <label className="form-label fsz-12 text-muted">{t("common.description")}</label>
-                                                    <textarea dir={dir}
-                                                        className="form-control"
-                                                        rows={2}
-                                                        value={item.description || ""}
-                                                        onChange={(e) => setValueItem(index, "description", e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </>
+                                <div className="col-12">
+                                    <p className="fsz-12 text-muted mb-0">{t("pages.valuesManaged")}</p>
+                                    <Link href="/dashboard/pages/1/edit/#our_values" className="btn btn-outline-primary fsz-12 mt-3">
+                                        {t("pages.manageValues")} <i className="fal fa-arrow-right ms-2"></i>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {activeSection.id === "team" && (
+                                <div className="col-12"><TeamEditor value={content.team || {}} onUploading={setTeamUploading} onChange={(change) => { setTeamDirty(true); setContent(prev => ({ ...prev, team: typeof change === "function" ? change(prev.team || {}) : change })); }} /></div>
                             )}
 
                             {activeSection.id === "group_structure" && (
@@ -326,6 +281,10 @@ export default function GroupHistoryEditor() {
                                         value={section.section_title || ""}
                                         onChange={(e) => setField("section_title", e.target.value)}
                                     />
+                                    <div className="mt-3">
+                                        <label className="form-label fsz-12 text-muted">{t("common.description")} <span className="text-danger">*</span></label>
+                                        <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><textarea className="form-control" rows={3} maxLength={2000} dir={lang === "ar" ? "rtl" : "ltr"} value={typeof section.description === "string" ? (lang === "en" ? section.description : "") : (section.description?.[lang] || "")} onChange={e => setField("description", { ...(typeof section.description === "object" && section.description ? section.description : { en: section.description || "" }), [lang]: e.target.value })} /></div>)}</div>
+                                    </div>
                                     <p className="fsz-12 text-muted mt-3 mb-0">
                                         {t("pages.structureNote")}
                                     </p>
@@ -336,46 +295,14 @@ export default function GroupHistoryEditor() {
                                 </div>
                             )}
 
-                            {activeSection.id === "vision_2030" && (
-                                <>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
-                                        </label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            value={section.section_title || ""}
-                                            onChange={(e) => setField("section_title", e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.text")}</label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            value={section.text || ""}
-                                            onChange={(e) => setField("text", e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.localContent")}</label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            value={section.local_content_figure || ""}
-                                            onChange={(e) => setField("local_content_figure", e.target.value)}
-                                        />
-                                    </div>
-                                </>
-                            )}
+
                         </div>
                     </div>
 
                     {(prevSection || nextSection) && (
                         <div className="page-editor__next">
                             {prevSection ? (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(prevSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
                                     {t(prevSection.titleKey)}
                                 </button>
@@ -383,7 +310,7 @@ export default function GroupHistoryEditor() {
                                 <span />
                             )}
                             {nextSection && (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" onClick={() => setActiveSectionId(nextSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(nextSection.id)}>
                                     {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>

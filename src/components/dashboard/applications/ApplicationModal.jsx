@@ -8,6 +8,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { buildJobFilterOptions } from "@/lib/jobOptions";
 import { toast } from "react-hot-toast";
 import { useI18n } from "@/hooks/useI18n";
+import { isValidMobilePhone } from "@/utils/mobileValidator";
 
 const PDF_ACCEPT = {
   "application/pdf": [".pdf"],
@@ -30,6 +31,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState(emptyForm);
   const [isMounted, setIsMounted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mobileError, setMobileError] = useState("");
 
   const jobOptions = useMemo(() => {
     const byId = new Map(jobs.map((job) => [job.id, job]));
@@ -48,6 +50,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
     if (!isOpen) return;
     refetchJobs();
     setFormData(emptyForm());
+    setMobileError("");
   }, [isOpen, refetchJobs]);
 
   const handleChange = (e) => {
@@ -56,10 +59,19 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    if (name === "mobile") {
+      if (value && !isValidMobilePhone(value)) {
+        setMobileError(t("errors.mobile.invalid"));
+      } else {
+        setMobileError("");
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+
     if (!formData.job_id) {
       toast.error(t("validation.selectJob"));
       return;
@@ -77,13 +89,21 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
       return;
     }
 
+    const trimmedMobile = formData.mobile ? formData.mobile.trim() : "";
+    if (trimmedMobile && !isValidMobilePhone(trimmedMobile)) {
+      const err = t("errors.mobile.invalid");
+      setMobileError(err);
+      toast.error(err);
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave({
         ...formData,
         name: formData.name.trim(),
         email: formData.email.trim(),
-        mobile: formData.mobile.trim(),
+        mobile: trimmedMobile || null,
         city: formData.city.trim(),
         experience_years:
           formData.experience_years === ""
@@ -108,7 +128,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
           <div className="modal-content company-modal-content">
             <div className="modal-header">
               <h5 className="modal-title">{t("applications.add")}</h5>
-              <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")}></button>
+              <button type="button" className="btn-close" onClick={onClose} aria-label={t("common.close")} disabled={saving}></button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -132,6 +152,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                           ? t("applications.selectJobPh")
                           : t("applications.noJobs")
                       }
+                      isDisabled={saving}
                       classNamePrefix="react-select"
                       menuPortalTarget={
                         typeof document !== "undefined" ? document.body : null
@@ -153,6 +174,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder={t("applications.fullNamePh")}
+                      disabled={saving}
                     />
                   </div>
 
@@ -168,6 +190,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       dir="ltr"
                       value={formData.email}
                       onChange={handleChange}
+                      disabled={saving}
                     />
                   </div>
 
@@ -175,12 +198,17 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                     <label className="form-label">{t("common.mobile")}</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${mobileError ? "is-invalid" : ""}`}
                       name="mobile"
                       dir="ltr"
                       value={formData.mobile}
                       onChange={handleChange}
+                      placeholder="0501234567"
+                      disabled={saving}
                     />
+                    {mobileError && (
+                      <div className="invalid-feedback d-block fsz-11">{mobileError}</div>
+                    )}
                   </div>
 
                   <div className="col-lg-6 mb-3">
@@ -193,6 +221,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       value={formData.city}
                       onChange={handleChange}
                       placeholder={t("applications.cityPh")}
+                      disabled={saving}
                     />
                   </div>
 
@@ -206,6 +235,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                       dir="ltr"
                       value={formData.experience_years}
                       onChange={handleChange}
+                      disabled={saving}
                     />
                   </div>
 
@@ -232,6 +262,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
                         name="consent"
                         checked={formData.consent}
                         onChange={handleChange}
+                        disabled={saving}
                       />
                       <label className="form-check-label" htmlFor="application-consent">
                         {t("applications.consentLabel")} <span className="text-danger">*</span>
@@ -243,15 +274,22 @@ export default function ApplicationModal({ isOpen, onClose, onSave }) {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-light" onClick={onClose}>
+                <button type="button" className="btn btn-light" onClick={onClose} disabled={saving}>
                   {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="butn-st2"
-                  disabled={saving || !formData.job_id}
+                  disabled={saving || !formData.job_id || Boolean(mobileError)}
                 >
-                  {saving ? t("common.saving") : t("applications.add")}
+                  {saving ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      {t("common.saving")}
+                    </>
+                  ) : (
+                    t("applications.add")
+                  )}
                 </button>
               </div>
             </form>

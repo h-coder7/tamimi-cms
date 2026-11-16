@@ -53,10 +53,17 @@ function toLocalized(value) {
   return { en: text, ar: text };
 }
 
+function preserveLocalized(value, original) {
+  if (original && typeof original === "object" && !Array.isArray(original) &&
+      localized(value, "").trim() === localized(original, "").trim()) return original;
+  return toLocalized(value);
+}
+
 /** File gallery stays in the uploader; a path-less videoUrl is the YouTube / Vimeo field. */
 function splitCompanyGallery(gallery) {
   const source = Array.isArray(gallery) ? gallery : [];
   let video_url = "";
+  const extraVideoUrls = [];
   const galleryItems = [];
 
   for (const item of source) {
@@ -67,6 +74,7 @@ function splitCompanyGallery(gallery) {
     }
     if (item.videoUrl && !item.path) {
       if (!video_url) video_url = item.videoUrl;
+      else extraVideoUrls.push(item.videoUrl);
       continue;
     }
     galleryItems.push(item);
@@ -78,6 +86,7 @@ function splitCompanyGallery(gallery) {
       .filter(Boolean),
     galleryItems,
     video_url,
+    extraVideoUrls,
   };
 }
 
@@ -94,17 +103,22 @@ export function companyFromApi(company) {
     code: company.shortCode,
     slug: company.slug,
     tagline: localized(company.tagline),
+    i18nTagline: company.tagline,
     year_established:
       company.yearEstablished != null ? String(company.yearEstablished) : "",
     overview,
+    i18nOverview: company.overview,
+    secondaryOverview: company.secondaryOverview || { en: "", ar: "" },
     field: company.field || overview,
     description: overview,
     services: (company.coreServices || [])
       .map((s) => localized(s))
       .filter(Boolean),
+    i18nServices: company.coreServices || [],
     products: (company.featuredProducts || [])
       .map((p) => localized(p))
       .filter(Boolean),
+    i18nProducts: company.featuredProducts || [],
     // titles for table/filter/display; ids for form save
     industries: (company.industries || []).map((i) => localized(i.name)).filter(Boolean),
     industryIds: company.industryIds || (company.industries || []).map((i) => i.id).filter(Boolean),
@@ -117,11 +131,16 @@ export function companyFromApi(company) {
       ? company.certifications.filter((id) => typeof id === "string")
       : [],
     ...splitCompanyGallery(company.gallery),
+    gallerySequence: Array.isArray(company.gallery) ? company.gallery : [],
     status: STATUS_TO_UI[company.status] || "Draft",
     type: TYPE_TO_UI[company.type] || "Subsidiary",
     display_order: company.displayOrder ?? "",
     image: company.logoUrl || "",
     cover: company.coverUrl || "",
+    secondaryImage: company.secondaryImageUrl || "",
+    thirdImage: company.thirdImageUrl || "",
+    secondaryImagePath: company.secondaryImagePath || null,
+    thirdImagePath: company.thirdImagePath || null,
     brochure: company.brochureUrl || "",
     logoPath: company.logoPath || null,
     coverPath: company.coverPath || null,
@@ -132,6 +151,7 @@ export function companyFromApi(company) {
     domain: website,
     seo_title: localized(company.seo?.metaTitle),
     seo_description: localized(company.seo?.metaDescription),
+    i18nSeo: company.seo,
     address: "",
     location: "",
     country: "Saudi Arabia",
@@ -143,24 +163,27 @@ export function companyFromApi(company) {
 
 export function companyToApiPayload(form) {
   const payload = {
-    name: toLocalized(form.title),
+    name: preserveLocalized(form.title, form.i18nTitle),
     shortCode: (form.code || "").trim(),
     field: (form.field || form.overview || "").trim().slice(0, 120) || "General",
-    overview: toLocalized(form.overview || form.title),
+    overview: preserveLocalized(form.overview || form.title, form.i18nOverview),
     type: TYPE_TO_API[form.type] || "subsidiary",
     status: STATUS_TO_API[form.status] || "draft",
   };
-  if (form.tagline !== undefined) payload.tagline = toLocalized(form.tagline);
+  if (form.secondaryOverview !== undefined) payload.secondaryOverview = { en: form.secondaryOverview?.en || "", ar: form.secondaryOverview?.ar || "" };
+  if (form.secondaryImagePath && !form.secondaryImageFiles?.length) payload.removeSecondaryImage = true;
+  if (form.thirdImagePath && !form.thirdImageFiles?.length) payload.removeThirdImage = true;
+  if (form.tagline !== undefined) payload.tagline = preserveLocalized(form.tagline, form.i18nTagline);
   if (form.year_established)
     payload.yearEstablished = Number(form.year_established) || undefined;
   if (form.type === "Joint Venture") {
     payload.jvPartner = form.jvPartner || null;
   }
   if (Array.isArray(form.services)) {
-    payload.coreServices = form.services.map((s) => toLocalized(s));
+    payload.coreServices = form.services.map((s, index) => preserveLocalized(s, form.i18nServices?.[index]));
   }
   if (Array.isArray(form.products)) {
-    payload.featuredProducts = form.products.map((p) => toLocalized(p));
+    payload.featuredProducts = form.products.map((p, index) => preserveLocalized(p, form.i18nProducts?.[index]));
   }
   if (Array.isArray(form.value_chain)) {
     payload.valueChainStages = form.value_chain
@@ -189,8 +212,9 @@ export function companyToApiPayload(form) {
   }
   if (form.seo_title || form.seo_description) {
     payload.seo = {
-      metaTitle: toLocalized(form.seo_title),
-      metaDescription: toLocalized(form.seo_description),
+      ...(form.i18nSeo || {}),
+      metaTitle: preserveLocalized(form.seo_title, form.i18nSeo?.metaTitle),
+      metaDescription: preserveLocalized(form.seo_description, form.i18nSeo?.metaDescription),
     };
   }
 
@@ -210,12 +234,31 @@ export function companyToApiPayload(form) {
   for (const item of gallerySource) {
     if (!item || item.file instanceof File) continue;
     if (typeof item === "string") continue;
-    if (item.path) kept.push({ path: item.path });
+    if (item.path) kept.push({ path: item.path, ...(item.videoUrl ? { videoUrl: item.videoUrl } : {}) });
   }
 
   const videoUrl = String(form.video_url || "").trim();
   if (videoUrl) kept.push({ videoUrl });
-  payload.gallery = kept;
+  for (const url of form.extraVideoUrls || []) if (url) kept.push({ videoUrl: url });
+  // Retain the relative positions of existing files and video links. Newly
+  // uploaded files are appended by the API after these retained entries.
+  const remaining = [...kept];
+  const ordered = [];
+  let videoIndex = 0;
+  const videos = [videoUrl, ...(form.extraVideoUrls || [])];
+  for (const original of form.gallerySequence || []) {
+    if (original?.path) {
+      const index = remaining.findIndex((item) => item.path === original.path);
+      if (index >= 0) ordered.push(...remaining.splice(index, 1));
+    } else if (original?.videoUrl) {
+      const url = videos[videoIndex++];
+      if (url) {
+        const index = remaining.findIndex((item) => !item.path && item.videoUrl === url);
+        if (index >= 0) ordered.push(...remaining.splice(index, 1));
+      }
+    }
+  }
+  payload.gallery = [...ordered, ...remaining];
 
   return payload;
 }
@@ -230,6 +273,11 @@ export function companyToFormData(form) {
 
   const coverFile = form.coverFiles?.[0]?.file;
   if (coverFile instanceof File) fd.append("cover", coverFile);
+
+  const secondaryImageFile = form.secondaryImageFiles?.[0]?.file;
+  if (secondaryImageFile instanceof File) fd.append("secondaryImage", secondaryImageFile);
+  const thirdImageFile = form.thirdImageFiles?.[0]?.file;
+  if (thirdImageFile instanceof File) fd.append("thirdImage", thirdImageFile);
 
   const brochureFile = form.brochureFiles?.[0]?.file;
   if (brochureFile instanceof File) fd.append("brochure", brochureFile);

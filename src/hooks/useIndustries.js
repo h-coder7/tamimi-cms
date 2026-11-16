@@ -163,3 +163,22 @@ export function useBulkDeleteIndustries() {
     },
   });
 }
+
+
+export function useReorderIndustries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids) => {
+      const res = await api.put("/industries/order", { ids });
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "industries", "trash-industries");
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast.success(t("toast.industry.reordered"));
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t("common.reorderFailed")));
+    },
+  });
+}

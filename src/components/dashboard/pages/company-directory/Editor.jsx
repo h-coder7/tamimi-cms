@@ -1,37 +1,29 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PageImageUpload from "../_shared/PageImageUpload";
 import PageHeader from "@/components/layout/PageHeader";
 import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
-    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
+    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 3 },
     { id: "directory", number: "02", titleKey: "pages.section.directory", fieldsCount: 0 },
 ];
 
 export default function CompanyDirectoryEditor() {
     const { t, isRtl } = useI18n();
-    const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
     const updateMutation = useUpdateCmsPage();
 
+    const [uploading, setUploading] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState("hero");
-    const [content, setContent] = useState(defaultContent);
-
-    useEffect(() => {
-        if (!page?.content) return;
-        setContent({
-            ...defaultContent,
-            ...page.content,
-            hero: { ...defaultContent.hero, ...(page.content.hero || {}) },
-            directory: { ...defaultContent.directory, ...(page.content.directory || {}) },
-        });
-    }, [page]);
+    const [draft, setContent] = useState(null);
+    const content = draft || { ...defaultContent, ...page?.content, hero: { ...defaultContent.hero, ...page?.content?.hero }, directory: { ...defaultContent.directory, ...page?.content?.directory } };
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
@@ -41,8 +33,8 @@ export default function CompanyDirectoryEditor() {
 
     const setField = (key, value) => {
         setContent((prev) => ({
-            ...prev,
-            [activeSection.id]: { ...(prev[activeSection.id] || {}), [key]: value },
+            ...(prev || content),
+            [activeSection.id]: { ...((prev || content)[activeSection.id] || {}), [key]: value },
         }));
     };
 
@@ -92,7 +84,7 @@ export default function CompanyDirectoryEditor() {
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={handleSavePublish}
-                    disabled={updateMutation.isPending}
+                    disabled={updateMutation.isPending || uploading}
                 >
                     <i className="fal fa-check"></i>
                     <span className="txt ms-2">{t("pages.savePublish")}</span>
@@ -141,38 +133,19 @@ export default function CompanyDirectoryEditor() {
                         <div className="row g-3">
                             {activeSection.id === "hero" && (
                                 <>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.fields.title")} <span className="text-danger">*</span>
-                                        </label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            maxLength={90}
-                                            value={section.title || ""}
-                                            onChange={(e) => setField("title", e.target.value)}
-                                        />
-                                        <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>{t("pages.maxChars", { count: 90 })}</span>
-                                            <span>{String(section.title || "").length}/90</span>
-                                        </div>
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.intro")}</label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            maxLength={240}
-                                            value={section.intro_text || ""}
-                                            onChange={(e) => setField("intro_text", e.target.value)}
-                                        />
-                                        <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>{t("pages.maxChars", { count: 240 })}</span>
-                                            <span>{String(section.intro_text || "").length}/240</span>
-                                        </div>
-                                    </div>
+                                    {[["title", t("pages.fields.title"), 90], ["intro_text", t("pages.fields.intro"), 240]].map(([key, label, max]) => <div className="col-12" key={key}>
+                                        <label className="form-label fsz-12 text-muted">{label}</label>
+                                        <div className="row g-2">{["en", "ar"].map(lang => {
+                                            const value = section[key];
+                                            const current = typeof value === "string" ? (lang === "en" ? value : "") : value?.[lang] || "";
+                                            const change = e => setField(key, { en: typeof value === "string" ? value : value?.en || "", ar: typeof value === "object" ? value?.ar || "" : "", [lang]: e.target.value });
+                                            return <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span>{key === "title" ? <input className="form-control" dir={lang === "ar" ? "rtl" : "ltr"} maxLength={max} value={current} onChange={change} /> : <textarea className="form-control" rows={4} dir={lang === "ar" ? "rtl" : "ltr"} maxLength={max} value={current} onChange={change} />}</div>;
+                                        })}</div>
+                                    </div>)}
                                 </>
                             )}
+
+                            {activeSection.id === "hero" && <div className="col-12"><PageImageUpload slug="companies" value={section.image || ""} onChange={value => setField("image", value)} onBusy={setUploading} title={isRtl ? "رفع صورة" : "Upload Photo"} /></div>}
 
                             {activeSection.id === "directory" && (
                                 <div className="col-12">

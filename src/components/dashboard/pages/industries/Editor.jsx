@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
@@ -10,8 +10,7 @@ import { defaultContent, pageMeta } from "./data";
 
 const SECTIONS = [
     { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
-    { id: "value_chain", number: "02", titleKey: "pages.section.valueChain", fieldsCount: 1, badgeKey: "pages.badge.draftMapping" },
-    { id: "industry_cards", number: "03", titleKey: "pages.section.industryCards", fieldsCount: 0 },
+    { id: "industry_cards", number: "02", titleKey: "pages.section.industryCards", fieldsCount: 0 },
 ];
 
 export default function IndustriesEditor() {
@@ -22,18 +21,8 @@ export default function IndustriesEditor() {
     const updateMutation = useUpdateCmsPage();
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
-    const [content, setContent] = useState(defaultContent);
-
-    useEffect(() => {
-        if (!page?.content) return;
-        setContent({
-            ...defaultContent,
-            ...page.content,
-            hero: { ...defaultContent.hero, ...(page.content.hero || {}) },
-            value_chain: { ...defaultContent.value_chain, ...(page.content.value_chain || {}) },
-            industry_cards: { ...defaultContent.industry_cards, ...(page.content.industry_cards || {}) },
-        });
-    }, [page]);
+    const [draft, setContent] = useState(null);
+    const content = draft || { ...defaultContent, ...page?.content, hero: { ...defaultContent.hero, ...page?.content?.hero }, industry_cards: { ...defaultContent.industry_cards, ...page?.content?.industry_cards } };
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
@@ -43,8 +32,8 @@ export default function IndustriesEditor() {
 
     const setField = (key, value) => {
         setContent((prev) => ({
-            ...prev,
-            [activeSection.id]: { ...(prev[activeSection.id] || {}), [key]: value },
+            ...(prev || content),
+            [activeSection.id]: { ...((prev || content)[activeSection.id] || {}), [key]: value },
         }));
     };
 
@@ -179,27 +168,6 @@ export default function IndustriesEditor() {
                                         </div>
                                     </div>
                                 </>
-                            )}
-
-                            {activeSection.id === "value_chain" && (
-                                <div className="col-12">
-                                    <label className="form-label fsz-12 text-muted">
-                                        {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
-                                    </label>
-                                    <input dir={dir}
-                                        type="text"
-                                        className="form-control"
-                                        value={section.section_title || ""}
-                                        onChange={(e) => setField("section_title", e.target.value)}
-                                    />
-                                    <p className="fsz-12 text-muted mt-3 mb-0">
-                                        {t("pages.valueChainNote")}
-                                    </p>
-                                    <Link href="/dashboard/industries" className="btn btn-outline-primary fsz-12 mt-3">
-                                        {t("pages.manageInIndustries")}
-                                        <i className="fal fa-arrow-right ms-2"></i>
-                                    </Link>
-                                </div>
                             )}
 
                             {activeSection.id === "industry_cards" && (

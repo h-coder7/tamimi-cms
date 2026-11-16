@@ -2,7 +2,7 @@ export const pageMeta = {
     id: 2,
     page: "Group History",
     url: "/group-history",
-    editable_fields: 51,
+    editable_fields: 52,
     sections: 6,
     status: "Draft",
     last_updated: "",
@@ -95,23 +95,13 @@ export const defaultContent = {
         section_title: "From a pipeline contractor to an integrated group",
         milestones: JOURNEY_MILESTONES.map((item) => ({ ...item })),
     },
-    vision_mission: {
-        vision:
-            "To be the leading integrated energy solutions provider in the Middle East, driving innovation, sustainability, and operational excellence across the energy value chain.",
-        mission:
-            "To build and maintain innovative solutions in a safe and compliant manner within and outside Saudi Arabia, driven by talent and expertise to fulfill customer satisfaction; whilst maximizing our shareholders' value and commitment to the community.",
-    },
     values: {
         items: GROUP_VALUES.map((item) => ({ ...item })),
     },
     group_structure: {
         section_title: "One group, 18 specialized companies",
     },
-    vision_2030: {
-        section_title: "Localization, manufacturing and sustainability",
-        text: "Saudi manufacturing, innovation, strategic international partnerships and sustainable solutions that support Saudi Vision 2030.",
-        local_content_figure: "[Pending: client figure]",
-    },
+
 };
 
 export default {

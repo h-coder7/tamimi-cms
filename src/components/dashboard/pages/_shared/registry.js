@@ -9,6 +9,8 @@ import mediaCenterPage from "../media-center/data";
 import careersPage from "../careers/data";
 import downloadsPage from "../downloads/data";
 import contactPage from "../contact/data";
+import capabilitiesPage from "../capabilities/data";
+import callToActionPage from "../call-to-action/data";
 
 /** List seed for Pages table + localStorage */
 export const CMS_PAGE_DEFINITIONS = [
@@ -23,6 +25,8 @@ export const CMS_PAGE_DEFINITIONS = [
     careersPage,
     downloadsPage,
     contactPage,
+    callToActionPage,
+    capabilitiesPage,
 ];
 
 const byId = Object.fromEntries(CMS_PAGE_DEFINITIONS.map((page) => [page.id, page]));

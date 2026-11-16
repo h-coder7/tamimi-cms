@@ -140,3 +140,21 @@ export function useBulkDeleteCompanies() {
     },
   });
 }
+
+
+export function useReorderCompanies() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids) => {
+      const res = await api.put("/companies/order", { ids });
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refreshListAndTrash(queryClient, "companies", "trash-companies");
+      toast.success(t("toast.company.reordered"));
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t("common.reorderFailed")));
+    },
+  });
+}

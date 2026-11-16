@@ -26,11 +26,11 @@ export default function PagesTable({
         const q = search.trim().toLowerCase();
         return data.filter((item) => {
             const matchesSearch =
-                !q || String(item.page || "").toLowerCase().includes(q);
+                !q || String(item.page || "").toLowerCase().includes(q) || (item.slug === "call-to-action" && t("pages.callToActionPage").toLowerCase().includes(q));
             const matchesStatus = !statusFilter || item.status === statusFilter;
             return matchesSearch && matchesStatus;
         });
-    }, [data, search, statusFilter]);
+    }, [data, search, statusFilter, t]);
 
     const columns = useMemo(() => [
         { id: "page", accessorKey: "page", header: t("common.page"), enableSorting: true },
@@ -125,7 +125,7 @@ export default function PagesTable({
                                                 if (colId === "page") {
                                                     return (
                                                         <td key={colId} id={colId}>
-                                                            <div className="fw-500 fsz-13">{item.page}</div>
+                                                            <div className="fw-500 fsz-13">{item.slug === "call-to-action" ? t("pages.callToActionPage") : item.page}</div>
                                                         </td>
                                                     );
                                                 }

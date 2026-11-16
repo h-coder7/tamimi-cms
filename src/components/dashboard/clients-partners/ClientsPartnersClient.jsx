@@ -6,6 +6,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import ClientsPartnersGrid from "./ClientsPartnersGrid";
 import ClientPartnerModal from "./ClientPartnerModal";
 import ClientsPartnersTrashModal from "./ClientsPartnersTrashModal";
+import ReorderModal from "@/components/shared/ReorderModal";
 import { confirmAction } from "@/utils/confirm";
 import { useI18n } from "@/hooks/useI18n";
 import {
@@ -16,12 +17,14 @@ import {
     useDeleteClientPartner,
     useRestoreClientPartner,
     usePermanentDeleteClientPartner,
+    useReorderClientsPartners,
 } from "@/hooks/useClientsPartners";
 
 export default function ClientsPartnersClient() {
     const { t } = useI18n();
     const { data: partners = [], isLoading } = useClientsPartners();
     const [showTrashModal, setShowTrashModal] = useState(false);
+    const [showReorderModal, setShowReorderModal] = useState(false);
     const { data: trashItems = [] } = useTrashClientsPartners({ enabled: showTrashModal });
 
     const addMutation = useAddClientPartner();
@@ -29,6 +32,7 @@ export default function ClientsPartnersClient() {
     const deleteMutation = useDeleteClientPartner();
     const restoreMutation = useRestoreClientPartner();
     const permanentDeleteMutation = usePermanentDeleteClientPartner();
+    const reorderMutation = useReorderClientsPartners();
 
     const [selectedPartner, setSelectedPartner] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,6 +103,15 @@ export default function ClientsPartnersClient() {
 
                 <button
                     type="button"
+                    className="alert alert-primary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
+                    onClick={() => setShowReorderModal(true)}
+                >
+                    <i className="fal fa-sort"></i>
+                    <span className="txt ms-2">{t("common.reorder")}</span>
+                </button>
+
+                <button
+                    type="button"
                     className="alert alert-secondary rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={() => setShowTrashModal(true)}
                 >
@@ -131,6 +144,22 @@ export default function ClientsPartnersClient() {
                 trashItems={trashItems}
                 onRestore={(id) => restoreMutation.mutateAsync(id)}
                 onPermanentDelete={(id) => permanentDeleteMutation.mutateAsync(id)}
+            />
+
+            <ReorderModal
+                isOpen={showReorderModal}
+                onClose={() => setShowReorderModal(false)}
+                title={t("common.reorder") || "Reorder Clients & Partners"}
+                items={partners.map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.logo,
+                    subtitle: p.type,
+                }))}
+                onSaveOrder={async (ids) => {
+                    await reorderMutation.mutateAsync(ids);
+                }}
+                isSaving={reorderMutation.isPending}
             />
         </>
     );
