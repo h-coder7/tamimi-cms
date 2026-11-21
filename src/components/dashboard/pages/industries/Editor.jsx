@@ -7,15 +7,16 @@ import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { useCmsPage, useUpdateCmsPage } from "@/hooks/useCmsPages";
 import { defaultContent, pageMeta } from "./data";
+import PageImageUpload from "../_shared/PageImageUpload";
 
 const SECTIONS = [
-    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
+    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 5 },
     { id: "industry_cards", number: "02", titleKey: "pages.section.industryCards", fieldsCount: 0 },
+    { id: "value_chain", number: "03", titleKey: "pages.section.valueChain", fieldsCount: 0 },
 ];
 
 export default function IndustriesEditor() {
     const { t, isRtl } = useI18n();
-    const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
     const updateMutation = useUpdateCmsPage();
@@ -29,6 +30,13 @@ export default function IndustriesEditor() {
     const prevSection = activeIndex > 0 ? SECTIONS[activeIndex - 1] : null;
     const nextSection = SECTIONS[activeIndex + 1] || null;
     const section = content[activeSection.id] || {};
+
+    const valueForLocale = (value, locale) => typeof value === "string" ? value : (value?.[locale] || value?.en || "");
+    const setLocalizedField = (key, locale, value) => {
+        const current = section[key];
+        const localized = current && typeof current === "object" ? current : { en: current || "", ar: "" };
+        setField(key, { ...localized, [locale]: value });
+    };
 
     const setField = (key, value) => {
         setContent((prev) => ({
@@ -137,35 +145,19 @@ export default function IndustriesEditor() {
                         <div className="row g-3">
                             {activeSection.id === "hero" && (
                                 <>
-                                    <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.fields.title")} <span className="text-danger">*</span>
-                                        </label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            maxLength={90}
-                                            value={section.title || ""}
-                                            onChange={(e) => setField("title", e.target.value)}
-                                        />
-                                        <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>{t("pages.maxChars", { count: 90 })}</span>
-                                            <span>{String(section.title || "").length}/90</span>
+                                    {[{ key: "title", label: t("pages.fields.title"), max: 90 }, { key: "intro_text", label: t("pages.fields.intro"), max: 240 }].map(({ key, label, max }) => (
+                                        <div className="col-12" key={key}>
+                                            <label className="form-label fsz-12 text-muted">{label} <span className="text-danger">*</span></label>
+                                            <div className="row g-2">{["en", "ar"].map((locale) => <div className="col-md-6" key={locale}>
+                                                <label className="form-text fsz-11" htmlFor={`industries-hero-${key}-${locale}`}>{locale.toUpperCase()}</label>
+                                                {key === "title" ? <input id={`industries-hero-${key}-${locale}`} dir={locale === "ar" ? "rtl" : "ltr"} className="form-control" maxLength={max} value={valueForLocale(section[key], locale)} onChange={(e) => setLocalizedField(key, locale, e.target.value)} /> : <textarea id={`industries-hero-${key}-${locale}`} dir={locale === "ar" ? "rtl" : "ltr"} className="form-control" rows={3} maxLength={max} value={valueForLocale(section[key], locale)} onChange={(e) => setLocalizedField(key, locale, e.target.value)} />}
+                                                <div className="form-text fsz-11">{valueForLocale(section[key], locale).length}/{max}</div>
+                                            </div>)}</div>
                                         </div>
-                                    </div>
+                                    ))}
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.intro")}</label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            maxLength={240}
-                                            value={section.intro_text || ""}
-                                            onChange={(e) => setField("intro_text", e.target.value)}
-                                        />
-                                        <div className="form-text fsz-11 d-flex justify-content-between">
-                                            <span>{t("pages.maxChars", { count: 240 })}</span>
-                                            <span>{String(section.intro_text || "").length}/240</span>
-                                        </div>
+                                        <label className="form-label fsz-12 text-muted">{isRtl ? "صورة خلفية الصفحة" : "Background image"}</label>
+                                        <PageImageUpload slug="industries" value={section.background_image || ""} onChange={(value) => setField("background_image", value || null)} maxBytes={5 * 1024 * 1024} title={isRtl ? "ارفع صورة الخلفية" : "Upload background image"} accept={{"image/jpeg":[".jpg",".jpeg"],"image/png":[".png"],"image/webp":[".webp"]}} />
                                     </div>
                                 </>
                             )}
@@ -176,6 +168,16 @@ export default function IndustriesEditor() {
                                     <p className="fsz-12 text-muted mb-0">
                                         {t("pages.industryCardsNote")}
                                     </p>
+                                    <Link href="/dashboard/industries" className="btn btn-outline-primary fsz-12 mt-3">
+                                        {t("pages.manageInIndustries")}
+                                        <i className="fal fa-arrow-right ms-2"></i>
+                                    </Link>
+                                </div>
+                            )}
+                            {activeSection.id === "value_chain" && (
+                                <div className="col-12">
+                                    <p className="fsz-13 fw-600 mb-2">{t("pages.fromModule")}</p>
+                                    <p className="fsz-12 text-muted mb-0">{t("pages.valueChainNote")}</p>
                                     <Link href="/dashboard/industries" className="btn btn-outline-primary fsz-12 mt-3">
                                         {t("pages.manageInIndustries")}
                                         <i className="fal fa-arrow-right ms-2"></i>

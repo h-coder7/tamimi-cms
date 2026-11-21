@@ -7,13 +7,14 @@ import { toast } from "react-hot-toast";
 import FileUpload from "../../shared/FileUpload";
 import SimpleRichTextEditor from "../../shared/SimpleRichTextEditor";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useIndustries } from "@/hooks/useIndustries";
 import { POST_CATEGORIES, POST_STATUSES } from "@/hooks/usePosts";
 import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { getLocale } from "@/lib/locale";
 import { te } from "@/locales/errors";
 import { useI18n } from "@/hooks/useI18n";
 
-const SUMMARY_MAX = 200;
+const SUMMARY_MAX = 160;
 const META_TITLE_MAX = 60;
 const META_DESC_MAX = 160;
 
@@ -32,9 +33,9 @@ const CATEGORY_STATUS = {
 };
 
 const emptyForm = () => ({
-    title: "",
-    summary: "",
-    body: "",
+    title: { en: "", ar: "" },
+    summary: { en: "", ar: "" },
+    body: { en: "", ar: "" },
     event_start: "",
     event_end: "",
     venue: "",
@@ -46,6 +47,7 @@ const emptyForm = () => ({
     status: "Draft",
     publish_date: "",
     relatedCompanyId: "",
+    industryIds: [],
     company_code: "",
     coverFiles: [],
     coverPath: null,
@@ -63,7 +65,8 @@ const Section = ({ title, hint, children }) => (
 );
 
 export default function PostModal({ isOpen, onClose, onSave, post }) {
-    const { t, isRtl, statusText } = useI18n();
+    const { t, isRtl, statusText, text } = useI18n();
+    const { data: industries = [] } = useIndustries();
     const {
         data: companies = [],
         refetch: refetchCompanies,
@@ -72,7 +75,10 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
     } = useCompanies();
     const [formData, setFormData] = useState(emptyForm);
     const [isMounted, setIsMounted] = useState(false);
-    const editorRef = useRef(null);
+    const editorRef = useRef({});
+    const publishDateRef = useRef(null);
+    const eventStartRef = useRef(null);
+    const eventEndRef = useRef(null);
 
     const categoryOptions = useMemo(
         () =>
@@ -118,9 +124,9 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
 
         if (post) {
             setFormData({
-                title: post.title || "",
-                summary: post.summary || "",
-                body: post.body || "",
+                title: post.i18nTitle || { en: post.title || "", ar: post.title || "" },
+                summary: post.i18nSummary || { en: post.summary || "", ar: post.summary || "" },
+                body: post.i18nBody || { en: post.body || "", ar: post.body || "" },
                 event_start: post.event_start || "",
                 event_end: post.event_end || "",
                 venue: post.venue || "",
@@ -132,6 +138,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                 status: post.status || "Draft",
                 publish_date: post.publish_date || "",
                 relatedCompanyId: post.relatedCompanyId || "",
+                industryIds: Array.isArray(post.industryIds) ? post.industryIds : [],
                 company_code: post.company_code || "",
                 coverFiles: post.cover
                     ? [{ preview: post.cover, type: "image/jpeg", name: t("common.cover") }]
@@ -147,7 +154,6 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === "summary" && value.length > SUMMARY_MAX) return;
         if (name === "seo_title" && value.length > META_TITLE_MAX) return;
         if (name === "seo_description" && value.length > META_DESC_MAX) return;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -157,23 +163,47 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
         e.preventDefault();
 
         // Always read latest HTML from the editor DOM (avoids stale React state on quick Save)
-        const bodyHtml = editorRef.current?.getHTML?.() ?? formData.body ?? "";
-        const plainBody = bodyHtml.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+        const bodyHtml = {
+            en: editorRef.current.en?.getHTML?.() ?? formData.body?.en ?? "",
+            ar: editorRef.current.ar?.getHTML?.() ?? formData.body?.ar ?? "",
+        };
+        const publishDate = publishDateRef.current?.value || formData.publish_date || null;
+        const eventStart = eventStartRef.current?.value || formData.event_start || "";
+        const eventEnd = eventEndRef.current?.value || formData.event_end || "";
+        const plainBody = (value) => value.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 
         const locale = getLocale();
 
-        if (!formData.title.trim()) {
+        const title = { en: String(formData.title?.en || "").trim(), ar: String(formData.title?.ar || "").trim() };
+        if (!title.en || !title.ar) {
             toast.error(te("errors.title.required", locale));
             return;
         }
 
-        if (!plainBody) {
+        const summaryEn = String(formData.summary?.en || "").trim();
+        const summaryAr = String(formData.summary?.ar || "").trim();
+        if (!summaryEn || !summaryAr) {
+            toast.error(isRtl ? "الملخص مطلوب باللغتين العربية والإنجليزية." : "Summary is required in English and Arabic.");
+            return;
+        }
+        if (summaryEn.length > SUMMARY_MAX || summaryAr.length > SUMMARY_MAX) {
+            toast.error(isRtl ? `يجب ألا يتجاوز كل ملخص ${SUMMARY_MAX} حرفًا.` : `Each summary must be ${SUMMARY_MAX} characters or fewer.`);
+            return;
+        }
+
+        const hasCover = Boolean(formData.coverPath || formData.coverFiles?.some((file) => file?.file || file?.preview));
+        if (formData.status !== "Draft" && !hasCover) {
+            toast.error(isRtl ? "صورة الغلاف مطلوبة عند النشر أو الجدولة." : "A cover image is required for published or scheduled posts.");
+            return;
+        }
+
+        if (!plainBody(bodyHtml.en) || !plainBody(bodyHtml.ar)) {
             toast.error(te("errors.body.required", locale));
             return;
         }
 
         if (isEvent) {
-            if (!formData.event_start) {
+            if (!eventStart) {
                 toast.error(te("errors.event.start_required", locale));
                 return;
             }
@@ -182,8 +212,8 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                 return;
             }
             if (
-                formData.event_end &&
-                formData.event_end < formData.event_start
+                eventEnd &&
+                eventEnd < eventStart
             ) {
                 toast.error(te("errors.event.end_before_start", locale));
                 return;
@@ -193,11 +223,11 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
         const company = companies.find((c) => c.id === formData.relatedCompanyId);
 
         onSave({
-            title: formData.title.trim(),
-            summary: formData.summary.trim(),
+            title,
+            summary: { en: summaryEn, ar: summaryAr },
             body: bodyHtml,
-            event_start: isEvent ? (formData.event_start || null) : null,
-            event_end: isEvent ? (formData.event_end || null) : null,
+            event_start: isEvent ? (eventStart || null) : null,
+            event_end: isEvent ? (eventEnd || null) : null,
             venue: isEvent ? formData.venue.trim() : "",
             city: isEvent ? formData.city.trim() : "",
             booth: isEvent ? formData.booth.trim() : "",
@@ -205,8 +235,9 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
             event_kind: formData.event_kind || "event",
             category: formData.category,
             status: formData.status,
-            publish_date: formData.publish_date || null,
+            publish_date: publishDate,
             relatedCompanyId: formData.relatedCompanyId || null,
+            industryIds: Array.isArray(formData.industryIds) ? [...formData.industryIds] : [],
             company_code: company?.code || formData.company_code || "",
             coverFiles: formData.coverFiles,
             coverPath: formData.coverPath,
@@ -244,33 +275,20 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 <label className="form-label">
                                                     {t("common.title")} <span className="text-danger">*</span>
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    name="title"
-                                                    required
-                                                    dir={isRtl ? "rtl" : "ltr"}
-                                                    value={formData.title}
-                                                    onChange={handleChange}
-                                                    placeholder={t("posts.titlePh")}
-                                                />
+                                                <div className="row g-2">{["en", "ar"].map((locale) => <div className="col-md-6" key={locale}><label className="form-text fsz-11" htmlFor={`post-title-${locale}`}>{locale.toUpperCase()}</label><input id={`post-title-${locale}`} type="text" className="form-control" required dir={locale === "ar" ? "rtl" : "ltr"} value={formData.title?.[locale] || ""} onChange={(event) => setFormData((prev) => ({ ...prev, title: { ...(prev.title || {}), [locale]: event.target.value } }))} placeholder={t("posts.titlePh")} /></div>)}</div>
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <div className="d-flex justify-content-between align-items-center mb-1">
-                                                    <label className="form-label mb-0">{t("posts.summary")}</label>
-                                                    <small className={`fsz-11 ${formData.summary.length >= SUMMARY_MAX ? "text-danger" : "text-muted"}`} dir="ltr">
-                                                        {formData.summary.length}/{SUMMARY_MAX}
-                                                    </small>
+                                                <label className="form-label mb-1">{t("posts.summary")} <span className="text-danger">*</span></label>
+                                                <div className="row g-2">
+                                                    {["en", "ar"].map((locale) => {
+                                                        const value = formData.summary?.[locale] || "";
+                                                        return <div className="col-md-6" key={locale}>
+                                                            <label className="form-text fsz-11" htmlFor={`post-summary-${locale}`}>{locale.toUpperCase()}</label>
+                                                            <div className="d-flex justify-content-end mb-1"><small className={`fsz-11 ${value.length >= SUMMARY_MAX ? "text-danger" : "text-muted"}`} dir="ltr">{value.length}/{SUMMARY_MAX}</small></div>
+                                                            <textarea id={`post-summary-${locale}`} className="form-control" rows={3} maxLength={SUMMARY_MAX} required dir={locale === "ar" ? "rtl" : "ltr"} value={value} onChange={(event) => setFormData((prev) => ({ ...prev, summary: { ...(prev.summary || {}), [locale]: event.target.value } }))} placeholder={t("posts.summaryPh")} />
+                                                        </div>;
+                                                    })}
                                                 </div>
-                                                <textarea
-                                                    className="form-control"
-                                                    name="summary"
-                                                    rows={3}
-                                                    dir={isRtl ? "rtl" : "ltr"}
-                                                    value={formData.summary}
-                                                    onChange={handleChange}
-                                                    placeholder={t("posts.summaryPh")}
-                                                />
                                                 <small className="text-muted fsz-11">
                                                     {t("posts.summaryHint", { count: SUMMARY_MAX })}
                                                 </small>
@@ -279,17 +297,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 <label className="form-label">
                                                     {t("posts.body")} <span className="text-danger">*</span>
                                                 </label>
-                                                <div dir={isRtl ? "rtl" : "ltr"}>
-                                                    <SimpleRichTextEditor
-                                                        ref={editorRef}
-                                                        value={formData.body}
-                                                        onChange={(html) =>
-                                                            setFormData((prev) => ({ ...prev, body: html }))
-                                                        }
-                                                        placeholder={t("posts.bodyPh")}
-                                                        required
-                                                    />
-                                                </div>
+                                                <div className="row g-3">{["en", "ar"].map((locale) => <div className="col-12" key={locale}><label className="form-text fsz-11">{locale.toUpperCase()}</label><div dir={locale === "ar" ? "rtl" : "ltr"}><SimpleRichTextEditor ref={(instance) => { editorRef.current[locale] = instance; }} value={formData.body?.[locale] || ""} onChange={(html) => setFormData((prev) => ({ ...prev, body: { ...(prev.body || {}), [locale]: html } }))} placeholder={t("posts.bodyPh")} required /></div></div>)}</div>
                                             </div>
                                         </div>
                                     </Section>
@@ -302,6 +310,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                         {t("posts.start")} <span className="text-danger">*</span>
                                                     </label>
                                                     <input
+                                                        ref={eventStartRef}
                                                         type="date"
                                                         className="form-control"
                                                         name="event_start"
@@ -314,6 +323,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 <div className="col-lg-6 mb-3">
                                                     <label className="form-label">{t("posts.end")}</label>
                                                     <input
+                                                    ref={eventEndRef}
                                                         type="date"
                                                         className="form-control"
                                                         name="event_end"
@@ -417,6 +427,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">{t("posts.publishDate")}</label>
                                                 <input
+                                                    ref={publishDateRef}
                                                     type="date"
                                                     className="form-control"
                                                     name="publish_date"
@@ -424,6 +435,10 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                     value={formData.publish_date}
                                                     onChange={handleChange}
                                                 />
+                                            </div>
+                                            <div className="col-12 mb-3">
+                                                <label className="form-label">{t("posts.relatedIndustries")}</label>
+                                                <div className="row">{industries.map((industry) => <div className="col-md-4" key={industry.id}><label className="form-check border rounded p-2 mb-2"><input className="form-check-input" type="checkbox" checked={formData.industryIds.includes(industry.id)} onChange={() => setFormData((prev) => ({ ...prev, industryIds: prev.industryIds.includes(industry.id) ? prev.industryIds.filter((id) => id !== industry.id) : [...prev.industryIds, industry.id] }))} /><span className="form-check-label ms-2">{text(industry.i18nTitle, industry.title || industry.slug)}</span></label></div>)}</div>
                                             </div>
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label">{t("posts.relatedCompany")}</label>
@@ -466,7 +481,7 @@ export default function PostModal({ isOpen, onClose, onSave, post }) {
                                                 )}
                                             </div>
                                             <div className="col-12 mb-3">
-                                                <label className="form-label">{t("posts.cover")}</label>
+                                                <label className="form-label">{t("posts.cover")} {formData.status !== "Draft" && <span className="text-danger">*</span>}</label>
                                                 <FileUpload
                                                     files={formData.coverFiles}
                                                     onFilesChange={(files) =>

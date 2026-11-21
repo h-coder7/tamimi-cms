@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Select from "react-select";
 import FileUpload from "../../shared/FileUpload";
 import { useCertificates } from "@/hooks/useCertificates";
-import { useIndustries } from "@/hooks/useIndustries";
+import { useIndustries, useValueChainStages } from "@/hooks/useIndustries";
 import { useI18n } from "@/hooks/useI18n";
 
 const LOGO_ACCEPT = {
@@ -24,7 +24,6 @@ const GALLERY_ACCEPT = {
     "image/jpeg": [".jpg", ".jpeg"],
     "image/png": [".png"],
     "image/webp": [".webp"],
-    "video/mp4": [".mp4"],
 };
 
 const PDF_ACCEPT = {
@@ -33,19 +32,15 @@ const PDF_ACCEPT = {
 
 const COMPANY_NAME_MAX = 100;
 const COMPANY_SHORT_CODE_MAX = 12;
-
-const VALUE_CHAIN_OPTIONS = [
-    "Engineering & Design",
-    "Manufacturing & Fabrication",
-    "Supply & Distribution",
-    "Installation & Commissioning",
-    "Operations & Maintenance",
-];
+const COMPANY_TAGLINE_MAX = 40;
 
 const emptyForm = () => ({
     title: "",
+    i18nTitle: { en: "", ar: "" },
     code: "",
     tagline: "",
+    i18nTagline: { en: "", ar: "" },
+    jvPartner: "",
     year_established: "",
     overview: "",
     secondaryOverview: { en: "", ar: "" },
@@ -89,6 +84,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
         isError: industriesError,
         refetch: refetchIndustries,
     } = useIndustries();
+    const { data: valueChainStages = [] } = useValueChainStages({ enabled: isOpen });
     const {
         data: certificateRows = [],
         isLoading: certificatesLoading,
@@ -121,8 +117,11 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
         if (company) {
             setFormData({
                 title: company.title || "",
+                i18nTitle: company.i18nTitle || { en: company.title || "", ar: "" },
                 code: company.code || "",
                 tagline: company.tagline || "",
+                i18nTagline: company.i18nTagline || { en: company.tagline || "", ar: "" },
+                jvPartner: company.jvPartner || "",
                 year_established:
                     company.year_established != null
                         ? String(company.year_established)
@@ -210,7 +209,7 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value, ...(name === "title" ? { i18nTitle: { ...(prev.i18nTitle || {}), en: value } } : {}), ...(name === "tagline" ? { i18nTagline: { ...(prev.i18nTagline || {}), en: value } } : {}) }));
     };
 
     const toggleListValue = (key, value) => {
@@ -285,8 +284,11 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
 
         const submissionData = {
             title: formData.title.trim(),
+            i18nTitle: { ...(formData.i18nTitle || {}), en: formData.title.trim(), ar: String(formData.i18nTitle?.ar || "").trim() },
             code: formData.code.trim(),
             tagline: formData.tagline.trim(),
+            i18nTagline: { ...(formData.i18nTagline || {}), en: formData.tagline.trim(), ar: String(formData.i18nTagline?.ar || "").trim() },
+            jvPartner: formData.jvPartner.trim(),
             year_established: String(formData.year_established ?? "").trim(),
             overview: formData.overview.trim(),
             secondaryOverview: { en: formData.secondaryOverview.en.trim(), ar: formData.secondaryOverview.ar.trim() },
@@ -391,6 +393,8 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                 <small className="text-muted fsz-11">
                                                     {t("companies.charCount", { count: nameCount, max: COMPANY_NAME_MAX })}
                                                 </small>
+                                                <label className="form-label mt-2">{t("pages.fields.ar") || "Arabic name"} <span className="text-danger">*</span></label>
+                                                <input type="text" dir="rtl" className="form-control" maxLength={COMPANY_NAME_MAX} required value={formData.i18nTitle?.ar || ""} onChange={(e) => setFormData((prev) => ({ ...prev, i18nTitle: { ...(prev.i18nTitle || {}), en: prev.title, ar: e.target.value } }))} />
                                             </div>
                                             <div className="col-lg-4 mb-3">
                                                 <label className="form-label">{t("companies.shortCode")} <span className="text-danger">*</span></label>
@@ -409,6 +413,10 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                     {t("companies.charCount", { count: codeCount, max: COMPANY_SHORT_CODE_MAX })}
                                                 </small>
                                             </div>
+                                            <div className="col-lg-4 mb-3">
+                                                <label className="form-label">{t("common.type")}</label>
+                                                <Select options={typeOptions} className="react-select-container" classNamePrefix="react-select" isRtl={isRtl} value={typeOptions.find((o) => o.value === formData.type)} onChange={(o) => setFormData((p) => ({ ...p, type: o.value }))} />
+                                            </div>
                                             <div className="col-lg-8 mb-3">
                                                 <label className="form-label">{t("companies.tagline")}</label>
                                                 <input
@@ -416,13 +424,17 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                     className="form-control"
                                                     name="tagline"
                                                     dir={textDir}
+                                                    maxLength={COMPANY_TAGLINE_MAX}
                                                     value={formData.tagline}
                                                     onChange={handleChange}
                                                     placeholder={t("companies.taglinePh")}
                                                 />
+                                                <small className="text-muted fsz-11">{t("companies.taglineHint")} · {formData.tagline.length}/{COMPANY_TAGLINE_MAX}</small>
+                                                <label className="form-label mt-2">{t("pages.fields.ar") || "Arabic"}</label>
+                                                <input type="text" className="form-control" dir="rtl" maxLength={COMPANY_TAGLINE_MAX} value={formData.i18nTagline?.ar || ""} onChange={(e) => setFormData((prev) => ({ ...prev, i18nTagline: { ...(prev.i18nTagline || {}), en: prev.tagline, ar: e.target.value } }))} />
                                             </div>
                                             <div className="col-lg-4 mb-3">
-                                                <label className="form-label">{t("companies.year")}</label>
+                                                <label className="form-label">{t(formData.type === "Joint Venture" ? "companies.yearJoined" : "companies.yearEstablished")}</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
@@ -436,6 +448,10 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                 />
                                                 <small className="text-muted fsz-11">{t("companies.yearPh")}</small>
                                             </div>
+                                            {formData.type === "Joint Venture" && <div className="col-lg-6 mb-3">
+                                                <label className="form-label">{t("companies.jvPartner")}</label>
+                                                <input type="text" className="form-control" maxLength={160} value={formData.jvPartner} onChange={(e) => setFormData((prev) => ({ ...prev, jvPartner: e.target.value }))} placeholder={t("companies.jvPartnerPh")} />
+                                            </div>}
                                             <div className="col-12 mb-1">
                                                 <label className="form-label">{t("common.overview")} <span className="text-danger">*</span></label>
                                                 <textarea
@@ -623,17 +639,17 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                             <div className="col-lg-6 mb-3">
                                                 <label className="form-label d-block mb-2">{t("companies.valueChain")}</label>
                                                 <div className="d-flex flex-column gap-2">
-                                                    {VALUE_CHAIN_OPTIONS.map((stage) => (
-                                                        <div className="form-check" key={stage}>
+                                                    {valueChainStages.map((stage) => (
+                                                        <div className="form-check" key={stage.id}>
                                                             <input
                                                                 className="form-check-input"
                                                                 type="checkbox"
-                                                                id={`value-chain-${stage}`}
-                                                                checked={formData.value_chain.includes(stage)}
-                                                                onChange={() => toggleListValue("value_chain", stage)}
+                                                                id={`value-chain-${stage.id}`}
+                                                                checked={formData.value_chain.includes(stage.id)}
+                                                                onChange={() => toggleListValue("value_chain", stage.id)}
                                                             />
-                                                            <label className="form-check-label fsz-13" htmlFor={`value-chain-${stage}`}>
-                                                                {t(`valueChain.${stage}`)}
+                                                            <label className="form-check-label fsz-13" htmlFor={`value-chain-${stage.id}`}>
+                                                                {stage.name?.[isRtl ? "ar" : "en"] || stage.name?.en}
                                                             </label>
                                                         </div>
                                                     ))}
@@ -703,6 +719,8 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                             files={formData.gallery}
                                             onFilesChange={(files) => setFormData((prev) => ({ ...prev, gallery: files }))}
                                             maxFiles={12}
+                                            maxSize={5 * 1024 * 1024}
+                                            sortable
                                             accept={GALLERY_ACCEPT}
                                             title={t("companies.dropMedia")}
                                             hint={t("companies.galleryFormats")}
@@ -733,17 +751,6 @@ export default function CompanyModal({ isOpen, onClose, onSave, company }) {
                                                     isRtl={isRtl}
                                                     value={statusOptions.find((o) => o.value === formData.status)}
                                                     onChange={(o) => setFormData((p) => ({ ...p, status: o.value }))}
-                                                />
-                                            </div>
-                                            <div className="col-md-4 mb-3">
-                                                <label className="form-label">{t("common.type")}</label>
-                                                <Select
-                                                    options={typeOptions}
-                                                    className="react-select-container"
-                                                    classNamePrefix="react-select"
-                                                    isRtl={isRtl}
-                                                    value={typeOptions.find((o) => o.value === formData.type)}
-                                                    onChange={(o) => setFormData((p) => ({ ...p, type: o.value }))}
                                                 />
                                             </div>
                                             <div className="col-md-4 mb-3">

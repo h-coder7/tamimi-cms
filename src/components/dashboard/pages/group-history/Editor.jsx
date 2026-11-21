@@ -10,10 +10,14 @@ import { defaultContent, GROUP_VALUES, JOURNEY_MILESTONES, pageMeta } from "./da
 import TeamEditor, { validateTeam } from "./TeamEditor";
 import toast from "react-hot-toast";
 import OurStoryEditor, { isValidStory } from "./OurStoryEditor";
+import PageImageUpload from "../_shared/PageImageUpload";
+import FileUpload from "@/components/shared/FileUpload";
+import { uploadPageMedia } from "@/hooks/useCmsPages";
+import api, { getApiErrorMessage } from "@/app/api/api";
 
 const SECTIONS = [
-    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 2 },
-    { id: "our_story", number: "02", titleKey: "pages.section.ourStory", fieldsCount: 9 },
+    { id: "hero", number: "01", titleKey: "pages.section.hero", fieldsCount: 3 },
+    { id: "our_story", number: "02", titleKey: "pages.section.ourStory", fieldsCount: 12 },
     { id: "our_journey", number: "03", titleKey: "pages.section.journey", fieldsCount: 31 },
     { id: "values", number: "04", titleKey: "pages.section.values", fieldsCount: 0 },
     { id: "group_structure", number: "05", titleKey: "pages.section.structure", fieldsCount: 2 },
@@ -31,6 +35,7 @@ export default function GroupHistoryEditor() {
     const [draft, setDraft] = useState(null);
     const [teamDirty, setTeamDirty] = useState(false);
     const [teamUploading, setTeamUploading] = useState(false);
+    const [aboutUploading, setAboutUploading] = useState(false);
 
     const savedContent = page?.content || {};
     const content = draft || {
@@ -84,11 +89,11 @@ export default function GroupHistoryEditor() {
     };
 
     const handleCancel = () => router.push("/dashboard/pages");
-    const handlePreview = () => window.open(page?.url || "/group-history", "_blank", "noopener,noreferrer");
+    const handlePreview = () => window.open(page?.url || "/about", "_blank", "noopener,noreferrer");
 
     const handleSavePublish = async () => {
         const desc = content.group_structure?.description;
-        if (!(typeof desc === "string" ? desc.trim() : (desc?.en?.trim() || desc?.ar?.trim()))) {
+        if (!(typeof desc === "string" ? desc.trim() : (desc?.en?.trim() && desc?.ar?.trim()))) {
             setActiveSectionId("group_structure"); toast.error(t("pages.structureDescriptionRequired")); return;
         }
         if (content.our_story && !isValidStory(content.our_story)) {
@@ -141,7 +146,7 @@ export default function GroupHistoryEditor() {
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
                     onClick={handleSavePublish}
-                    disabled={updateMutation.isPending || teamUploading}
+                    disabled={updateMutation.isPending || teamUploading || aboutUploading}
                 >
                     <i className="fal fa-check"></i>
                     <span className="txt ms-2">{t("pages.savePublish")}</span>
@@ -191,24 +196,13 @@ export default function GroupHistoryEditor() {
                                         <label className="form-label fsz-12 text-muted">
                                             {t("pages.fields.title")} <span className="text-danger">*</span>
                                         </label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            maxLength={90}
-                                            value={section.title || ""}
-                                            onChange={(e) => setField("title", e.target.value)}
-                                        />
+                                        <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><input dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" maxLength={90} value={typeof section.title === "string" ? (lang === "en" ? section.title : "") : section.title?.[lang] || ""} onChange={e => setField("title", { ...(typeof section.title === "object" ? section.title : { en: section.title || "", ar: "" }), [lang]: e.target.value })} /></div>)}</div>
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.intro")}</label>
-                                        <textarea dir={dir}
-                                            className="form-control"
-                                            rows={4}
-                                            maxLength={240}
-                                            value={section.intro_text || ""}
-                                            onChange={(e) => setField("intro_text", e.target.value)}
-                                        />
+                                        <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><textarea dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" rows={4} maxLength={240} value={typeof section.intro_text === "string" ? (lang === "en" ? section.intro_text : "") : section.intro_text?.[lang] || ""} onChange={e => setField("intro_text", { ...(typeof section.intro_text === "object" ? section.intro_text : { en: section.intro_text || "", ar: "" }), [lang]: e.target.value })} /></div>)}</div>
                                     </div>
+                                    <div className="col-12"><PageImageUpload slug="about" value={section.background_image || ""} onChange={value => setField("background_image", value)} onBusy={setAboutUploading} title={isRtl ? "صورة خلفية About" : "About hero background image"} maxBytes={5 * 1024 * 1024} accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] }} /></div>
                                 </>
                             )}
 
@@ -218,12 +212,7 @@ export default function GroupHistoryEditor() {
                                         <label className="form-label fsz-12 text-muted">
                                             {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                         </label>
-                                        <input dir={dir}
-                                            type="text"
-                                            className="form-control"
-                                            value={section.section_title || ""}
-                                            onChange={(e) => setField("section_title", e.target.value)}
-                                        />
+                                            <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><input dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" value={typeof section.section_title === "string" ? (lang === "en" ? section.section_title : "") : section.section_title?.[lang] || ""} onChange={e => setField("section_title", { ...(typeof section.section_title === "object" ? section.section_title : { en: section.section_title || "", ar: "" }), [lang]: e.target.value })} /></div>)}</div>
                                     </div>
 
                                     {milestones.map((item, index) => (
@@ -240,12 +229,7 @@ export default function GroupHistoryEditor() {
                                                 </div>
                                                 <div className="col-md-9">
                                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.milestone")}</label>
-                                                    <textarea dir={dir}
-                                                        className="form-control"
-                                                        rows={2}
-                                                        value={item.milestone || ""}
-                                                        onChange={(e) => setMilestone(index, "milestone", e.target.value)}
-                                                    />
+                                                    <div className="row g-2">{["en", "ar"].map(lang => <div className="col-12" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><textarea dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" rows={2} maxLength={240} value={typeof item.milestone === "string" ? (lang === "en" ? item.milestone : "") : item.milestone?.[lang] || ""} onChange={e => setMilestone(index, "milestone", { ...(typeof item.milestone === "object" ? item.milestone : { en: item.milestone || "", ar: "" }), [lang]: e.target.value })} /></div>)}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -254,7 +238,7 @@ export default function GroupHistoryEditor() {
                             )}
 
                             {activeSection.id === "our_story" && (
-                                <div className="col-12"><OurStoryEditor value={content.our_story} onChange={(our_story) => setContent(prev => ({ ...prev, our_story }))} /></div>
+                                <div className="col-12"><OurStoryEditor value={content.our_story} onBusy={setAboutUploading} onChange={(our_story) => setContent(prev => ({ ...prev, our_story }))} /></div>
                             )}
 
                             {activeSection.id === "values" && (
@@ -275,16 +259,12 @@ export default function GroupHistoryEditor() {
                                     <label className="form-label fsz-12 text-muted">
                                         {t("pages.fields.sectionTitle")} <span className="text-danger">*</span>
                                     </label>
-                                    <input dir={dir}
-                                        type="text"
-                                        className="form-control"
-                                        value={section.section_title || ""}
-                                        onChange={(e) => setField("section_title", e.target.value)}
-                                    />
+                                        <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><input dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" value={typeof section.section_title === "string" ? (lang === "en" ? section.section_title : "") : section.section_title?.[lang] || ""} onChange={e => setField("section_title", { ...(typeof section.section_title === "object" ? section.section_title : { en: section.section_title || "", ar: "" }), [lang]: e.target.value })} /></div>)}</div>
                                     <div className="mt-3">
                                         <label className="form-label fsz-12 text-muted">{t("common.description")} <span className="text-danger">*</span></label>
                                         <div className="row g-2">{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><span className="fsz-10 text-muted">{lang.toUpperCase()}</span><textarea className="form-control" rows={3} maxLength={2000} dir={lang === "ar" ? "rtl" : "ltr"} value={typeof section.description === "string" ? (lang === "en" ? section.description : "") : (section.description?.[lang] || "")} onChange={e => setField("description", { ...(typeof section.description === "object" && section.description ? section.description : { en: section.description || "" }), [lang]: e.target.value })} /></div>)}</div>
                                     </div>
+                                    <div className="border-top mt-4 pt-3"><h6>{isRtl ? "الشركة القابضة" : "Holding company"}</h6><div className="row g-2"><div className="col-md-6">{["en", "ar"].map(lang => <div key={lang} className="mb-2"><label className="form-label fsz-12">{isRtl ? "الاسم" : "Name"} ({lang.toUpperCase()})</label><input className="form-control" dir={lang === "ar" ? "rtl" : "ltr"} maxLength={80} value={section.holding?.name?.[lang] || ""} onChange={e => setField("holding", { ...(section.holding || {}), name: { ...(section.holding?.name || {}), [lang]: e.target.value } })} /></div>)}</div><div className="col-md-6"><label className="form-label fsz-12">{isRtl ? "سنة التأسيس" : "Established year"}</label><input type="number" min="1000" max="9999" className="form-control" value={section.holding?.established_year || ""} onChange={e => setField("holding", { ...(section.holding || {}), established_year: Number(e.target.value) || "" })} /></div><div className="col-12"><HoldingLogoUpload value={section.holding?.logo || ""} onBusy={setAboutUploading} onChange={logo => setField("holding", { ...(section.holding || {}), logo })} isRtl={isRtl} /></div></div></div>
                                     <p className="fsz-12 text-muted mt-3 mb-0">
                                         {t("pages.structureNote")}
                                     </p>
@@ -302,7 +282,7 @@ export default function GroupHistoryEditor() {
                     {(prevSection || nextSection) && (
                         <div className="page-editor__next">
                             {prevSection ? (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(prevSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading || aboutUploading} onClick={() => setActiveSectionId(prevSection.id)}>
                                     <i className="fal fa-arrow-left me-2"></i>
                                     {t(prevSection.titleKey)}
                                 </button>
@@ -310,7 +290,7 @@ export default function GroupHistoryEditor() {
                                 <span />
                             )}
                             {nextSection && (
-                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading} onClick={() => setActiveSectionId(nextSection.id)}>
+                                <button type="button" className="btn btn-outline-secondary fsz-12" disabled={teamUploading || aboutUploading} onClick={() => setActiveSectionId(nextSection.id)}>
                                     {t(nextSection.titleKey)}
                                     <i className="fal fa-arrow-right ms-2"></i>
                                 </button>
@@ -321,4 +301,19 @@ export default function GroupHistoryEditor() {
             </div>
         </>
     );
+}
+
+function HoldingLogoUpload({ value, onChange, onBusy, isRtl }) {
+    const title = isRtl ? "شعار الشركة القابضة (SVG أو PNG، حتى 2 ميجابايت)" : "Holding company logo (SVG or PNG, up to 2 MB)";
+    const base = String(api.defaults.baseURL || "").replace(/\/api\/v1\/admin\/?$/, "");
+    const preview = value ? (/^(https?:|\/)/.test(value) ? value : `${base}/uploads/${value}`) : "";
+    return <FileUpload title={title} hint={title} maxFiles={1} accept={{ "image/svg+xml": [".svg"], "image/png": [".png"] }} files={preview ? [{ name: value.split("/").pop(), type: value.endsWith(".svg") ? "image/svg+xml" : "image/png", preview }] : []} onFilesChange={async files => {
+        if (!files.length) { onChange(""); return; }
+        const file = files[0].file;
+        if (!file || file.size > 2 * 1024 * 1024 || !["image/svg+xml", "image/png"].includes(file.type)) { toast.error(isRtl ? "اختر SVG أو PNG حتى 2 ميجابايت" : "Choose an SVG or PNG up to 2 MB"); return; }
+        onBusy(true);
+        try { const result = await uploadPageMedia("about", file, "about_logo"); if (!result?.path) throw new Error("Upload failed"); onChange(result.path); }
+        catch (error) { toast.error(getApiErrorMessage(error, isRtl ? "تعذر رفع الشعار" : "Logo upload failed")); }
+        finally { onBusy(false); }
+    }} />;
 }

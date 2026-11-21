@@ -70,6 +70,9 @@ export function industryFromApi(industry) {
   const stagesWithCompanies = VALUE_CHAIN_STAGES.filter(
     (stage) => Array.isArray(mapping[stage]) && mapping[stage].length > 0
   );
+  const selectedStageCount = Array.isArray(industry.valueChainStages)
+    ? industry.valueChainStages.length
+    : stagesWithCompanies.length;
   const companiesCount = companyIds.length || companies.length;
 
   return {
@@ -82,16 +85,19 @@ export function industryFromApi(industry) {
     short_description: shortDescription,
     i18nShortDescription: industry.shortDescription,
     full_description: fullDescription,
+    i18nFullDescription: industry.fullDescription,
+    relatedIndustryIds: Array.isArray(industry.relatedIndustryIds) ? industry.relatedIndustryIds : [],
     overview: industry.overview || { title: { en: "", ar: "" }, firstDescription: { en: "", ar: "" }, secondDescription: { en: "", ar: "" } },
     description: shortDescription,
     companies,
     companyIds,
     value_chain_mapping: mapping,
+    value_chain_stages: Array.isArray(industry.valueChainStages) ? industry.valueChainStages : [],
     value_chain: stagesWithCompanies,
     companies_count: companiesCount,
     companies_label: `${companiesCount} ${companiesCount === 1 ? "company" : "companies"}`,
-    stages_count: stagesWithCompanies.length,
-    stages_label: `${stagesWithCompanies.length} of ${TOTAL_STAGES} stages`,
+    stages_count: selectedStageCount,
+    stages_label: `${selectedStageCount} of ${TOTAL_STAGES} stages`,
     icon: industry.iconUrl || "",
     cover: industry.coverUrl || "",
     homepageBanner: industry.homepageBannerUrl || industry.coverUrl || "",
@@ -128,7 +134,7 @@ export function industryToApiPayload(form, companiesList = []) {
           .filter(Boolean);
 
   const mapping = form.value_chain_mapping || emptyValueChainMapping();
-  const valueChainStages = VALUE_CHAIN_STAGES.filter(
+  const valueChainStages = Array.isArray(form.value_chain_stages) ? form.value_chain_stages : VALUE_CHAIN_STAGES.filter(
     (stage) => Array.isArray(mapping[stage]) && mapping[stage].length > 0
   ).map((stage) => VALUE_CHAIN_TO_API[stage] || stage);
 
@@ -137,6 +143,8 @@ export function industryToApiPayload(form, companiesList = []) {
     status: STATUS_TO_API[form.status] || "draft",
     shortDescription: form.i18nShortDescription && localized(form.i18nShortDescription).trim() === String(form.short_description || form.description || "").trim() ? form.i18nShortDescription : toLocalized(form.short_description || form.description),
     overview: form.overview,
+    fullDescription: form.i18nFullDescription && localized(form.i18nFullDescription).trim() === String(form.full_description || "").trim() ? form.i18nFullDescription : toLocalized(form.full_description),
+    relatedIndustryIds: Array.isArray(form.relatedIndustryIds) ? form.relatedIndustryIds : [],
     companyIds,
     valueChainStages,
     valueChainMapping: mapping,
@@ -158,10 +166,8 @@ export function industryToApiPayload(form, companiesList = []) {
     payload.homepageBannerPath = form.homepageBannerPath;
     payload.coverPath = form.homepageBannerPath;
   }
-  if (form.industryCardPath !== undefined) {
-    payload.industryCardPath = form.industryCardPath;
-    payload.iconPath = form.industryCardPath;
-  }
+  if (form.industryCardPath !== undefined) payload.industryCardPath = form.industryCardPath;
+  if (form.iconPath !== undefined) payload.iconPath = form.iconPath;
 
   return payload;
 }
@@ -170,21 +176,17 @@ export function industryToFormData(form, companiesList = []) {
   const fd = new FormData();
   fd.append("payload", JSON.stringify(industryToApiPayload(form, companiesList)));
 
-  const bannerFile =
-    form.homepageBannerFiles?.[0]?.file ||
-    form.homepageBannerFile ||
-    form.coverFiles?.[0]?.file;
-  if (bannerFile instanceof File) {
-    fd.append("homepageBanner", bannerFile);
-  }
+  const bannerFile = form.coverFiles?.[0]?.file || form.homepageBannerFiles?.[0]?.file || form.homepageBannerFile;
+  if (bannerFile instanceof File) fd.append("cover", bannerFile);
 
   const cardFile =
     form.industryCardFiles?.[0]?.file ||
     form.industryCardFile ||
     form.iconFiles?.[0]?.file;
-  if (cardFile instanceof File) {
-    fd.append("industryCard", cardFile);
-  }
+  if (cardFile instanceof File) fd.append("industryCard", cardFile);
+
+  const iconFile = form.iconFiles?.[0]?.file || form.iconFile;
+  if (iconFile instanceof File) fd.append("icon", iconFile);
 
   return fd;
 }

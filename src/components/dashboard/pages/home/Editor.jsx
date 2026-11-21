@@ -8,7 +8,6 @@ import toast from "react-hot-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import FileUpload from "@/components/shared/FileUpload";
 import { useCmsPage, useUpdateCmsPage, uploadPageMedia } from "@/hooks/useCmsPages";
-import { useCompanies } from "@/hooks/useCompanies";
 import { publicPath } from "@/utils/publicPath";
 import { isValidUrlOrPath } from "@/utils/urlValidator";
 import SaudiManufacturingEditor from "./SaudiManufacturingEditor";
@@ -19,16 +18,27 @@ import { defaultContent, pageMeta } from "./data";
 const SECTIONS = [
     { id: "hero", number: "01", titleKey: "pages.section.heroVideo", fieldsCount: 9 },
     { id: "key_message", number: "02", titleKey: "pages.section.keyMessage", fieldsCount: 8 },
-    { id: "our_values", number: "03", titleKey: "pages.section.ourValues", fieldsCount: 10 },
+    { id: "our_values", number: "03", titleKey: "pages.section.ourValues", fieldsCount: 14 },
     { id: "industries", number: "04", titleKey: "pages.section.industries", fieldsCount: 1, manageLink: { href: "/dashboard/industries", labelKey: "pages.manageIndustries" } },
     { id: "our_history", number: "05", titleKey: "pages.section.ourHistory", fieldsCount: 40, isNew: true },
     { id: "our_companies", number: "06", titleKey: "pages.section.companies", fieldsCount: 2 },
     { id: "saudi_manufacturing", number: "07", titleKey: "pages.section.saudiManufacturing", fieldsCount: 12 },
     { id: "media_center", number: "08", titleKey: "pages.section.media", fieldsCount: 1, manageLink: { href: "/dashboard/posts", labelKey: "pages.managePosts" } },
     { id: "careers", number: "09", titleKey: "pages.section.careers", fieldsCount: 16 },
+    { id: "footer", number: "10", titleKey: "pages.section.footer", fieldsCount: 2 },
 ];
 
 const VIDEO_ACCEPT = { "video/mp4": [".mp4"], "video/webm": [".webm"] };
+const HOME_VIDEO_PATH = /^pages\/home\/[0-9a-f-]{36}\.(?:mp4|webm)$/i;
+const isSupportedHeroVideoUrl = (value) => {
+    if (typeof value !== "string") return false;
+    try {
+        const url = new URL(value.trim());
+        return url.protocol === "https:" && ["youtube.com", "youtu.be", "vimeo.com"].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+    } catch {
+        return false;
+    }
+};
 const IMAGE_ACCEPT = {
     "image/jpeg": [".jpg", ".jpeg"],
     "image/png": [".png"],
@@ -57,22 +67,37 @@ export function isValidStatLabel(val) {
     if (typeof val === "object") {
         const en = String(val?.en || "").trim();
         const ar = String(val?.ar || "").trim();
-        const enValid = !en || (en.length >= 2 && en.length <= 30);
-        const arValid = !ar || (ar.length >= 2 && ar.length <= 30);
-        return (Boolean(en) || Boolean(ar)) && enValid && arValid;
+        const enValid = en.length >= 2 && en.length <= 30;
+        const arValid = ar.length >= 2 && ar.length <= 30;
+        return Boolean(en) && Boolean(ar) && enValid && arValid;
     }
-    const s = String(val).trim();
-    return s.length >= 2 && s.length <= 30;
+    return false;
 }
 
 function filesFromValue(value, type) {
     if (!value) return [];
+    const rawUrl = typeof value === "string" ? value : value.url || value.path;
+    const url = uploadedFileUrl(rawUrl);
+    const fallbackName = typeof rawUrl === "string" ? rawUrl.split("/").pop() : "";
     return [{
-        preview: publicPath(value),
-        type: type === "video" ? "video/mp4" : "image/jpeg",
-        name: type === "video" ? "video.mp4" : (String(value).split("/").pop() || "image.jpg"),
-        url: publicPath(value),
+        preview: url,
+        type: value?.mime || (type === "video" ? "video/mp4" : "image/jpeg"),
+        name: value?.name || value?.originalName || fallbackName || (type === "video" ? "video.mp4" : "image.jpg"),
+        size: value?.size,
+        url,
     }];
+}
+
+function uploadedFileUrl(value) {
+    if (!value || typeof value !== "string") return "";
+    if (/^(?:https?:|data:|blob:)/i.test(value)) return value;
+    const relativePath = value.replace(/^\/+/, "").replace(/^uploads\//i, "");
+    if (/^(?:pages|companies|industries|projects|posts|clients|certificates|downloads)\//i.test(relativePath)) {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010/api/v1/admin";
+        const origin = new URL(apiBase, typeof window === "undefined" ? "http://localhost:9091" : window.location.origin).origin;
+        return `${origin}/uploads/${relativePath}`;
+    }
+    return publicPath(value);
 }
 
 export default function HomeEditor() {
@@ -80,7 +105,6 @@ export default function HomeEditor() {
     const dir = isRtl ? "rtl" : "ltr";
     const router = useRouter();
     const { data: page, isLoading } = useCmsPage(pageMeta.id);
-    const { data: companies = [] } = useCompanies();
     const updateMutation = useUpdateCmsPage();
 
     const [activeSectionId, setActiveSectionId] = useState("hero");
@@ -90,9 +114,21 @@ export default function HomeEditor() {
         if (window.location.hash === "#our_values") setActiveSectionId("our_values");
     }, []);
     const [content, setContent] = useState(defaultContent);
+    const [pendingPrimaryPdf, setPendingPrimaryPdf] = useState(null);
+    const [pendingHeroVideo, setPendingHeroVideo] = useState(null);
+    const [pendingFallbackImage, setPendingFallbackImage] = useState(null);
     const [saving, setSaving] = useState(false);
     const [careersUploading, setCareersUploading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    useEffect(() => () => {
+        const preview = pendingHeroVideo?.preview;
+        if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    }, [pendingHeroVideo]);
+    useEffect(() => () => {
+        const preview = pendingFallbackImage?.preview;
+        if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    }, [pendingFallbackImage]);
 
     useEffect(() => {
         if (!page?.content) return;
@@ -111,6 +147,7 @@ export default function HomeEditor() {
                 next.hero?.introductory_heading ||
                 defaultContent.hero.introductory_heading,
         };
+        delete next.hero.primary_btn_link;
 
         // Normalize key_message (TT-20)
         const defaultKm = defaultContent.key_message;
@@ -151,13 +188,13 @@ export default function HomeEditor() {
             point_2_title: rawKm.point_2_title ?? rawKm.statistic_number_2 ?? defaultKm.point_2_title,
             statistic_label_2: rawKm.statistic_label_2 ?? rawKm.point_2_text ?? defaultKm.point_2_text,
             point_2_text: rawKm.point_2_text ?? rawKm.statistic_label_2 ?? defaultKm.point_2_text,
-            point_3_title: rawKm.point_3_title ?? defaultKm.point_3_title,
-            point_3_text: rawKm.point_3_text ?? defaultKm.point_3_text,
             photo: rawKm.photo ?? rawKm.image ?? defaultKm.photo ?? "",
             slides: mergedSlides,
         };
+        delete next.key_message.point_3_title;
+        delete next.key_message.point_3_text;
 
-        // Normalize our_values (exactly 4 cards)
+        // Normalize our_values (exactly 6 cards)
         const defaultCards = defaultContent.our_values.cards;
         const existingCards = Array.isArray(next.our_values?.cards) ? next.our_values.cards : [];
         const mergedCards = defaultCards.map((dc, i) => {
@@ -182,7 +219,7 @@ export default function HomeEditor() {
                 en: next.our_values?.title?.en ?? (typeof next.our_values?.title === "string" ? next.our_values.title : defaultContent.our_values.title.en),
                 ar: next.our_values?.title?.ar ?? defaultContent.our_values.title.ar,
             },
-            cards: mergedCards.slice(0, 4),
+            cards: mergedCards.slice(0, 6),
         };
 
         // Normalize saudi_manufacturing (exactly 4 features)
@@ -195,6 +232,10 @@ export default function HomeEditor() {
                 title: {
                     en: match.title?.en ?? (typeof match.title === "string" ? match.title : df.title?.en ?? ""),
                     ar: match.title?.ar ?? df.title?.ar ?? "",
+                },
+                description: {
+                    en: match.description?.en ?? (typeof match.description === "string" ? match.description : df.description?.en ?? ""),
+                    ar: match.description?.ar ?? df.description?.ar ?? "",
                 },
                 icon: match.icon || df.icon || "factory",
             };
@@ -213,6 +254,11 @@ export default function HomeEditor() {
             image: next.saudi_manufacturing?.image ?? defaultContent.saudi_manufacturing.image,
             features: mergedFeatures.slice(0, 4),
             cta: {
+                ...(next.saudi_manufacturing?.cta || {}),
+                description: {
+                    en: next.saudi_manufacturing?.cta?.description?.en ?? (typeof next.saudi_manufacturing?.cta?.description === "string" ? next.saudi_manufacturing.cta.description : defaultContent.saudi_manufacturing.cta.description.en),
+                    ar: next.saudi_manufacturing?.cta?.description?.ar ?? defaultContent.saudi_manufacturing.cta.description.ar,
+                },
                 text: {
                     en: next.saudi_manufacturing?.cta?.text?.en ?? (typeof next.saudi_manufacturing?.cta?.text === "string" ? next.saudi_manufacturing.cta.text : defaultContent.saudi_manufacturing.cta.text.en),
                     ar: next.saudi_manufacturing?.cta?.text?.ar ?? defaultContent.saudi_manufacturing.cta.text.ar,
@@ -239,34 +285,44 @@ export default function HomeEditor() {
                     ar: rawOh.heading?.main_title?.ar ?? defaultOh.heading.main_title.ar,
                 },
             },
-            eras: Array.isArray(rawOh.eras) && rawOh.eras.length > 0 ? rawOh.eras : defaultOh.eras,
-            timeline_years: Array.isArray(rawOh.timeline_years) && rawOh.timeline_years.length > 0 ? rawOh.timeline_years : defaultOh.timeline_years,
+            eras: defaultOh.eras.map((fallback) => {
+                const existing = (Array.isArray(rawOh.eras) ? rawOh.eras : []).find((era) => era?.id === fallback.id);
+                if (!existing) return fallback;
+                return { ...fallback, ...existing, from_year: Number(existing.from_year) === 1940 ? fallback.from_year : existing.from_year };
+            }),
+            timeline_years: defaultOh.timeline_years.map((fallback) => {
+                const existing = (Array.isArray(rawOh.timeline_years) ? rawOh.timeline_years : []).find((year) => Number(year?.year) === Number(fallback.year));
+                return existing ? { ...fallback, ...existing, label: { ...fallback.label, ...(typeof existing.label === "object" ? existing.label : { en: existing.label }) }, description: { ...fallback.description, ...(typeof existing.description === "object" ? existing.description : { en: existing.description }) } } : fallback;
+            }),
         };
 
-        // Normalize companies
-        const selected = next.our_companies?.selected_companies;
-        if (Array.isArray(selected) && companies.length > 0) {
-            const validCodes = new Set(companies.map((c) => c.code).filter(Boolean));
-            next.our_companies = {
-                ...next.our_companies,
-                selected_companies: selected.filter((code) => validCodes.has(code)),
-            };
-        }
+        // Company cards are sourced from the Companies module.
+        if (next.our_companies) delete next.our_companies.selected_companies;
 
         setContent(next);
-    }, [page, companies]);
+    }, [page]);
 
     const activeSection = SECTIONS.find((s) => s.id === activeSectionId) || SECTIONS[0];
     const activeIndex = SECTIONS.findIndex((s) => s.id === activeSection.id);
     const prevSection = activeIndex > 0 ? SECTIONS[activeIndex - 1] : null;
     const nextSection = activeIndex < SECTIONS.length - 1 ? SECTIONS[activeIndex + 1] : null;
     const section = content[activeSection.id] || {};
+    const primaryPdfPath = typeof section.primary_btn_file === "string"
+        ? section.primary_btn_file
+        : section.primary_btn_file?.path;
+    const primaryPdfUrl = uploadedFileUrl(section.primary_btn_file?.url || primaryPdfPath);
+    const primaryPdfName = pendingPrimaryPdf?.name || section.primary_btn_file?.name || section.primary_btn_file?.originalName || section.primary_btn_file?.filename || primaryPdfPath?.split("/").pop();
 
     const setField = (key, value) => {
         setContent((prev) => ({
             ...prev,
             [activeSection.id]: { ...(prev[activeSection.id] || {}), [key]: value },
         }));
+    };
+
+    const localizedInput = (value, label, onChange, { multiline = false, maxLength, required = false } = {}) => {
+        const localized = typeof value === "object" && value ? value : { en: value || "", ar: "" };
+        return <div className="row g-2"><div className="col-md-6"><label className="form-label fsz-12 text-muted">{label} ({t("pages.fields.en")}){required && <span className="text-danger"> *</span>}</label>{multiline ? <textarea dir="ltr" className="form-control" rows={4} maxLength={maxLength} value={localized.en || ""} onChange={(e) => onChange({ ...localized, en: e.target.value })} /> : <input dir="ltr" type="text" className="form-control" maxLength={maxLength} value={localized.en || ""} onChange={(e) => onChange({ ...localized, en: e.target.value })} />}</div><div className="col-md-6"><label className="form-label fsz-12 text-muted">{label} ({t("pages.fields.ar")}){required && <span className="text-danger"> *</span>}</label>{multiline ? <textarea dir="rtl" className="form-control" rows={4} maxLength={maxLength} value={localized.ar || ""} onChange={(e) => onChange({ ...localized, ar: e.target.value })} /> : <input dir="rtl" type="text" className="form-control" maxLength={maxLength} value={localized.ar || ""} onChange={(e) => onChange({ ...localized, ar: e.target.value })} />}</div></div>;
     };
 
     // Hero introductory heading helper
@@ -438,13 +494,6 @@ export default function HomeEditor() {
         });
     };
 
-    const toggleCompany = (code) => {
-        const current = Array.isArray(section.selected_companies) ? section.selected_companies : [];
-        const exists = current.includes(code);
-        if (!exists && current.length >= 6) return;
-        setField("selected_companies", exists ? current.filter((c) => c !== code) : [...current, code]);
-    };
-
     const handleCancel = () => router.push("/dashboard/pages");
     const handlePreview = () => window.open(page?.url || "/", "_blank", "noopener,noreferrer");
 
@@ -455,8 +504,9 @@ export default function HomeEditor() {
 
         // TT-16: Required Introductory Heading validation
         const intro = content.hero?.introductory_heading ?? content.hero?.introductoryHeading ?? "";
-        const introStr = typeof intro === "object" ? (intro.en || intro.ar || "") : String(intro || "");
-        if (!introStr.trim()) {
+        const introStr = typeof intro === "object" ? (intro.en || "") : String(intro || "");
+        const introAr = typeof intro === "object" ? (intro.ar || "") : "";
+        if (!introStr.trim() || !introAr.trim()) {
             newErrors.introductoryHeading = t("errors.page.introductory_heading_required") || "Introductory heading is required";
         }
 
@@ -489,6 +539,10 @@ export default function HomeEditor() {
         const ctaUrl = content.saudi_manufacturing?.cta?.url;
         if (ctaUrl && !isValidUrlOrPath(ctaUrl)) {
             newErrors.ctaUrl = t("errors.url.invalid") || "Please enter a valid URL or path";
+        }
+        const heroVideo = content.hero?.background_video;
+        if (typeof heroVideo === "string" && heroVideo && !HOME_VIDEO_PATH.test(heroVideo) && !isSupportedHeroVideoUrl(heroVideo)) {
+            newErrors.heroVideo = t("errors.url.invalid") || "Please enter a valid URL or path";
         }
 
         // TT-22: Our History validation
@@ -531,6 +585,9 @@ export default function HomeEditor() {
             } else if (newErrors.ctaUrl) {
                 toast.error(newErrors.ctaUrl);
                 setActiveSectionId("saudi_manufacturing");
+            } else if (newErrors.heroVideo) {
+                toast.error(newErrors.heroVideo);
+                setActiveSectionId("hero");
             } else if (newErrors.historyEraRange || newErrors.historyTimelineYear || newErrors.historyDuplicateYear) {
                 toast.error(newErrors.historyEraRange || newErrors.historyTimelineYear || newErrors.historyDuplicateYear);
                 setActiveSectionId("our_history");
@@ -540,11 +597,41 @@ export default function HomeEditor() {
 
         setSaving(true);
         try {
+            const contentToSave = { ...content };
+            if (pendingHeroVideo) {
+                const uploadedVideo = await uploadPageMedia("home", pendingHeroVideo.file, "video");
+                contentToSave.hero = {
+                    ...(contentToSave.hero || {}),
+                    background_video: uploadedVideo.path,
+                };
+            }
+            if (pendingFallbackImage) {
+                const uploadedImage = await uploadPageMedia("home", pendingFallbackImage.file, "image");
+                contentToSave.hero = {
+                    ...(contentToSave.hero || {}),
+                    fallback_image: uploadedImage.path,
+                };
+            }
+            if (pendingPrimaryPdf) {
+                const uploadedPdf = await uploadPageMedia("home", pendingPrimaryPdf, "document");
+                contentToSave.hero = {
+                    ...(contentToSave.hero || {}),
+                    primary_btn_file: uploadedPdf,
+                };
+            }
             await updateMutation.mutateAsync({
                 ...page,
-                content,
+                content: {
+                    ...contentToSave,
+                    hero: Object.fromEntries(Object.entries(contentToSave.hero || {}).filter(([key]) => key !== "primary_btn_link")),
+                    key_message: Object.fromEntries(Object.entries(contentToSave.key_message || {}).filter(([key]) => !["point_3_title", "point_3_text"].includes(key))),
+                    our_companies: Object.fromEntries(Object.entries(contentToSave.our_companies || {}).filter(([key]) => key !== "selected_companies")),
+                },
                 status: "Published",
             });
+            setPendingPrimaryPdf(null);
+            setPendingHeroVideo(null);
+            setPendingFallbackImage(null);
             toast.success(t("common.saveSuccess") || "Saved successfully");
             router.push("/dashboard/pages");
         } catch (err) {
@@ -664,14 +751,7 @@ export default function HomeEditor() {
                                         <label className="form-label fsz-12 text-muted">
                                             {t("pages.fields.introductoryHeading")} <span className="text-danger">*</span>
                                         </label>
-                                        <input
-                                            dir={dir}
-                                            type="text"
-                                            className={`form-control ${errors.introductoryHeading ? "is-invalid" : ""}`}
-                                            placeholder={t("pages.fields.introductoryHeadingPh")}
-                                            value={section.introductory_heading ?? section.introductoryHeading ?? ""}
-                                            onChange={(e) => handleIntroHeadingChange(e.target.value)}
-                                        />
+                                        {localizedInput(section.introductory_heading ?? section.introductoryHeading, t("pages.fields.introductoryHeading"), handleIntroHeadingChange, { maxLength: 300, required: true })}
                                         {errors.introductoryHeading && (
                                             <div className="invalid-feedback d-block">{errors.introductoryHeading}</div>
                                         )}
@@ -680,23 +760,24 @@ export default function HomeEditor() {
                                         <label className="form-label fsz-12 text-muted">
                                             {t("pages.fields.headline")} <span className="text-danger">*</span>
                                         </label>
-                                        <input dir={dir} type="text" className="form-control" maxLength={90} value={section.headline || ""} onChange={(e) => setField("headline", e.target.value)} />
+                                        {localizedInput(section.headline, t("pages.fields.headline"), (value) => setField("headline", value), { maxLength: 90 })}
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.supporting")}</label>
-                                        <textarea dir={dir} className="form-control" rows={4} maxLength={240} value={section.supporting_text || ""} onChange={(e) => setField("supporting_text", e.target.value)} />
+                                        {localizedInput(section.supporting_text, t("pages.fields.supporting"), (value) => setField("supporting_text", value), { multiline: true, maxLength: 240 })}
                                     </div>
                                     <div className="col-md-6">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.primaryLabel")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.primary_btn_label || ""} onChange={(e) => setField("primary_btn_label", e.target.value)} />
+                                        {localizedInput(section.primary_btn_label, t("pages.fields.primaryLabel"), (value) => setField("primary_btn_label", value), { maxLength: 120 })}
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.primaryLink")}</label>
-                                        <input dir="ltr" type="text" className="form-control" value={section.primary_btn_link || ""} onChange={(e) => setField("primary_btn_link", e.target.value)} />
+                                        <label className="form-label fsz-12 text-muted">{t("pages.fields.primaryPdf") || "Primary button PDF"}</label>
+                                        <input id="home-primary-pdf" type="file" className="form-control" accept="application/pdf,.pdf" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.type !== "application/pdf" || file.size > 10 * 1024 * 1024) { toast.error("Choose a PDF file up to 10 MB."); e.target.value = ""; return; } setPendingPrimaryPdf(file); e.target.value = ""; }} />
+                                        {(pendingPrimaryPdf || primaryPdfPath) && <div className="mt-2 d-flex align-items-center gap-2"><span className="fsz-12">{primaryPdfName}</span>{!pendingPrimaryPdf && primaryPdfUrl && <a className="btn btn-sm btn-outline-secondary" href={primaryPdfUrl} target="_blank" rel="noreferrer">{t("common.preview") || "Preview"}</a>}<button type="button" className="btn btn-sm btn-outline-primary" onClick={() => document.getElementById("home-primary-pdf")?.click()}>{t("common.replace")}</button></div>}
                                     </div>
                                     <div className="col-md-6">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.secondaryLabel")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.secondary_btn_label || ""} onChange={(e) => setField("secondary_btn_label", e.target.value)} />
+                                        {localizedInput(section.secondary_btn_label, t("pages.fields.secondaryLabel"), (value) => setField("secondary_btn_label", value), { maxLength: 120 })}
                                     </div>
                                     <div className="col-md-6">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.secondaryLink")}</label>
@@ -705,8 +786,17 @@ export default function HomeEditor() {
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.video")}</label>
                                         <FileUpload
-                                            files={filesFromValue(section.background_video, "video")}
-                                            onFilesChange={(files) => setField("background_video", files?.[0]?.preview || "")}
+                                            files={pendingHeroVideo ? [pendingHeroVideo] : filesFromValue(section.background_video, "video")}
+                                            onFilesChange={(files) => {
+                                                const selected = files?.[0];
+                                                if (!selected?.file) {
+                                                    setPendingHeroVideo(null);
+                                                    if (!files?.length) setField("background_video", "");
+                                                    return;
+                                                }
+                                                setPendingHeroVideo(selected);
+                                                setField("background_video", "");
+                                            }}
                                             maxFiles={1}
                                             accept={VIDEO_ACCEPT}
                                             title={t("pages.uploadVideo")}
@@ -717,15 +807,25 @@ export default function HomeEditor() {
                                             dir="ltr"
                                             className="form-control mt-2"
                                             placeholder={t("pages.pasteVideo")}
-                                            value={section.background_video && !String(section.background_video).startsWith("blob:") ? section.background_video : ""}
-                                            onChange={(e) => setField("background_video", e.target.value)}
+                                            value={isSupportedHeroVideoUrl(section.background_video) ? section.background_video : ""}
+                                            onChange={(e) => { setPendingHeroVideo(null); setField("background_video", e.target.value.trim()); }}
                                         />
+                                        {errors.heroVideo && <div className="text-danger fsz-11 mt-1">{errors.heroVideo}</div>}
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.fallback")}</label>
                                         <FileUpload
-                                            files={filesFromValue(section.fallback_image, "image")}
-                                            onFilesChange={(files) => setField("fallback_image", files?.[0]?.preview || "")}
+                                            files={pendingFallbackImage ? [pendingFallbackImage] : filesFromValue(section.fallback_image, "image")}
+                                            onFilesChange={(files) => {
+                                                const selected = files?.[0];
+                                                if (!selected?.file) {
+                                                    setPendingFallbackImage(null);
+                                                    if (!files?.length) setField("fallback_image", "");
+                                                    return;
+                                                }
+                                                setPendingFallbackImage(selected);
+                                                setField("fallback_image", "");
+                                            }}
                                             maxFiles={1}
                                             accept={IMAGE_ACCEPT}
                                             title={t("pages.uploadImage")}
@@ -740,15 +840,15 @@ export default function HomeEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.eyebrow")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.eyebrow || ""} onChange={(e) => setField("eyebrow", e.target.value)} />
+                                        {localizedInput(section.eyebrow, t("pages.fields.eyebrow"), (value) => setField("eyebrow", value), { maxLength: 120 })}
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.title")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.title || ""} onChange={(e) => setField("title", e.target.value)} />
+                                        {localizedInput(section.title, t("pages.fields.title"), (value) => setField("title", value), { maxLength: 200 })}
                                     </div>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.paragraph")}</label>
-                                        <textarea dir={dir} className="form-control" rows={4} value={section.paragraph || ""} onChange={(e) => setField("paragraph", e.target.value)} />
+                                        {localizedInput(section.paragraph, t("pages.fields.paragraph"), (value) => setField("paragraph", value), { multiline: true, maxLength: 2000 })}
                                     </div>
 
                                     {/* Upload Photo */}
@@ -758,10 +858,7 @@ export default function HomeEditor() {
                                         </label>
                                         <FileUpload
                                             files={filesFromValue(section.photo, "image")}
-                                            onFilesChange={(files) => {
-                                                const newPhoto = files?.[0]?.preview || files?.[0]?.url || "";
-                                                setField("photo", newPhoto);
-                                            }}
+                                            onFilesChange={async (files) => { const file = files?.[0]?.file; if (!file) { if (!files?.length) setField("photo", ""); return; } try { const uploaded = await uploadPageMedia("home", file, "image"); setField("photo", uploaded.path || uploaded.url); } catch (error) { toast.error(error?.response?.data?.message || "Image upload failed."); } }}
                                             maxFiles={1}
                                             accept={KEY_MESSAGE_IMAGE_ACCEPT}
                                             title={t("pages.fields.uploadPhoto") || "Upload Photo"}
@@ -794,28 +891,7 @@ export default function HomeEditor() {
                                     </div>
 
                                     <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
-                                            <span>{t("pages.fields.statisticLabel1") || "Statistic Label 1"}</span>
-                                            <span className="fsz-11 text-muted">
-                                                {String(section.statistic_label_1 ?? section.point_1_text ?? "").length}/30
-                                            </span>
-                                        </label>
-                                        <input
-                                            dir={dir}
-                                            type="text"
-                                            className={`form-control ${errors.statLabel1 ? "is-invalid" : ""}`}
-                                            value={section.statistic_label_1 ?? section.point_1_text ?? ""}
-                                            maxLength={30}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setField("statistic_label_1", val);
-                                                setField("point_1_text", val);
-                                                if (errors.statLabel1 && isValidStatLabel(val)) {
-                                                    setErrors((prev) => ({ ...prev, statLabel1: "" }));
-                                                }
-                                            }}
-                                            placeholder="e.g. Over 50 years of leadership"
-                                        />
+                                        {localizedInput(section.statistic_label_1 ?? section.point_1_text, t("pages.fields.statisticLabel1") || "Statistic Label 1", (val) => { setField("statistic_label_1", val); setField("point_1_text", val); if (errors.statLabel1 && isValidStatLabel(val)) setErrors((prev) => ({ ...prev, statLabel1: "" })); }, { maxLength: 30 })}
                                         {errors.statLabel1 && <div className="invalid-feedback d-block fsz-11">{errors.statLabel1}</div>}
                                     </div>
 
@@ -844,28 +920,7 @@ export default function HomeEditor() {
                                     </div>
 
                                     <div className="col-md-6">
-                                        <label className="form-label fsz-12 text-muted d-flex justify-content-between align-items-center">
-                                            <span>{t("pages.fields.statisticLabel2") || "Statistic Label 2"}</span>
-                                            <span className="fsz-11 text-muted">
-                                                {String(section.statistic_label_2 ?? section.point_2_text ?? "").length}/30
-                                            </span>
-                                        </label>
-                                        <input
-                                            dir={dir}
-                                            type="text"
-                                            className={`form-control ${errors.statLabel2 ? "is-invalid" : ""}`}
-                                            value={section.statistic_label_2 ?? section.point_2_text ?? ""}
-                                            maxLength={30}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setField("statistic_label_2", val);
-                                                setField("point_2_text", val);
-                                                if (errors.statLabel2 && isValidStatLabel(val)) {
-                                                    setErrors((prev) => ({ ...prev, statLabel2: "" }));
-                                                }
-                                            }}
-                                            placeholder="e.g. Specialized companies"
-                                        />
+                                        {localizedInput(section.statistic_label_2 ?? section.point_2_text, t("pages.fields.statisticLabel2") || "Statistic Label 2", (val) => { setField("statistic_label_2", val); setField("point_2_text", val); if (errors.statLabel2 && isValidStatLabel(val)) setErrors((prev) => ({ ...prev, statLabel2: "" })); }, { maxLength: 30 })}
                                         {errors.statLabel2 && <div className="invalid-feedback d-block fsz-11">{errors.statLabel2}</div>}
                                     </div>
 
@@ -940,27 +995,13 @@ export default function HomeEditor() {
                                                                 <label className="form-label fsz-11 text-muted mb-1">
                                                                     {t("pages.fields.slideTitle") || "Slide Title"}
                                                                 </label>
-                                                                <input
-                                                                    dir={dir}
-                                                                    type="text"
-                                                                    className="form-control form-control-sm"
-                                                                    value={slide.title || ""}
-                                                                    onChange={(e) => updateSlideField(idx, "title", e.target.value)}
-                                                                    placeholder="e.g. Our Integrated Energy Vision"
-                                                                />
+                                                                {localizedInput(slide.title, t("pages.fields.slideTitle") || "Slide Title", (value) => updateSlideField(idx, "title", value), { maxLength: 200 })}
                                                             </div>
                                                             <div className="col-12">
                                                                 <label className="form-label fsz-11 text-muted mb-1">
                                                                     {t("pages.fields.slideDescription") || "Slide Description"}
                                                                 </label>
-                                                                <textarea
-                                                                    dir={dir}
-                                                                    className="form-control form-control-sm"
-                                                                    rows={2}
-                                                                    value={slide.description || ""}
-                                                                    onChange={(e) => updateSlideField(idx, "description", e.target.value)}
-                                                                    placeholder="Enter slide description..."
-                                                                />
+                                                                {localizedInput(slide.description, t("pages.fields.slideDescription") || "Slide Description", (value) => updateSlideField(idx, "description", value), { multiline: true, maxLength: 2000 })}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1010,14 +1051,14 @@ export default function HomeEditor() {
                                         />
                                     </div>
 
-                                    {(section.cards || []).slice(0, 4).map((card, idx) => (
+            {(section.cards || []).slice(0, 6).map((card, idx) => (
                                         <div className="col-12 border rounded p-3 mb-2 bg-light-subtle" key={card.id || idx}>
                                             <div className="d-flex align-items-center justify-content-between mb-2">
                                                 <h6 className="fsz-13 fw-600 mb-0">
                                                     {t("pages.fields.cardTitle")} #{idx + 1}
                                                 </h6>
                                                 <span className="badge bg-secondary-subtle text-secondary fsz-11">
-                                                    Card {idx + 1} / 4
+                                                    Card {idx + 1} / 6
                                                 </span>
                                             </div>
                                             <div className="row g-2">
@@ -1106,7 +1147,10 @@ export default function HomeEditor() {
                             {activeSection.id === "industries" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
-                                    <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
+                                    {localizedInput(section.section_title, t("pages.fields.sectionTitle"), (value) => setField("section_title", value), { maxLength: 200 })}
+                                    <div className="row g-2 mt-1">
+                                      {["en", "ar"].map((lang) => <div className="col-md-6" key={lang}><label className="form-label fsz-12 text-muted">{t("pages.fields.introText")} ({lang.toUpperCase()})</label><textarea dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" rows={3} maxLength={200} value={section.intro_text?.[lang] || ""} onChange={(e) => setField("intro_text", { ...(section.intro_text || {}), [lang]: e.target.value })} /><small className="text-muted">{(section.intro_text?.[lang] || "").length}/200</small></div>)}
+                                    </div>
                                     <p className="fsz-12 text-muted mt-3 mb-0">{t("pages.industriesManaged")}</p>
                                 </div>
                             )}
@@ -1131,47 +1175,11 @@ export default function HomeEditor() {
                                 <>
                                     <div className="col-12">
                                         <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
-                                        <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
+                                        {localizedInput(section.section_title, t("pages.fields.sectionTitle"), (value) => setField("section_title", value), { maxLength: 200 })}
                                     </div>
                                     <div className="col-12">
-                                        <label className="form-label fsz-12 text-muted">
-                                            {t("pages.selectedCompanies")}
-                                            <span className="ms-2 text-muted">
-                                                ({(section.selected_companies || []).length}/6)
-                                            </span>
-                                        </label>
-                                        <div className="page-editor__company-list">
-                                            {companies.map((company) => {
-                                                const selected = section.selected_companies || [];
-                                                const checked = selected.includes(company.code);
-                                                const disabled = !checked && selected.length >= 6;
-                                                return (
-                                                    <label
-                                                        key={company.code}
-                                                        className={`page-editor__company-item ${checked ? "is-selected" : ""} ${disabled ? "is-disabled" : ""}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            className="form-check-input mt-0"
-                                                            checked={checked}
-                                                            disabled={disabled}
-                                                            onChange={() => toggleCompany(company.code)}
-                                                        />
-                                                        <span className="page-editor__company-logo">
-                                                            {company.image ? (
-                                                                <img src={publicPath(company.image)} alt={company.title} />
-                                                            ) : (
-                                                                <i className="fal fa-building"></i>
-                                                            )}
-                                                        </span>
-                                                        <span className="page-editor__company-text">
-                                                            <strong>{company.code}</strong>
-                                                            <span>{company.title}</span>
-                                                        </span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
+                                        <p className="fsz-12 text-muted mb-2">{t("pages.companiesManaged")}</p>
+                                        <Link href="/dashboard/companies" className="btn btn-outline-primary fsz-12">{t("pages.manageCompanies")}</Link>
                                     </div>
                                 </>
                             )}
@@ -1206,10 +1214,11 @@ export default function HomeEditor() {
                             {activeSection.id === "media_center" && (
                                 <div className="col-12">
                                     <label className="form-label fsz-12 text-muted">{t("pages.fields.sectionTitle")}</label>
-                                    <input dir={dir} type="text" className="form-control" value={section.section_title || ""} onChange={(e) => setField("section_title", e.target.value)} />
+                                    {localizedInput(section.section_title, t("pages.fields.sectionTitle"), (value) => setField("section_title", value), { maxLength: 200 })}
                                     <p className="fsz-12 text-muted mt-3 mb-0">{t("pages.postsManaged")}</p>
                                 </div>
                             )}
+                            {activeSection.id === "footer" && <div className="col-12"><label className="form-label fsz-12 text-muted">{t("pages.fields.footerDescription") || "Footer description"}</label><div className="row g-2">{["en", "ar"].map((lang) => <div className="col-md-6" key={lang}><label className="form-label fsz-12">{lang.toUpperCase()}</label><textarea dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" rows={4} maxLength={200} value={section.description?.[lang] || ""} onChange={(e) => setField("description", { ...(section.description || {}), [lang]: e.target.value })} /><small className="text-muted">{(section.description?.[lang] || "").length}/200</small></div>)}</div></div>}
                         </div>
 
                         {activeSection.manageLink && (

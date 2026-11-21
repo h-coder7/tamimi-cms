@@ -1,7 +1,7 @@
 /** OpenAPI slug ↔ FE numeric id (Editors still route by id). */
 export const PAGE_ID_BY_SLUG = {
   home: 1,
-  "group-history": 2,
+  about: 2,
   industries: 3,
   companies: 4,
   projects: 5,

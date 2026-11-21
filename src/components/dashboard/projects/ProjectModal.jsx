@@ -7,7 +7,7 @@ import FileUpload from "../../shared/FileUpload";
 import { useCompanies } from "@/hooks/useCompanies";
 import { buildCompanyFormOptions } from "@/lib/companyOptions";
 import { buildIndustryFormOptions } from "@/lib/industryOptions";
-import { useIndustries, VALUE_CHAIN_STAGES } from "@/hooks/useIndustries";
+import { useIndustries, useValueChainStages } from "@/hooks/useIndustries";
 import { useI18n } from "@/hooks/useI18n";
 
 const SUMMARY_MAX = 200;
@@ -63,6 +63,7 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
     const textDir = isRtl ? "rtl" : "ltr";
     const { data: companies = [], refetch: refetchCompanies } = useCompanies();
     const { data: industries = [], refetch: refetchIndustries } = useIndustries();
+    const { data: valueChainStages = [] } = useValueChainStages({ enabled: isOpen });
     const [formData, setFormData] = useState(emptyForm);
     const [serviceInput, setServiceInput] = useState("");
     const [isMounted, setIsMounted] = useState(false);
@@ -491,17 +492,17 @@ export default function ProjectModal({ isOpen, onClose, onSave, project }) {
                                             <div className="col-12 mb-3">
                                                 <label className="form-label d-block mb-2">{t("projects.valueChain")}</label>
                                                 <div className="d-flex flex-column gap-2">
-                                                    {VALUE_CHAIN_STAGES.map((stage) => (
-                                                        <div className="form-check" key={stage}>
+                                                    {valueChainStages.map((stage) => (
+                                                        <div className="form-check" key={stage.id}>
                                                             <input
                                                                 className="form-check-input"
                                                                 type="checkbox"
-                                                                id={`project-stage-${stage}`}
-                                                                checked={formData.value_chain.includes(stage)}
-                                                                onChange={() => toggleValueChain(stage)}
+                                                                id={`project-stage-${stage.id}`}
+                                                                checked={formData.value_chain.includes(stage.id)}
+                                                                onChange={() => toggleValueChain(stage.id)}
                                                             />
-                                                            <label className="form-check-label fsz-13" htmlFor={`project-stage-${stage}`}>
-                                                                {t(`valueChain.${stage}`)}
+                                                            <label className="form-check-label fsz-13" htmlFor={`project-stage-${stage.id}`}>
+                                                                {stage.name?.[isRtl ? "ar" : "en"] || stage.name?.en}
                                                             </label>
                                                         </div>
                                                     ))}

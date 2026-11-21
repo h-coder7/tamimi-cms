@@ -2,8 +2,8 @@ export const pageMeta = {
     id: 1,
     page: "Home",
     url: "/",
-    editable_fields: 56,
-    sections: 9,
+    editable_fields: 70,
+    sections: 10,
     status: "Draft",
     last_updated: "",
 };
@@ -31,9 +31,6 @@ export const defaultContent = {
         point_1_text: "Over 50 years of leadership",
         point_2_title: "18",
         point_2_text: "Specialized companies",
-        point_3_title: "Made in Saudi Arabia",
-        point_3_text:
-            "Local manufacturing, innovation and strategic international partnerships for Vision 2030.",
         slides: [
             {
                 id: "main-slide",
@@ -53,30 +50,33 @@ export const defaultContent = {
                 id: 1,
                 title: { en: "Integrity", ar: "النزاهة" },
                 description: { en: "Operating with honesty, transparency and high ethical standards.", ar: "العمل بنزاهة وشفافية وبأعلى المعايير الأخلاقية." },
-                icon: "",
+                icon: "/images/values/integrity.svg",
             },
             {
                 id: 2,
-                title: { en: "Excellence", ar: "التميز" },
-                description: { en: "Delivering world-class quality and continuous improvement.", ar: "تقديم جودة عالمية المستوى والتحسين المستمر." },
-                icon: "",
+                title: { en: "Quality", ar: "الجودة" },
+                description: { en: "Maintaining high standards in every product and service.", ar: "الحفاظ على معايير عالية في كل منتج وخدمة." },
+                icon: "/images/values/quality.svg",
             },
             {
                 id: 3,
-                title: { en: "Innovation", ar: "الابتكار" },
-                description: { en: "Pioneering sustainable and forward-looking energy solutions.", ar: "ريادة حلول طاقة مستدامة ومستقبلية." },
-                icon: "",
+                title: { en: "Customer Focus", ar: "التركيز على العميل" },
+                description: { en: "Listen carefully and build lasting customer relationships.", ar: "نصغي باهتمام ونبني علاقات طويلة الأمد مع عملائنا." },
+                icon: "/images/values/customer-focus.svg",
             },
             {
                 id: 4,
-                title: { en: "Safety", ar: "السلامة" },
-                description: { en: "Prioritizing the health and well-being of people and communities.", ar: "وضع صحة وسلامة الأفراد والمجتمعات في مقدمة أولوياتنا." },
-                icon: "",
+                title: { en: "Innovation", ar: "الابتكار" },
+                description: { en: "Apply knowledge and technology to solve practical challenges.", ar: "نوظف المعرفة والتقنية لحل التحديات العملية." },
+                icon: "/images/values/innovation.svg",
             },
+            { id: 5, title: { en: "Growth", ar: "النمو" }, description: { en: "Develop our people, capabilities and long-term partnerships.", ar: "نطور كوادرنا وقدراتنا وشراكاتنا طويلة الأمد." }, icon: "/images/values/growth.svg" },
+            { id: 6, title: { en: "Respect", ar: "الاحترام" }, description: { en: "Valuing people, communities and the perspectives they bring.", ar: "تقدير الأفراد والمجتمعات ووجهات النظر التي يقدمونها." }, icon: "/images/values/respect.svg" },
         ],
     },
     industries: {
         section_title: "Serving every stage of the energy value chain",
+        intro_text: { en: "", ar: "" },
     },
     our_history: {
         heading: {
@@ -92,7 +92,7 @@ export const defaultContent = {
         eras: [
             {
                 id: "era-1",
-                from_year: 1940,
+                from_year: 1942,
                 to_year: 1971,
                 name: {
                     en: "Foundation",
@@ -149,8 +149,8 @@ export const defaultContent = {
         ],
         timeline_years: [
             {
-                id: "year-1940",
-                year: 1940,
+                id: "year-1942",
+                year: 1942,
                 label: {
                     en: "The beginning",
                     ar: "البداية",
@@ -173,15 +173,15 @@ export const defaultContent = {
                 },
             },
             {
-                id: "year-1971",
-                year: 1971,
+                id: "year-1985",
+                year: 1985,
                 label: {
-                    en: "First joint venture",
-                    ar: "أول مشروع مشترك",
+                    en: "S3C joins the Group",
+                    ar: "انضمام S3C إلى المجموعة",
                 },
                 description: {
-                    en: "SESCO formed as the first specialised contracting joint venture, expanding technical capabilities in oil and gas services.",
-                    ar: "تأسيس سيسكو كأول مشروع مشترك متخصص للمقاولات، مما وسع القدرات الفنية في خدمات النفط والغاز.",
+                    en: "S3C is added to the Group.",
+                    ar: "انضمام S3C إلى المجموعة.",
                 },
             },
             {
@@ -220,11 +220,19 @@ export const defaultContent = {
                     ar: "التأسيس الرسمي لشركة التميمي للطاقة القابضة لتوحيد الحوكمة والاستثمار الاستراتيجي والعمليات التجارية للمجموعة.",
                 },
             },
+            { id: "year-1993", year: 1993, label: { en: "TCO joins the Group", ar: "انضمام TCO إلى المجموعة" }, description: { en: "TCO is added to the Group.", ar: "انضمام TCO إلى المجموعة." } },
+            { id: "year-2006", year: 2006, label: { en: "GPDS joins the Group", ar: "انضمام GPDS إلى المجموعة" }, description: { en: "GPDS is added to the Group.", ar: "انضمام GPDS إلى المجموعة." } },
+            { id: "year-2007", year: 2007, label: { en: "Automation, sensing and water", ar: "الأتمتة والاستشعار والمياه" }, description: { en: "Saudi Sensing, GET Water and Automation Solutions Saudi Arabia join the Group.", ar: "انضمام Saudi Sensing وGET Water وAutomation Solutions Saudi Arabia إلى المجموعة." } },
+            { id: "year-2018", year: 2018, label: { en: "Resa-Gulf Scaffolding joins", ar: "انضمام Resa-Gulf Scaffolding" }, description: { en: "Resa-Gulf Scaffolding is added to the Group.", ar: "انضمام Resa-Gulf Scaffolding إلى المجموعة." } },
+            { id: "year-2021", year: 2021, label: { en: "TEPCO joins the Group", ar: "انضمام TEPCO إلى المجموعة" }, description: { en: "TEPCO is added to the Group.", ar: "انضمام TEPCO إلى المجموعة." } },
+            { id: "year-2022", year: 2022, label: { en: "QYASAT joins the Group", ar: "انضمام QYASAT إلى المجموعة" }, description: { en: "QYASAT is added to the Group.", ar: "انضمام QYASAT إلى المجموعة." } },
+            { id: "year-2023", year: 2023, label: { en: "New Group companies", ar: "شركات جديدة في المجموعة" }, description: { en: "Global Construction and OMS Saleri Saudia are added to the Group.", ar: "انضمام Global Construction وOMS Saleri Saudia إلى المجموعة." } },
+            { id: "year-2024", year: 2024, label: { en: "New Group companies", ar: "شركات جديدة في المجموعة" }, description: { en: "Flame Spray Saudi and Al Yamuna Densons Arabia are added to the Group.", ar: "انضمام Flame Spray Saudi وAl Yamuna Densons Arabia إلى المجموعة." } },
+            { id: "year-2025", year: 2025, label: { en: "Partnerships and expansion", ar: "الشراكات والتوسع" }, description: { en: "WAROM Technology Arabia and Ratnamani Metals & Tubes are added to the Group.", ar: "انضمام WAROM Technology Arabia وRatnamani Metals & Tubes إلى المجموعة." } },
         ],
     },
     our_companies: {
         section_title: "18 specialized companies and joint ventures",
-        selected_companies: [],
     },
     saudi_manufacturing: {
         small_heading: {
@@ -248,21 +256,25 @@ export const defaultContent = {
             {
                 id: 1,
                 title: { en: "Local Manufacturing Capacity", ar: "قدرات التصنيع المحلي" },
+                description: { en: "Expanding production capabilities within the Kingdom.", ar: "توسيع قدرات الإنتاج داخل المملكة." },
                 icon: "factory",
             },
             {
                 id: 2,
                 title: { en: "Technology Transfer", ar: "نقل التقنية" },
+                description: { en: "Bringing advanced technologies and expertise to local industry.", ar: "نقل التقنيات المتقدمة والخبرات إلى الصناعة المحلية." },
                 icon: "cpu",
             },
             {
                 id: 3,
                 title: { en: "Saudi Workforce Development", ar: "تطوير الكوادر السعودية" },
+                description: { en: "Developing skilled Saudi talent for the energy sector.", ar: "تطوير الكفاءات السعودية الماهرة لقطاع الطاقة." },
                 icon: "users",
             },
             {
                 id: 4,
                 title: { en: "Resilient Local Supply Chains", ar: "سلاسل إمداد محلية مرنة" },
+                description: { en: "Strengthening dependable local sourcing and supply networks.", ar: "تعزيز مصادر التوريد المحلية وشبكات الإمداد الموثوقة." },
                 icon: "truck",
             },
         ],
@@ -278,6 +290,7 @@ export const defaultContent = {
     media_center: {
         section_title: "Latest from the Group",
     },
+    footer: { description: { en: "", ar: "" } },
     careers: {
         section_name: "Careers at Tamimi Energy",
         section_title: "Build what powers the Kingdom.",

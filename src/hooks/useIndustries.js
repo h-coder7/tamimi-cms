@@ -37,6 +37,17 @@ export function useIndustries() {
   });
 }
 
+export function useValueChainStages({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: ["value-chain-stages"],
+    enabled,
+    queryFn: async () => {
+      const res = await api.get("/industries/value-chain-stages");
+      return res.data?.data || [];
+    },
+  });
+}
+
 export function useTrashIndustries({ enabled = true } = {}) {
   return useQuery({
     queryKey: ["trash-industries"],

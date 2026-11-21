@@ -49,6 +49,10 @@ function normalizeState(data = {}) {
         en: found.title?.en ?? (typeof found.title === "string" ? found.title : df.title.en),
         ar: found.title?.ar ?? df.title.ar,
       },
+      description: {
+        en: found.description?.en ?? "",
+        ar: found.description?.ar ?? "",
+      },
       icon: found.icon || df.icon || "factory",
     };
   });
@@ -172,6 +176,15 @@ export default function SaudiManufacturingEditor({
     });
   };
 
+  const handleFeatureDescriptionChange = (index, value) => {
+    setErrors((prev) => ({ ...prev, [`feature_description_${index}_${lang}`]: "" }));
+    setCur((prev) => {
+      const nextFeats = [...prev.features];
+      nextFeats[index] = { ...nextFeats[index], description: { ...nextFeats[index].description, [lang]: value } };
+      return { ...prev, features: nextFeats };
+    });
+  };
+
   const handleFeatureIconChange = (index, iconKey) => {
     setCur((prev) => {
       const nextFeats = [...prev.features];
@@ -283,11 +296,12 @@ export default function SaudiManufacturingEditor({
     }
 
     cur.features.forEach((feat, idx) => {
-      const fTitle = feat.title?.[checkLang] || "";
-      if (!fTitle.trim()) {
-        errs[`feature_${idx}_${checkLang}`] = `Enter a title for feature ${idx + 1}.`;
-      } else if (fTitle.length > 40) {
-        errs[`feature_${idx}_${checkLang}`] = "This is too long. Shorten it to 40 characters or fewer.";
+      for (const locale of ["en", "ar"]) {
+        const fTitle = feat.title?.[locale] || "";
+        const fDescription = feat.description?.[locale] || "";
+        if (!fTitle.trim()) errs[`feature_${idx}_${locale}`] = `Enter a ${locale.toUpperCase()} title for feature ${idx + 1}.`;
+        if (!fDescription.trim()) errs[`feature_description_${idx}_${locale}`] = `Enter a ${locale.toUpperCase()} description for feature ${idx + 1}.`;
+        else if (fDescription.length > 120) errs[`feature_description_${idx}_${locale}`] = "This is too long. Shorten it to 120 characters or fewer.";
       }
     });
 
@@ -344,6 +358,7 @@ export default function SaudiManufacturingEditor({
       features: cur.features.map((f, idx) => ({
         id: f.id || idx + 1,
         title: f.title,
+        description: f.description,
         icon: f.icon || "factory",
       })),
     };
@@ -601,7 +616,7 @@ export default function SaudiManufacturingEditor({
         >
           <div>
             <h3 id="tt19-h-feat">Features</h3>
-            <p>Edit the title and choose an icon for each feature.</p>
+            <p>Edit the bilingual title and required description, then choose an icon.</p>
           </div>
           <span className="tt19-lock">
             <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
@@ -615,6 +630,7 @@ export default function SaudiManufacturingEditor({
         <div className="tt19-features">
           {cur.features.map((feat, idx) => {
             const fTitleLen = (feat.title?.[lang] || "").length;
+            const fDescriptionLen = (feat.description?.[lang] || "").length;
             const currentIconKey = feat.icon || "factory";
             const currentIconData = TT19_ICONS[currentIconKey] || TT19_ICONS.factory;
             const isGridOpen = openGridIndex === idx;
@@ -644,6 +660,12 @@ export default function SaudiManufacturingEditor({
                     <span className="err">{errors[`feature_${idx}_${lang}`] || ""}</span>
                     <span className={`count ${fTitleLen > 40 ? "over" : ""}`}>{fTitleLen} / 40</span>
                   </div>
+                </div>
+
+                <div className="tt19-field">
+                  <label htmlFor={`tt19-fd-${idx}`}>Feature description <span className="tt19-req">*</span> ({lang.toUpperCase()})</label>
+                  <textarea id={`tt19-fd-${idx}`} className={`tt19-control ${errors[`feature_description_${idx}_${lang}`] ? "invalid" : ""}`} rows={3} maxLength={120} dir={lang === "ar" ? "rtl" : "ltr"} value={feat.description?.[lang] || ""} onChange={(e) => handleFeatureDescriptionChange(idx, e.target.value)} />
+                  <div className="tt19-foot"><span className="err">{errors[`feature_description_${idx}_${lang}`] || ""}</span><span className="count">{fDescriptionLen} / 120</span></div>
                 </div>
 
                 <div className="tt19-field">

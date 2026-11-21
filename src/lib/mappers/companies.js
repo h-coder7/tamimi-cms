@@ -104,6 +104,7 @@ export function companyFromApi(company) {
     slug: company.slug,
     tagline: localized(company.tagline),
     i18nTagline: company.tagline,
+    jvPartner: company.jvPartner || "",
     year_established:
       company.yearEstablished != null ? String(company.yearEstablished) : "",
     overview,
@@ -163,7 +164,9 @@ export function companyFromApi(company) {
 
 export function companyToApiPayload(form) {
   const payload = {
-    name: preserveLocalized(form.title, form.i18nTitle),
+    name: form.i18nTitle && typeof form.i18nTitle === "object"
+      ? { en: String(form.i18nTitle.en || form.title || "").trim(), ar: String(form.i18nTitle.ar || "").trim() }
+      : preserveLocalized(form.title, form.i18nTitle),
     shortCode: (form.code || "").trim(),
     field: (form.field || form.overview || "").trim().slice(0, 120) || "General",
     overview: preserveLocalized(form.overview || form.title, form.i18nOverview),
@@ -173,12 +176,13 @@ export function companyToApiPayload(form) {
   if (form.secondaryOverview !== undefined) payload.secondaryOverview = { en: form.secondaryOverview?.en || "", ar: form.secondaryOverview?.ar || "" };
   if (form.secondaryImagePath && !form.secondaryImageFiles?.length) payload.removeSecondaryImage = true;
   if (form.thirdImagePath && !form.thirdImageFiles?.length) payload.removeThirdImage = true;
-  if (form.tagline !== undefined) payload.tagline = preserveLocalized(form.tagline, form.i18nTagline);
+  if (form.tagline !== undefined) payload.tagline = {
+    en: String(form.tagline || "").trim(),
+    ar: String(form.i18nTagline?.ar || "").trim(),
+  };
   if (form.year_established)
     payload.yearEstablished = Number(form.year_established) || undefined;
-  if (form.type === "Joint Venture") {
-    payload.jvPartner = form.jvPartner || null;
-  }
+  payload.jvPartner = form.type === "Joint Venture" ? (form.jvPartner || null) : null;
   if (Array.isArray(form.services)) {
     payload.coreServices = form.services.map((s, index) => preserveLocalized(s, form.i18nServices?.[index]));
   }
@@ -222,43 +226,21 @@ export function companyToApiPayload(form) {
     payload.certifications = form.certifications.filter(Boolean);
   }
 
-  // Keep existing gallery paths; new files go as multipart `gallery`.
-  // The YouTube / Vimeo field is one gallery item with videoUrl and no path.
-  const kept = [];
   const gallerySource = Array.isArray(form.gallery)
     ? form.gallery
     : Array.isArray(form.galleryItems)
       ? form.galleryItems
       : [];
 
-  for (const item of gallerySource) {
-    if (!item || item.file instanceof File) continue;
-    if (typeof item === "string") continue;
-    if (item.path) kept.push({ path: item.path, ...(item.videoUrl ? { videoUrl: item.videoUrl } : {}) });
-  }
-
+  let uploadIndex = 0;
+  payload.gallery = gallerySource.flatMap((item) => {
+    if (!item || typeof item === "string") return [];
+    if (item.file instanceof File) return [{ uploadIndex: uploadIndex++ }];
+    return item.path ? [{ path: item.path }] : [];
+  });
   const videoUrl = String(form.video_url || "").trim();
-  if (videoUrl) kept.push({ videoUrl });
-  for (const url of form.extraVideoUrls || []) if (url) kept.push({ videoUrl: url });
-  // Retain the relative positions of existing files and video links. Newly
-  // uploaded files are appended by the API after these retained entries.
-  const remaining = [...kept];
-  const ordered = [];
-  let videoIndex = 0;
-  const videos = [videoUrl, ...(form.extraVideoUrls || [])];
-  for (const original of form.gallerySequence || []) {
-    if (original?.path) {
-      const index = remaining.findIndex((item) => item.path === original.path);
-      if (index >= 0) ordered.push(...remaining.splice(index, 1));
-    } else if (original?.videoUrl) {
-      const url = videos[videoIndex++];
-      if (url) {
-        const index = remaining.findIndex((item) => !item.path && item.videoUrl === url);
-        if (index >= 0) ordered.push(...remaining.splice(index, 1));
-      }
-    }
-  }
-  payload.gallery = [...ordered, ...remaining];
+  if (videoUrl) payload.gallery.push({ videoUrl });
+  for (const url of form.extraVideoUrls || []) if (url) payload.gallery.push({ videoUrl: url });
 
   return payload;
 }

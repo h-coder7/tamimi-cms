@@ -18,7 +18,7 @@ function normalizeHistoryData(raw = {}) {
   const defaultEras = [
     {
       id: "era-1",
-      from_year: 1940,
+      from_year: 1942,
       to_year: 1971,
       name: { en: "Foundation", ar: "التأسيس" },
       description: {
@@ -64,8 +64,8 @@ function normalizeHistoryData(raw = {}) {
 
   const defaultTimeline = [
     {
-      id: "year-1940",
-      year: 1940,
+      id: "year-1942",
+      year: 1942,
       label: { en: "The beginning", ar: "البداية" },
       description: {
         en: "The late Sheikh Ali bin Abdullah Al Tamimi enters business by founding a company to execute pipelines and related general contracting work.",
@@ -82,12 +82,12 @@ function normalizeHistoryData(raw = {}) {
       },
     },
     {
-      id: "year-1971",
-      year: 1971,
-      label: { en: "First joint venture", ar: "أول مشروع مشترك" },
+      id: "year-1985",
+      year: 1985,
+      label: { en: "S3C joins the Group", ar: "انضمام S3C إلى المجموعة" },
       description: {
-        en: "SESCO formed as the first specialised contracting joint venture, expanding technical capabilities in oil and gas services.",
-        ar: "تأسيس سيسكو كأول مشروع مشترك متخصص للمقاولات، مما وسع القدرات الفنية في خدمات النفط والغاز.",
+        en: "S3C is added to the Group.",
+        ar: "انضمام S3C إلى المجموعة.",
       },
     },
     {
@@ -146,7 +146,7 @@ function normalizeHistoryData(raw = {}) {
   const rawEras = Array.isArray(raw.eras) && raw.eras.length > 0 ? raw.eras : defaultEras;
   const eras = rawEras.map((e, idx) => ({
     id: e.id || `era-${idx + 1}-${Date.now()}`,
-    from_year: e.from_year !== undefined && e.from_year !== null ? Number(e.from_year) : 1940,
+    from_year: e.from_year !== undefined && e.from_year !== null ? Number(e.from_year) : 1942,
     to_year: e.to_year !== undefined && e.to_year !== null ? Number(e.to_year) : 1971,
     name: {
       en: typeof e.name === "object" ? e.name?.en ?? "" : e.name ?? "",
@@ -166,7 +166,7 @@ function normalizeHistoryData(raw = {}) {
 
   const timeline_years = rawTimeline.map((t, idx) => ({
     id: t.id || `year-${t.year || idx + 1}-${Date.now()}`,
-    year: t.year !== undefined && t.year !== null ? Number(t.year) : 1940,
+    year: t.year !== undefined && t.year !== null ? Number(t.year) : 1942,
     label: {
       en: typeof t.label === "object" ? t.label?.en ?? "" : t.label ?? "",
       ar: typeof t.label === "object" ? t.label?.ar ?? "" : "",
@@ -194,7 +194,7 @@ export default function OurHistoryEditor({
   const [lang, setLang] = useState("en"); // "en" | "ar"
   const [selectedYearId, setSelectedYearId] = useState(() => data.timeline_years[0]?.id || "");
   const [showPreview, setShowPreview] = useState(false);
-  const [publicActiveYear, setPublicActiveYear] = useState(() => data.timeline_years[0]?.year || 1940);
+  const [publicActiveYear, setPublicActiveYear] = useState(() => data.timeline_years[0]?.year || 1942);
   const [uploadingEraIdx, setUploadingEraIdx] = useState(null);
   const fileInputRef = useRef(null);
   const activeEraForUploadRef = useRef(null);
@@ -621,7 +621,7 @@ export default function OurHistoryEditor({
                     className="oh-input"
                     value={era.from_year ?? ""}
                     onChange={(e) => handleEraFieldChange(idx, "from_year", e.target.value)}
-                    placeholder="1940"
+                    placeholder="1942"
                   />
                 </div>
                 <div className="col-md-6">

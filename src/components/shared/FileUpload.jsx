@@ -53,6 +53,8 @@ export default function FileUpload({
     accept = DEFAULT_ACCEPT,
     title,
     hint = "",
+    sortable = false,
+    maxSize,
     /** When set, uploads to POST /files with this purpose and attaches fileId/url */
     uploadPurpose = null,
 }) {
@@ -117,6 +119,14 @@ export default function FileUpload({
         onFilesChange(updatedFiles);
     };
 
+    const moveAttachment = (from, to) => {
+        if (to < 0 || to >= files.length) return;
+        const next = [...files];
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
+        onFilesChange(next);
+    };
+
     const handleFileClick = (file) => {
         const type = file.type || "";
         const name = file.name || "";
@@ -135,8 +145,9 @@ export default function FileUpload({
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept,
-        maxFiles,
-        disabled: uploading,
+        maxFiles: maxFiles > 1 ? Math.max(0, maxFiles - files.length) : maxFiles,
+        ...(maxSize ? { maxSize } : {}),
+        disabled: uploading || (maxFiles > 1 && files.length >= maxFiles),
     });
 
     return (
@@ -174,6 +185,10 @@ export default function FileUpload({
                     {files.map((file, index) => (
                         <div
                             key={index}
+                            draggable={sortable}
+                            onDragStart={(event) => { if (sortable) event.dataTransfer.setData("text/plain", String(index)); }}
+                            onDragOver={(event) => { if (sortable) event.preventDefault(); }}
+                            onDrop={(event) => { if (!sortable) return; event.preventDefault(); moveAttachment(Number(event.dataTransfer.getData("text/plain")), index); }}
                             className="position-relative p-2 rounded-3 border bg-white d-flex align-items-center gap-3 cursor-pointer hover-bg-light"
                             onClick={() => handleFileClick(file)}
                         >
@@ -198,10 +213,12 @@ export default function FileUpload({
                                           : tr("common.unknownSize")}
                                 </p>
                             </div>
+                            {sortable && <div className="d-flex flex-column"><button type="button" className="btn btn-sm btn-light py-0" aria-label={`Move ${file.name} up`} disabled={index === 0} onClick={(e) => { e.stopPropagation(); moveAttachment(index, index - 1); }}>↑</button><button type="button" className="btn btn-sm btn-light py-0" aria-label={`Move ${file.name} down`} disabled={index === files.length - 1} onClick={(e) => { e.stopPropagation(); moveAttachment(index, index + 1); }}>↓</button></div>}
                             {(file.preview || file.url) && (
                                 <button
                                     type="button"
-                                    className="btn btn-icon btn-sm text-muted hover-bg-light rounded-circle"
+                                    className="btn btn-icon btn-sm text-muted hover-bg-light rounded-circle cursor-pointer"
+                                    style={{ cursor: "pointer" }}
                                     title={tr("common.openNewTab")}
                                     onClick={(e) => {
                                         e.stopPropagation();

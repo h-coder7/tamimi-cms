@@ -7,6 +7,7 @@ import IndustriesTable from "./IndustriesTable";
 import IndustryModal from "./IndustryModal";
 import IndustriesTrashModal from "./IndustriesTrashModal";
 import IndustryDetailsOffcanvas from "./IndustryDetailsOffcanvas";
+import ValueChainStagesManager from "./ValueChainStagesManager";
 import ReorderModal from "@/components/shared/ReorderModal";
 import { confirmAction } from "@/utils/confirm";
 import { useI18n } from "@/hooks/useI18n";
@@ -23,7 +24,7 @@ import {
 } from "@/hooks/useIndustries";
 
 export default function IndustriesClient() {
-    const { t } = useI18n();
+    const { t, isRtl } = useI18n();
     const { data: industries = [], isLoading } = useIndustries();
     const [showTrashModal, setShowTrashModal] = useState(false);
     const [showReorderModal, setShowReorderModal] = useState(false);
@@ -42,6 +43,7 @@ export default function IndustriesClient() {
     const [selectedIds, setSelectedIds] = useState([]);
     const [viewIndustry, setViewIndustry] = useState(null);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
+    const [showValueChainStages, setShowValueChainStages] = useState(false);
     
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -123,6 +125,9 @@ export default function IndustriesClient() {
                 titleCol="col-lg-5"
                 actionCol="col-lg-7"
             >
+                <button type="button" className="alert alert-info rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0" onClick={() => setShowValueChainStages(true)}>
+                    <i className="fal fa-project-diagram"></i><span className="txt ms-2">{t("industries.valueChainStages")}</span>
+                </button>
                 <button
                     type="button"
                     className="alert alert-success rounded-pill py-2 px-3 fsz-12 ms-2 border-0 mb-0"
@@ -215,6 +220,7 @@ export default function IndustriesClient() {
                     setViewIndustry(null);
                 }}
             />
+            <ValueChainStagesManager isOpen={showValueChainStages} onClose={() => setShowValueChainStages(false)} />
         </>
     );
 }

@@ -1,7 +1,8 @@
 export const pageMeta = {
     id: 2,
-    page: "Group History",
-    url: "/group-history",
+    page: "About",
+    slug: "about",
+    url: "/about",
     editable_fields: 52,
     sections: 6,
     status: "Draft",
@@ -87,19 +88,20 @@ export const GROUP_VALUES = [
 
 export const defaultContent = {
     hero: {
-        title: "More than 50 years energizing the Kingdom",
-        intro_text:
-            "Tamimi Energy Group is a subsidiary of Tamimi Holding. Its companies specialize in oil and gas, power, petrochemical, water, utility, industrial and renewable energy fields.",
+        title: { en: "More than 50 years energizing the Kingdom", ar: "" },
+        intro_text: { en: "Tamimi Energy Group is a subsidiary of Tamimi Holding. Its companies specialize in oil and gas, power, petrochemical, water, utility, industrial and renewable energy fields.", ar: "" },
     },
     our_journey: {
-        section_title: "From a pipeline contractor to an integrated group",
-        milestones: JOURNEY_MILESTONES.map((item) => ({ ...item })),
+        section_title: { en: "From a pipeline contractor to an integrated group", ar: "" },
+        milestones: JOURNEY_MILESTONES.map((item) => ({ ...item, milestone: { en: item.milestone, ar: "" } })),
     },
     values: {
         items: GROUP_VALUES.map((item) => ({ ...item })),
     },
     group_structure: {
-        section_title: "One group, 18 specialized companies",
+        section_title: { en: "One group, 18 specialized companies", ar: "" },
+        description: { en: "", ar: "" },
+        holding: { name: { en: "Tamimi Energy Holding Company", ar: "" }, established_year: 2016, logo: "" },
     },
 
 };

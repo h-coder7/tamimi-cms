@@ -27,7 +27,7 @@ export default function TeamEditor({ value, onChange, onUploading }) {
     const file = files[0].file;
     if (!file || file.size > 2097152 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) { toast.error(l.size); return; }
     uploads.current += 1; onUploading(true);
-    try { const result = await uploadPageMedia("group-history", file, "team_image"); if (!result?.path) throw new Error(l.failed); apply(result.path); }
+    try { const result = await uploadPageMedia("about", file, "team_image"); if (!result?.path) throw new Error(l.failed); apply(result.path); }
     catch (error) { toast.error(getApiErrorMessage(error, l.failed)); }
     finally { uploads.current -= 1; onUploading(uploads.current > 0); }
   }} />;

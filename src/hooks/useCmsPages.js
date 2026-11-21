@@ -91,8 +91,9 @@ export function useUpdateCmsPage() {
         );
       }
 
-      if (slug === "group-history") {
+      if (slug === "about") {
         sections = Object.fromEntries(Object.entries(sections).filter(([key]) => !["vision_mission", "vision_2030"].includes(key)));
+        delete sections.values;
       }
 
       if (slug === "industries" || slug === "careers") {

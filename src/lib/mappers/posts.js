@@ -40,12 +40,18 @@ function localized(value, fallback = "") {
 }
 
 function toLocalized(value) {
+  if (value && typeof value === "object") {
+    return { en: String(value.en || "").trim(), ar: String(value.ar || "").trim() };
+  }
   const text = localized(value, "").trim();
   return { en: text, ar: text };
 }
 
 /** Preserve HTML body as-is (do not trim tags/whitespace inside markup). */
 function toLocalizedHtml(value) {
+  if (value && typeof value === "object") {
+    return { en: String(value.en || ""), ar: String(value.ar || "") };
+  }
   const html =
     typeof value === "string"
       ? value
@@ -78,11 +84,18 @@ export function postFromApi(post) {
     i18nTitle: post.title,
     slug: post.slug || "",
     summary: localized(post.summary, ""),
+    i18nSummary: post.summary && typeof post.summary === "object"
+      ? { en: post.summary.en || "", ar: post.summary.ar || "" }
+      : { en: post.summary || "", ar: post.summary || "" },
     body: localized(post.body, ""),
+    i18nBody: post.body && typeof post.body === "object"
+      ? { en: post.body.en || "", ar: post.body.ar || "" }
+      : { en: post.body || "", ar: post.body || "" },
     category: CATEGORY_TO_UI[post.category] || "News",
     status: STATUS_TO_UI[post.status] || "Draft",
     publish_date: toDateOnly(post.publishAt),
     relatedCompanyId: post.relatedCompanyId || null,
+    industryIds: Array.isArray(post.industryIds) ? post.industryIds : [],
     company_code: post.relatedCompany?.shortCode || "",
     cover: post.coverUrl || "",
     coverPath: post.coverPath || null,
@@ -109,7 +122,9 @@ export function postToApiPayload(form) {
     status: STATUS_TO_API[form.status] || "draft",
   };
 
-  const summary = toOptionalLocalized(form.summary);
+  const summary = form.summary && typeof form.summary === "object"
+    ? { en: String(form.summary.en || "").trim(), ar: String(form.summary.ar || "").trim() }
+    : toOptionalLocalized(form.summary);
   if (summary) payload.summary = summary;
 
   if (form.publish_date) {
@@ -119,6 +134,7 @@ export function postToApiPayload(form) {
   }
 
   payload.relatedCompanyId = form.relatedCompanyId || null;
+  payload.industryIds = Array.isArray(form.industryIds) ? form.industryIds : [];
 
   if (form.seo_title || form.seo_description) {
     payload.seo = {

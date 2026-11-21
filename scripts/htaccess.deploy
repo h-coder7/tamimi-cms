@@ -1,6 +1,7 @@
 # Next static export (trailingSlash: true) — serve index.html for directories
 DirectoryIndex index.html
 
+
 # Block hidden files
 <FilesMatch "^\.">
   Require all denied

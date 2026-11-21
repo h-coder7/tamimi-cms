@@ -20,6 +20,7 @@ export default function CareersEditor({ value, onChange, onUploading }) {
     intro: "Intro", highlights: "Highlights", name: "Section name", title: "Section title", description: "Description", image: "Section image", hint: "Landscape image, at least 1200 pixels wide", areas: "Focus Areas", add: "+ Add card", up: "Move Up", down: "Move Down", delete: "Delete", confirm: "Delete this card?", numbers: "Numbers", value: "Value", label: "Label", show: "Show Preview", hide: "Hide Preview", preview: "Live Preview", uploading: "Uploading image...", failed: "Image upload failed"
   };
   const update = (patch) => onChange({ ...latest.current, ...patch });
+  const display = value => typeof value === "object" && value ? (value[isRtl ? "ar" : "en"] || value.en || value.ar || "") : value || "";
   const updateCard = (index, patch) => update({ focus_areas: latest.current.focus_areas.map((card, i) => i === index ? { ...card, ...patch } : card) });
   const move = (index, delta) => {
     const cards = [...latest.current.focus_areas];
@@ -40,7 +41,11 @@ export default function CareersEditor({ value, onChange, onUploading }) {
     finally { setUploading(false); onUploading(false); }
   };
   const imageUrl = value.image ? `${String(api.defaults.baseURL || "").replace(/\/api\/v1\/admin\/?$/, "")}/uploads/${value.image}` : "";
-  const field = (label, val, change, multiline = false) => <div className="mb-3"><label className="form-label fsz-12 text-muted">{label}</label>{multiline ? <textarea dir={isRtl ? "rtl" : "ltr"} className="form-control" rows={4} maxLength={4000} value={val} onChange={e => change(e.target.value)} /> : <input dir={isRtl ? "rtl" : "ltr"} className="form-control" maxLength={300} value={val} onChange={e => change(e.target.value)} />}</div>;
+  const field = (label, val, change, multiline = false, bilingual = false) => {
+    if (!bilingual) return <div className="mb-3"><label className="form-label fsz-12 text-muted">{label}</label>{multiline ? <textarea dir={isRtl ? "rtl" : "ltr"} className="form-control" rows={4} maxLength={4000} value={val || ""} onChange={e => change(e.target.value)} /> : <input dir={isRtl ? "rtl" : "ltr"} className="form-control" maxLength={300} value={val || ""} onChange={e => change(e.target.value)} />}</div>;
+    const localized = typeof val === "object" && val ? val : { en: val || "", ar: "" };
+    return <div className="row g-2 mb-3"><label className="form-label fsz-12 text-muted mb-0">{label}</label>{["en", "ar"].map(lang => <div className="col-md-6" key={lang}><small className="text-muted">{lang.toUpperCase()}</small>{multiline ? <textarea dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" rows={4} maxLength={4000} value={localized[lang] || ""} onChange={e => change({ ...localized, [lang]: e.target.value })} /> : <input dir={lang === "ar" ? "rtl" : "ltr"} className="form-control" maxLength={300} value={localized[lang] || ""} onChange={e => change({ ...localized, [lang]: e.target.value })} />}</div>)}</div>;
+  };
   return <div className="our-history-scope">
     <div className="d-flex flex-wrap justify-content-between gap-2 mb-4">
       <div className="d-flex gap-2">
@@ -50,21 +55,21 @@ export default function CareersEditor({ value, onChange, onUploading }) {
       <button type="button" className={`oh-preview-toggle-btn ${preview ? "active" : ""}`} onClick={() => setPreview(!preview)}>{preview ? labels.hide : labels.show}</button>
     </div>
     {tab === "intro" ? <>
-      {field(labels.name, value.section_name, v => update({ section_name: v }))}
-      {field(labels.title, value.section_title, v => update({ section_title: v }))}
-      {field(labels.description, value.description, v => update({ description: v }), true)}
+      {field(labels.name, value.section_name, v => update({ section_name: v }), false, true)}
+      {field(labels.title, value.section_title, v => update({ section_title: v }), false, true)}
+      {field(labels.description, value.description, v => update({ description: v }), true, true)}
       <FileUpload title={labels.image} hint={uploading ? labels.uploading : labels.hint} files={imageUrl ? [{ name: value.image.split("/").pop(), type: "image/jpeg", preview: imageUrl }] : []} onFilesChange={changeImage} maxFiles={1} accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"], "image/gif": [".gif"], "image/bmp": [".bmp"] }} />
     </> : <>
       <h6>{labels.areas}</h6>
       {value.focus_areas.map((card, i) => <div className="border rounded-3 p-3 mb-3" key={card.id}>
-        {field(labels.title, card.title, v => updateCard(i, { title: v }))}
-        {field(labels.description, card.description, v => updateCard(i, { description: v }), true)}
+        {field(labels.title, card.title, v => updateCard(i, { title: v }), false, true)}
+        {field(labels.description, card.description, v => updateCard(i, { description: v }), true, true)}
         <div className="d-flex flex-wrap gap-2"><button type="button" className="btn btn-outline-secondary btn-sm" disabled={i === 0} onClick={() => move(i, -1)}>{labels.up}</button><button type="button" className="btn btn-outline-secondary btn-sm" disabled={i === value.focus_areas.length - 1} onClick={() => move(i, 1)}>{labels.down}</button><button type="button" className="btn btn-outline-danger btn-sm" onClick={() => { if (window.confirm(labels.confirm)) update({ focus_areas: latest.current.focus_areas.filter(c => c.id !== card.id) }); }}>{labels.delete}</button></div>
       </div>)}
       <button type="button" className="btn btn-outline-primary btn-sm mb-4" disabled={value.focus_areas.length >= 100} onClick={() => update({ focus_areas: [...latest.current.focus_areas, { id: `focus-${crypto.randomUUID()}`, title: "", description: "" }] })}>{labels.add}</button>
       <h6>{labels.numbers}</h6>
-      {value.statistics.map((stat, i) => <div className="border rounded-3 p-3 mb-3" key={i}>{field(`${labels.value} ${i + 1}`, stat.value, v => update({ statistics: latest.current.statistics.map((s, n) => n === i ? { ...s, value: v } : s) }))}{field(`${labels.label} ${i + 1}`, stat.label, v => update({ statistics: latest.current.statistics.map((s, n) => n === i ? { ...s, label: v } : s) }))}</div>)}
+      {value.statistics.map((stat, i) => <div className="border rounded-3 p-3 mb-3" key={i}>{field(`${labels.value} ${i + 1}`, stat.value, v => update({ statistics: latest.current.statistics.map((s, n) => n === i ? { ...s, value: v } : s) }))}{field(`${labels.label} ${i + 1}`, stat.label, v => update({ statistics: latest.current.statistics.map((s, n) => n === i ? { ...s, label: v } : s) }), false, true)}</div>)}
     </>}
-    {preview && <div className="oh-public-preview mt-4 p-4 border rounded-3" aria-label={labels.preview}><h6>{labels.preview}</h6><p>{value.section_name}</p><h2>{value.section_title}</h2><p>{value.description}</p>{imageUrl && <img src={imageUrl} alt="" className="img-fluid rounded mb-3" />}<div className="row">{value.focus_areas.map(card => <div className="col-md-6 mb-3" key={card.id}><div className="border rounded p-3 h-100"><h5>{card.title}</h5><p>{card.description}</p></div></div>)}</div><div className="d-flex gap-4">{value.statistics.map((stat, i) => <div key={i}><strong>{stat.value}</strong><p>{stat.label}</p></div>)}</div></div>}
+    {preview && <div className="oh-public-preview mt-4 p-4 border rounded-3" aria-label={labels.preview}><h6>{labels.preview}</h6><p>{display(value.section_name)}</p><h2>{display(value.section_title)}</h2><p>{display(value.description)}</p>{imageUrl && <img src={imageUrl} alt="" className="img-fluid rounded mb-3" />}<div className="row">{value.focus_areas.map(card => <div className="col-md-6 mb-3" key={card.id}><div className="border rounded p-3 h-100"><h5>{display(card.title)}</h5><p>{display(card.description)}</p></div></div>)}</div><div className="d-flex gap-4">{value.statistics.map((stat, i) => <div key={i}><strong>{display(stat.value)}</strong><p>{display(stat.label)}</p></div>)}</div></div>}
   </div>;
 }
