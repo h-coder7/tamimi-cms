@@ -32,7 +32,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # Environment files
-.env*
 !.env.example
 
 # Deployment archives
